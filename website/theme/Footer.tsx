@@ -20,7 +20,7 @@ export function Footer({ website }: { website: ZelrexWebsite }) {
         }}
       >
         <div>
-          <strong>{website.branding.brandName}</strong>
+          <strong>{website.branding.name}</strong>
           <p style={{ opacity: 0.7, maxWidth: 360 }}>
             {website.branding.tagline ??
               "Built with clarity, focus, and intention."}
@@ -29,7 +29,7 @@ export function Footer({ website }: { website: ZelrexWebsite }) {
 
         <div style={{ display: "flex", gap: 32 }}>
           {website.pages.map((p) => (
-            <a key={p.type} href={`/${p.type}`}>
+            <a key={p.slug} href={`/${p.slug}`}>
               {p.title}
             </a>
           ))}

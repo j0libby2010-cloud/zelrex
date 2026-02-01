@@ -28,20 +28,20 @@ export function Header({ website }: { website: ZelrexWebsite }) {
       >
         {/* Brand */}
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {website.branding.logoUrl && (
+          {website.branding.logo && (
             <img
-              src={website.branding.logoUrl}
-              alt={website.branding.brandName}
+              src={website.branding.logo}
+              alt={website.branding.name}
               style={{ height: 32 }}
             />
           )}
-          <strong>{website.branding.brandName}</strong>
+          <strong>{website.branding.name}</strong>
         </div>
 
         {/* Desktop nav */}
         <div className="nav-desktop">
           {website.pages.map((p) => (
-            <a key={p.type} href={`/${p.type}`}>
+            <a key={p.slug} href={`/${p.slug}`}>
               {p.title}
             </a>
           ))}
@@ -65,7 +65,7 @@ export function Header({ website }: { website: ZelrexWebsite }) {
       {open && (
         <div className="nav-mobile">
           {website.pages.map((p) => (
-            <a key={p.type} href={`/${p.type}`}>
+            <a key={p.slug} href={`/${p.slug}`}>
               {p.title}
             </a>
           ))}

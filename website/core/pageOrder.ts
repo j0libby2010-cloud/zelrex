@@ -1,6 +1,4 @@
-import { WebsitePageType } from "./websiteTypes";
-
-export const DEFAULT_PAGE_ORDER: WebsitePageType[] = [
+export const DEFAULT_PAGE_ORDER: string[] = [
   "home",
   "offer",
   "pricing",

@@ -8,9 +8,11 @@ import { ZelrexWebsite } from "./websiteTypes";
 export function getWebsiteById(siteId: string): ZelrexWebsite | null {
   if (siteId === "demo") {
     return buildWebsite({
-      brand: {
+      branding: {
         name: "DemoCo",
         logo: undefined,
+        tagline: "Websites designed to convert",
+        tone: "professional",
       },
       id: "demo",
     });

@@ -1,9 +1,9 @@
-import { ZelrexWebsite } from "./websiteTypes";
+import { WebsiteBranding } from "./websiteTypes";
 
 export function selectTheme(
-  brand: ZelrexWebsite["brand"] | any
+  branding: WebsiteBranding
 ): "obsidian" | "ivory" | "carbon" | "aura" | "slate" {
-  const tone = (brand as any).tone;
+  const tone = branding.tone;
   if (tone === "luxury" || tone === "authoritative") {
     return "obsidian";
   }

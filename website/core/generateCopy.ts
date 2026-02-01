@@ -9,7 +9,7 @@ export function generateWebsiteCopy(
   return {
     home: {
       hero: {
-        headline: `Welcome to ${brand.brandName}`,
+        headline: `Welcome to ${brand.name}`,
         subheadline:
           brand.tagline ??
           "A focused solution designed to help you move forward with confidence.",
