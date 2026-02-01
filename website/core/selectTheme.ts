@@ -1,21 +1,22 @@
-import { WebsiteBranding } from "./websiteTypes";
+import { ZelrexWebsite } from "./websiteTypes";
 
 export function selectTheme(
-  branding: WebsiteBranding
+  brand: ZelrexWebsite["brand"] | any
 ): "obsidian" | "ivory" | "carbon" | "aura" | "slate" {
-  if (branding.tone === "luxury" || branding.tone === "authoritative") {
+  const tone = (brand as any).tone;
+  if (tone === "luxury" || tone === "authoritative") {
     return "obsidian";
   }
 
-  if (branding.tone === "technical") {
+  if (tone === "technical") {
     return "carbon";
   }
 
-  if (branding.tone === "friendly") {
+  if (tone === "friendly") {
     return "aura";
   }
 
-  if (branding.tone === "professional") {
+  if (tone === "professional") {
     return "ivory";
   }
 

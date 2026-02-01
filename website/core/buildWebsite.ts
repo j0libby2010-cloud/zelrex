@@ -1,22 +1,22 @@
 import { ZelrexWebsite } from "./websiteTypes";
-import { generateWebsiteCopy } from "./generateCopy";
 import { selectTheme } from "./selectTheme";
 
 export function buildWebsite(input: {
-  branding: ZelrexWebsite["branding"];
+  brand: ZelrexWebsite["brand"];
+  id?: string;
 }): ZelrexWebsite {
-  const theme = selectTheme(input.branding);
+  const theme = selectTheme(input.brand as any) as string;
 
   return {
+    id: input.id ?? "demo",
+    brand: input.brand,
     theme,
-    branding: input.branding,
     pages: [
-      { type: "home", title: "Home", goal: "Primary conversion" },
-      { type: "offer", title: "Offer", goal: "Explain value" },
-      { type: "pricing", title: "Pricing", goal: "Set expectations" },
-      { type: "about", title: "About", goal: "Build trust" },
-      { type: "contact", title: "Contact", goal: "Start conversation" },
+      { slug: "home", title: "Home", sections: [] },
+      { slug: "offer", title: "Offer", sections: [] },
+      { slug: "pricing", title: "Pricing", sections: [] },
+      { slug: "about", title: "About", sections: [] },
+      { slug: "contact", title: "Contact", sections: [] },
     ],
-    copy: generateWebsiteCopy({ branding: input.branding }),
   };
 }

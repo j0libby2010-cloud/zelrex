@@ -1,41 +1,15 @@
-import { WebsiteCopy } from "./websiteCopy";
-
-export type WebsitePageType =
-  | "home"
-  | "offer"
-  | "pricing"
-  | "about"
-  | "contact";
-
-export interface WebsiteBranding {
-  brandName: string;
-  tagline?: string;
-  logoUrl?: string;
-  tone:
-    | "professional"
-    | "authoritative"
-    | "friendly"
-    | "luxury"
-    | "technical";
-}
-
 export interface WebsitePage {
-  type: WebsitePageType;
+  slug: string;
   title: string;
-  goal: string;
+  sections: any[];
 }
 
 export interface ZelrexWebsite {
-  theme:
-    | "obsidian"
-    | "ivory"
-    | "carbon"
-    | "aura"
-    | "slate";
-
-  branding: WebsiteBranding;
-
+  id: string;
+  brand: {
+    name: string;
+    logo?: string;
+  };
+  theme: string;
   pages: WebsitePage[];
-  
-  copy: WebsiteCopy;
 }
