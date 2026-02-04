@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+/* Keep it clean. Let Tailwind + layout.tsx control most styling. */
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 1.2s linear infinite;
+}
+
+/* Desktop + tablet (default) */
+.desktop-nav {
+  display: flex;
+}
+
+.mobile-toggle {
+  display: none;
+}
+
+/* Mobile only */
+@media (max-width: 640px) {
+  .desktop-nav {
+    display: none !important;
+  }
+
+  .mobile-toggle {
+    display: flex !important;
+  }
+}
+
+/* NAVBAR */
+
+.nav-desktop {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.nav-desktop a {
+  opacity: 0.85;
+  text-decoration: none;
+}
+
+.nav-desktop .cta {
+  margin-left: 12px;
+  padding: 10px 18px;
+  border-radius: 999px;
+  background: #3b82f6;
+  color: white;
+}
+
+.nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  gap: 6px;
+  flex-direction: column;
+  cursor: pointer;
+}
+
+.nav-toggle .line {
+  width: 22px;
+  height: 2px;
+  background: white;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.nav-toggle .line.open:first-child {
+  transform: rotate(45deg) translate(4px, 4px);
+}
+
+.nav-toggle .line.open:last-child {
+  transform: rotate(-45deg) translate(4px, -4px);
+}
+
+.nav-mobile {
+  display: none;
+}
+
+/* MOBILE ONLY */
+@media (max-width: 768px) {
+  .nav-desktop {
+    display: none;
+  }
+
+  .nav-toggle {
+    display: flex;
+  }
+
+  .nav-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 32px 24px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .nav-mobile .cta {
+    margin-top: 16px;
+    padding: 14px;
+    text-align: center;
+    border-radius: 999px;
+    background: #3b82f6;
+    color: white;
+  }
+}
