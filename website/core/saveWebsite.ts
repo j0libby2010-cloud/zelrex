@@ -1,16 +1,10 @@
-// website/core/saveWebsite.ts
-import { ZelrexWebsite } from "./websiteTypes";
-import { kv } from "./kv";
+// Temporary in-memory store until Vercel KV is set up
+const websites = new Map<string, any>();
 
-export async function saveWebsite(site: ZelrexWebsite) {
-  const key = `website:${site.id}`;
+export async function saveWebsite(website: any) {
+  websites.set(website.id, website);
+}
 
-  await kv.setJson(key, site);
-
-  return {
-    id: site.id,
-    // This is the *preview path*, not the domain.
-    // Domain is added in route.ts using origin/base url.
-    path: `/s/${site.id}`,
-  };
+export async function getWebsiteById(id: string) {
+  return websites.get(id) || null;
 }

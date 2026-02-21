@@ -443,7 +443,7 @@ Return ONLY a valid JSON object matching this exact structure (no markdown, no b
 }`;
 
   const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-5-20250514",
+    model: "claude-sonnet-4-5-20250929",
     max_tokens: 4096,
     temperature: 0.6,
     messages: [{ role: "user", content: prompt }],
