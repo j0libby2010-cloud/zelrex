@@ -1,22 +1,19 @@
-import { buildWebsite } from "./buildWebsite";
+// website/core/getWebsiteById.ts
 import { ZelrexWebsite } from "./websiteTypes";
+import { kv } from "./kv";
 
-/**
- * TEMP v1
- * Later replaced by DB lookup
- */
-export function getWebsiteById(siteId: string): ZelrexWebsite | null {
-  if (siteId === "demo") {
-    return buildWebsite({
-      branding: {
-        name: "DemoCo",
-        logo: undefined,
-        tagline: "Websites designed to convert",
-        tone: "professional",
-      },
-      id: "demo",
-    });
+export async function getWebsiteById(
+  siteId: string
+): Promise<ZelrexWebsite | null> {
+  console.log("ZELREX LOAD: attempting to load website:", siteId);
+  console.log("ZELREX LOAD: key =", `website:${siteId}`);
+  
+  try {
+    const result = await kv.getJson<ZelrexWebsite>(`website:${siteId}`);
+    console.log("ZELREX LOAD: result =", result ? "FOUND" : "NULL");
+    return result;
+  } catch (error) {
+    console.error("ZELREX LOAD: error loading website:", error);
+    return null;
   }
-
-  return null;
 }

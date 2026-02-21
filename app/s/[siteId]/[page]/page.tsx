@@ -2,25 +2,30 @@ import { notFound } from "next/navigation";
 import { getWebsiteById } from "@/website/core/getWebsiteById";
 import { RenderPage } from "@/website/pages/renderPage";
 
-interface PageProps {
-  params: {
-    siteId: string;
-    page: string;
-  };
-}
-
-export default async function SiteSubPage({ params }: PageProps) {
-  const website = await getWebsiteById(params.siteId);
+export default async function SiteSubPage({
+  params,
+}: {
+  params: Promise<{ siteId: string; page: string }>;
+}) {
+  const { siteId, page } = await params;
+  const website = await getWebsiteById(siteId);
 
   if (!website) {
     notFound();
   }
 
-  const page = website.pages.find((p) => p.slug === params.page);
+  const matched = website.pages.find((p) => p.slug === page);
 
-  if (!page) {
+  if (!matched) {
     notFound();
   }
 
-  return <RenderPage website={website} pageType={(page as any).type} />;
+  return (
+    <RenderPage
+      website={website}
+      pageType={
+        matched.slug as "home" | "offer" | "pricing" | "about" | "contact"
+      }
+    />
+  );
 }

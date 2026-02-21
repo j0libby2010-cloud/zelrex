@@ -1,11 +1,16 @@
+// website/core/saveWebsite.ts
 import { ZelrexWebsite } from "./websiteTypes";
+import { kv } from "./kv";
 
-const websiteStore = new Map<string, ZelrexWebsite>();
+export async function saveWebsite(site: ZelrexWebsite) {
+  const key = `website:${site.id}`;
 
-export async function saveWebsite(website: ZelrexWebsite) {
-  websiteStore.set(website.id, website);
-}
+  await kv.setJson(key, site);
 
-export async function getWebsiteById(id: string): Promise<ZelrexWebsite | null> {
-  return websiteStore.get(id) ?? null;
+  return {
+    id: site.id,
+    // This is the *preview path*, not the domain.
+    // Domain is added in route.ts using origin/base url.
+    path: `/s/${site.id}`,
+  };
 }

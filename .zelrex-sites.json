@@ -1,0 +1,326 @@
+{
+  "4becc0f7-a64e-4f18-a23f-02cd9168ec9b": {
+    "id": "4becc0f7-a64e-4f18-a23f-02cd9168ec9b",
+    "branding": {
+      "name": "DemoCo",
+      "tagline": "A modern business built for results",
+      "tone": "professional",
+      "primaryColor": "#4F8CFF"
+    },
+    "theme": "ivory",
+    "pages": [
+      {
+        "slug": "home",
+        "title": "Home",
+        "sections": [
+          "hero",
+          "social-proof",
+          "value-props",
+          "how-it-works",
+          "primary-cta"
+        ]
+      },
+      {
+        "slug": "offer",
+        "title": "Offer",
+        "sections": [
+          "offer-hero",
+          "what-you-get",
+          "who-its-for",
+          "who-its-not-for",
+          "cta"
+        ]
+      },
+      {
+        "slug": "pricing",
+        "title": "Pricing",
+        "sections": [
+          "pricing-tiers",
+          "comparison",
+          "faq",
+          "cta"
+        ]
+      },
+      {
+        "slug": "about",
+        "title": "About",
+        "sections": [
+          "mission",
+          "story",
+          "values",
+          "credibility"
+        ]
+      },
+      {
+        "slug": "contact",
+        "title": "Contact",
+        "sections": [
+          "contact-methods",
+          "booking",
+          "final-cta"
+        ]
+      }
+    ],
+    "copy": {
+      "home": {
+        "hero": {
+          "headline": "Welcome to DemoCo.",
+          "subheadline": "A modern business built for results"
+        },
+        "sections": [
+          {
+            "eyebrow": "What we do",
+            "title": "Clear outcomes, no unnecessary complexity",
+            "body": "Everything here is designed to help you take the next step with clarity and momentum.",
+            "items": []
+          }
+        ],
+        "cta": {
+          "text": "Get started",
+          "urgency": "No pressure. Just clarity."
+        }
+      },
+      "offer": {
+        "hero": {
+          "headline": "What we offer",
+          "subheadline": "A clear, focused offering designed around real outcomes."
+        },
+        "sections": [
+          {
+            "title": "Designed for progress",
+            "body": "This is built for people who value clarity and thoughtful progress.",
+            "items": []
+          }
+        ],
+        "cta": {
+          "text": "Get started"
+        }
+      },
+      "pricing": {
+        "hero": {
+          "headline": "Simple pricing",
+          "subheadline": "Transparent, straightforward pricing with no surprises."
+        },
+        "sections": [
+          {
+            "title": "One clear option",
+            "body": "You get exactly what you need to move forward — nothing more, nothing less.",
+            "items": []
+          }
+        ],
+        "cta": {
+          "text": "View next steps"
+        }
+      },
+      "about": {
+        "hero": {
+          "headline": "Why this exists",
+          "subheadline": "Built around clarity, trust, and long-term value."
+        },
+        "sections": [
+          {
+            "title": "Our approach",
+            "body": "We believe progress comes from focus, not complexity.",
+            "items": []
+          }
+        ],
+        "cta": {
+          "text": "Learn more"
+        }
+      },
+      "contact": {
+        "hero": {
+          "headline": "Let’s talk",
+          "subheadline": "Start a conversation and figure out the best path forward."
+        },
+        "sections": [
+          {
+            "title": "What happens next",
+            "body": "You’ll get clarity on your options and next steps quickly.",
+            "items": []
+          }
+        ],
+        "cta": {
+          "text": "Start the conversation"
+        }
+      }
+    },
+    "assumptions": {
+      "goals": [
+        "Primary objective is to appear credible and convert reasonably well.",
+        "User likely values clarity and low-risk progress."
+      ],
+      "audience": [
+        "Visitors are unfamiliar with the business and need clear orientation.",
+        "Audience is open to explanation and storytelling."
+      ],
+      "market": [
+        "Business operates in a competitive but legitimate market.",
+        "Differentiation is based on clarity and positioning, not hype."
+      ],
+      "rationale": "These assumptions were made because explicit goals were not provided. They are conservative, low-risk defaults designed to avoid misleading claims while still enabling effective conversion."
+    }
+  },
+  "69164bdd-a870-43bb-83c0-b5b406d9f71d": {
+    "id": "69164bdd-a870-43bb-83c0-b5b406d9f71d",
+    "branding": {
+      "name": "DemoCo",
+      "tagline": "A modern business built for results",
+      "tone": "professional",
+      "primaryColor": "#4F8CFF"
+    },
+    "theme": "ivory",
+    "pages": [
+      {
+        "slug": "home",
+        "title": "Home",
+        "sections": [
+          "hero",
+          "social-proof",
+          "value-props",
+          "how-it-works",
+          "primary-cta"
+        ]
+      },
+      {
+        "slug": "offer",
+        "title": "Offer",
+        "sections": [
+          "offer-hero",
+          "what-you-get",
+          "who-its-for",
+          "who-its-not-for",
+          "cta"
+        ]
+      },
+      {
+        "slug": "pricing",
+        "title": "Pricing",
+        "sections": [
+          "pricing-tiers",
+          "comparison",
+          "faq",
+          "cta"
+        ]
+      },
+      {
+        "slug": "about",
+        "title": "About",
+        "sections": [
+          "mission",
+          "story",
+          "values",
+          "credibility"
+        ]
+      },
+      {
+        "slug": "contact",
+        "title": "Contact",
+        "sections": [
+          "contact-methods",
+          "booking",
+          "final-cta"
+        ]
+      }
+    ],
+    "copy": {
+      "home": {
+        "hero": {
+          "headline": "Welcome to DemoCo.",
+          "subheadline": "A modern business built for results"
+        },
+        "sections": [
+          {
+            "eyebrow": "What we do",
+            "title": "Clear outcomes, no unnecessary complexity",
+            "body": "Everything here is designed to help you take the next step with clarity and momentum.",
+            "items": []
+          }
+        ],
+        "cta": {
+          "text": "Get started",
+          "urgency": "No pressure. Just clarity."
+        }
+      },
+      "offer": {
+        "hero": {
+          "headline": "What we offer",
+          "subheadline": "A clear, focused offering designed around real outcomes."
+        },
+        "sections": [
+          {
+            "title": "Designed for progress",
+            "body": "This is built for people who value clarity and thoughtful progress.",
+            "items": []
+          }
+        ],
+        "cta": {
+          "text": "Get started"
+        }
+      },
+      "pricing": {
+        "hero": {
+          "headline": "Simple pricing",
+          "subheadline": "Transparent, straightforward pricing with no surprises."
+        },
+        "sections": [
+          {
+            "title": "One clear option",
+            "body": "You get exactly what you need to move forward — nothing more, nothing less.",
+            "items": []
+          }
+        ],
+        "cta": {
+          "text": "View next steps"
+        }
+      },
+      "about": {
+        "hero": {
+          "headline": "Why this exists",
+          "subheadline": "Built around clarity, trust, and long-term value."
+        },
+        "sections": [
+          {
+            "title": "Our approach",
+            "body": "We believe progress comes from focus, not complexity.",
+            "items": []
+          }
+        ],
+        "cta": {
+          "text": "Learn more"
+        }
+      },
+      "contact": {
+        "hero": {
+          "headline": "Let’s talk",
+          "subheadline": "Start a conversation and figure out the best path forward."
+        },
+        "sections": [
+          {
+            "title": "What happens next",
+            "body": "You’ll get clarity on your options and next steps quickly.",
+            "items": []
+          }
+        ],
+        "cta": {
+          "text": "Start the conversation"
+        }
+      }
+    },
+    "assumptions": {
+      "goals": [
+        "Primary objective is to appear credible and convert reasonably well.",
+        "User likely values clarity and low-risk progress."
+      ],
+      "audience": [
+        "Visitors are unfamiliar with the business and need clear orientation.",
+        "Audience is open to explanation and storytelling."
+      ],
+      "market": [
+        "Business operates in a competitive but legitimate market.",
+        "Differentiation is based on clarity and positioning, not hype."
+      ],
+      "rationale": "These assumptions were made because explicit goals were not provided. They are conservative, low-risk defaults designed to avoid misleading claims while still enabling effective conversion."
+    }
+  }
+}

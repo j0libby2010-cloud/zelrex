@@ -1,13 +1,15 @@
-import { getWebsiteById } from "../../../website/core/getWebsiteById";
-import { RenderPage } from "../../../website/pages/renderPage";
 import { notFound } from "next/navigation";
+import { getWebsiteById } from "@/website/core/getWebsiteById";
+import { RenderPage } from "@/website/pages/renderPage";
 
-export default function SiteHome({
+export default async function SiteHome({
   params,
 }: {
-  params: { siteId: string };
+  params: Promise<{ siteId: string }>;
 }) {
-  const website = getWebsiteById(params.siteId);
+  const { siteId } = await params;
+
+  const website = await getWebsiteById(siteId);
 
   if (!website) {
     notFound();
