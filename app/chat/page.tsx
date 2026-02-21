@@ -51,11 +51,6 @@ function getBusinessName(msgs: Msg[]): string | null {
   return null;
 }
 
-function getLatestPreview(msgs: Msg[]): string | null {
-  for (let i = msgs.length - 1; i >= 0; i--) if (msgs[i].previewUrl) return msgs[i].previewUrl!;
-  return null;
-}
-
 // ─── ICONS ─────────────────────────────────────────────────────────
 function Ic({ n, className, style }: { n: string; className?: string; style?: React.CSSProperties }) {
   const cls = cx("inline-block", className);
@@ -279,6 +274,7 @@ export default function ChatPage() {
   const [showSurvey, setShowSurvey] = useState(false);
   const [surveyData, setSurveyData] = useState<SurveyData | null>(null);
   const [surveyDismissed, setSurveyDismissed] = useState(false);
+  const [websiteData, setWebsiteData] = useState<any>(null);
 
   // Persist animated IDs across reloads so typewriter never replays
   const [animatedIds, setAnimatedIds] = useState<string[]>(() => safeJson<string[]>(typeof window !== "undefined" ? localStorage.getItem(ANIMATED_KEY) : null, []));
@@ -307,6 +303,191 @@ export default function ChatPage() {
   const [draftAttachments, setDraftAttachments] = useState<DraftAttachment[]>([]);
   const [inputFocused, setInputFocused] = useState(false);
 
+  function buildPreviewHtml(site: any): string {
+    if (!site?.copy?.home?.hero) return "<html><body><p>No website data</p></body></html>";
+
+    const t = site.theme || {};
+    const bg = t.bg || "#0a0a0a";
+    const text = t.textPrimary || "#ffffff";
+    const textSec = t.textSecondary || "rgba(255,255,255,0.6)";
+    const accent = site.branding?.primaryColor || t.accent || "#4A90FF";
+    const surface = t.surface || "#111111";
+    const border = t.border || "rgba(255,255,255,0.08)";
+    const name = site.branding?.name || "My Business";
+    const copy = site.copy;
+
+    const tiers = copy.pricing?.pricing?.tiers || [];
+    const tiersHtml = tiers.map((tier: any) => `
+      <div style="background:${surface};border:1px solid ${border};border-radius:16px;padding:32px;${tier.highlighted ? `border-color:${accent};` : ""}">
+        <div style="font-weight:700;font-size:18px;color:${text}">${tier.name || ""}</div>
+        <div style="font-weight:900;font-size:36px;color:${text};margin:12px 0 8px;letter-spacing:-0.03em">${tier.price || ""}</div>
+        ${tier.note ? `<div style="color:${textSec};font-size:14px;line-height:1.5">${tier.note}</div>` : ""}
+        <div style="margin-top:20px;border-top:1px solid ${border};padding-top:16px">
+          ${(tier.features || []).map((f: string) => `
+            <div style="display:flex;align-items:center;gap:10px;color:${textSec};font-size:14px;margin-bottom:10px">
+              <span style="color:${accent}">✓</span> ${f}
+            </div>
+          `).join("")}
+        </div>
+        <a href="#contact" style="display:block;margin-top:20px;padding:12px 24px;background:${tier.highlighted ? accent : "transparent"};color:${tier.highlighted ? "#fff" : text};border:1px solid ${tier.highlighted ? accent : border};border-radius:999px;text-align:center;text-decoration:none;font-weight:600;font-size:14px">Get started</a>
+      </div>
+    `).join("");
+
+    const vpItems = copy.home?.valueProps?.items || [];
+    const vpHtml = vpItems.map((item: any) => `
+      <div style="background:${surface};border:1px solid ${border};border-radius:12px;padding:24px">
+        <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:8px">${item.title || ""}</div>
+        <div style="color:${textSec};font-size:14px;line-height:1.6">${item.description || ""}</div>
+      </div>
+    `).join("");
+
+    const steps = copy.home?.howItWorks?.steps || [];
+    const stepsHtml = steps.map((step: any, i: number) => `
+      <div style="display:flex;gap:20px;align-items:flex-start">
+        <div style="width:40px;height:40px;border-radius:50%;background:${accent}22;color:${accent};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0">${i + 1}</div>
+        <div>
+          <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:6px">${step.title || ""}</div>
+          <div style="color:${textSec};font-size:14px;line-height:1.6">${step.description || ""}</div>
+        </div>
+      </div>
+    `).join("");
+
+    const methods = copy.contact?.methods?.items || [];
+    const methodsHtml = methods.map((m: any) => `
+      <a href="${m.href || "#"}" style="display:flex;align-items:center;gap:16px;background:${surface};border:1px solid ${border};border-radius:12px;padding:20px;text-decoration:none;transition:border-color 0.2s" onmouseover="this.style.borderColor='${accent}'" onmouseout="this.style.borderColor='${border}'">
+        <div>
+          <div style="font-weight:600;font-size:14px;color:${text}">${m.label || ""}</div>
+          <div style="color:${textSec};font-size:13px;margin-top:2px">${m.value || ""}</div>
+        </div>
+      </a>
+    `).join("");
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${name}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', -apple-system, sans-serif; background: ${bg}; color: ${text}; -webkit-font-smoothing: antialiased; }
+    a { color: inherit; }
+    .section { padding: 80px 24px; max-width: 1100px; margin: 0 auto; }
+    .section-sm { padding: 60px 24px; max-width: 1100px; margin: 0 auto; }
+    .eyebrow { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${accent}; margin-bottom: 14px; }
+    .h1 { font-size: clamp(36px, 5vw, 56px); font-weight: 900; line-height: 1.08; letter-spacing: -0.03em; color: ${text}; }
+    .h2 { font-size: clamp(28px, 3.5vw, 40px); font-weight: 800; line-height: 1.12; letter-spacing: -0.025em; color: ${text}; }
+    .lead { font-size: 17px; line-height: 1.6; color: ${textSec}; max-width: 600px; }
+    .btn-primary { display: inline-flex; align-items: center; padding: 14px 32px; background: ${accent}; color: #fff; border-radius: 999px; font-weight: 700; font-size: 15px; text-decoration: none; transition: transform 0.15s, box-shadow 0.15s; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px ${accent}44; }
+    .nav { position: sticky; top: 0; z-index: 100; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); background: ${bg}dd; border-bottom: 1px solid ${border}; }
+    .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
+    .nav-links { display: flex; gap: 28px; align-items: center; }
+    .nav-links a { font-size: 13px; font-weight: 500; color: ${textSec}; text-decoration: none; transition: color 0.15s; }
+    .nav-links a:hover { color: ${text}; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .divider { height: 1px; background: ${border}; max-width: 1100px; margin: 0 auto; }
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .section { padding: 60px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <div style="font-weight:800;font-size:18px;letter-spacing:-0.02em">${name}</div>
+      <div class="nav-links">
+        <a href="#services">Services</a>
+        <a href="#process">Process</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+        <a href="#contact" class="btn-primary" style="padding:8px 20px;font-size:13px">${copy.home?.primaryCta?.cta?.text || "Get in touch"}</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="section" style="padding-top:100px;padding-bottom:100px">
+    <div class="eyebrow">${copy.home?.valueProps?.eyebrow || name}</div>
+    <h1 class="h1" style="max-width:700px;margin-bottom:20px">${copy.home?.hero?.headline || name}</h1>
+    <p class="lead" style="margin-bottom:36px">${copy.home?.hero?.subheadline || ""}</p>
+    <a href="#contact" class="btn-primary">${copy.home?.primaryCta?.cta?.text || "Get started"}</a>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- VALUE PROPS -->
+  <section class="section" id="services">
+    <div class="eyebrow">${copy.home?.valueProps?.eyebrow || "Services"}</div>
+    <h2 class="h2" style="margin-bottom:8px">${copy.home?.valueProps?.title || ""}</h2>
+    <p class="lead" style="margin-bottom:36px">${copy.home?.valueProps?.subtitle || ""}</p>
+    <div class="grid-${vpItems.length > 3 ? "3" : "2"}">
+      ${vpHtml}
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" id="process">
+    <div class="eyebrow">${copy.home?.howItWorks?.eyebrow || "Process"}</div>
+    <h2 class="h2" style="margin-bottom:8px">${copy.home?.howItWorks?.title || ""}</h2>
+    <p class="lead" style="margin-bottom:40px">${copy.home?.howItWorks?.subtitle || ""}</p>
+    <div style="display:grid;gap:32px;max-width:600px">
+      ${stepsHtml}
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- PRICING -->
+  <section class="section" id="pricing">
+    <div class="eyebrow">${copy.pricing?.pricing?.eyebrow || "Pricing"}</div>
+    <h2 class="h2" style="margin-bottom:8px">${copy.pricing?.pricing?.title || "Pricing"}</h2>
+    <p class="lead" style="margin-bottom:36px">${copy.pricing?.pricing?.subtitle || ""}</p>
+    <div class="grid-${tiers.length > 2 ? "3" : tiers.length === 2 ? "2" : "1"}" ${tiers.length === 1 ? "style=\"max-width:440px\"" : ""}>
+      ${tiersHtml}
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ABOUT -->
+  <section class="section" id="about">
+    <div class="eyebrow">${copy.about?.story?.eyebrow || "About"}</div>
+    <h2 class="h2" style="margin-bottom:16px">${copy.about?.story?.title || "About " + name}</h2>
+    <p class="lead" style="max-width:700px">${copy.about?.story?.body || ""}</p>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- CONTACT -->
+  <section class="section" id="contact">
+    <div class="eyebrow">${copy.contact?.methods?.eyebrow || "Contact"}</div>
+    <h2 class="h2" style="margin-bottom:8px">${copy.contact?.hero?.headline || "Get in touch"}</h2>
+    <p class="lead" style="margin-bottom:36px">${copy.contact?.hero?.subheadline || ""}</p>
+    <div class="grid-2" style="max-width:500px">
+      ${methodsHtml}
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer style="border-top:1px solid ${border};padding:32px 24px;text-align:center">
+    <div style="color:${textSec};font-size:13px">© ${new Date().getFullYear()} ${name}. All rights reserved.</div>
+  </footer>
+
+</body>
+</html>`;
+  }
+
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const listEndRef = useRef<HTMLDivElement | null>(null);
@@ -315,7 +496,6 @@ export default function ChatPage() {
 
   const phase = useMemo(() => isSending && buildStage.includes("market") ? "evaluating" as BusinessPhase : isSending && (buildStage.includes("Build") || buildStage.includes("Generat")) ? "building" as BusinessPhase : detectPhase(activeChat?.messages ?? []), [activeChat?.messages, isSending, buildStage]);
   const businessName = useMemo(() => getBusinessName(activeChat?.messages ?? []), [activeChat?.messages]);
-  const latestPreview = useMemo(() => getLatestPreview(activeChat?.messages ?? []), [activeChat?.messages]);
   const hasMessages = (activeChat?.messages?.length ?? 0) > 0;
 
   useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(chats)); }, [chats]);
@@ -358,8 +538,9 @@ export default function ChatPage() {
         }),
       });
       const raw = await res.text();
-      let result: { reply?: string; previewUrl?: string } = {};
+      let result: { reply?: string; previewUrl?: string; websiteData?: any } = {};
       try { result = JSON.parse(raw); } catch {}
+      if (result.websiteData) setWebsiteData(result.websiteData);
       const reply = result.reply?.trim() || "Something went wrong. Please try again.";
       setChats((p) => p.map((c) => c.id === activeChat!.id ? {
         ...c,
@@ -408,7 +589,8 @@ export default function ChatPage() {
     try {
       const ctrl = new AbortController(); abortRef.current = ctrl;
       const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify({ messages: [...activeChat.messages, userMsg] }) });
-      const raw = await res.text(); let data: { reply?: string; previewUrl?: string } = {}; try { data = JSON.parse(raw); } catch {}
+      const raw = await res.text(); let data: { reply?: string; previewUrl?: string; websiteData?: any } = {}; try { data = JSON.parse(raw); } catch {}
+      if (data.websiteData) setWebsiteData(data.websiteData);
       const reply = data.reply?.trim() || "Something went wrong. Please try again.";
       setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, messages: [...c.messages, { id: uid("m"), role: "assistant" as const, content: reply, createdAt: Date.now(), previewUrl: data.previewUrl || undefined }], updatedAt: Date.now() } : c));
       if (data.previewUrl) { setTimeout(() => fireConfetti(), 300); }
@@ -447,7 +629,7 @@ export default function ChatPage() {
             <ZelrexWordmark size={16} />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {latestPreview && (
+            {websiteData && (
               <HBtn onClick={() => setPreviewOpen(!previewOpen)} style={{ padding: "5px 12px", border: `1px solid ${previewOpen ? C.accent + "40" : C.border}`, background: previewOpen ? C.accentSoft : "transparent", color: previewOpen ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
                 <Ic n="preview" className="h-3.5 w-3.5" /> Preview
               </HBtn>
@@ -552,7 +734,7 @@ export default function ChatPage() {
                                 {shouldAnimate(m, activeChat) && !animatedIds.includes(m.id) ? (
                                   <Typewriter text={m.content} speed={6} onFinish={() => setAnimatedIds((p) => p.includes(m.id) ? p : [...p, m.id])} />
                                 ) : ( <div>{formatMessage(m.content)}</div> )}
-                                {m.previewUrl && <div style={{ marginTop: 14 }}><ActionPill label="Open website preview" onClick={() => window.open(m.previewUrl, "_blank")} /></div>}
+                                {m.previewUrl && <div style={{ marginTop: 14 }}><ActionPill label="Open website preview" onClick={() => setPreviewOpen(true)} /></div>}
                                 <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 6 }}>
                                   <HBtn onMouseDown={(e: React.MouseEvent) => e.stopPropagation()} onClick={(e: React.MouseEvent) => { e.stopPropagation(); setOpenMsgMenuId((v) => (v === m.id ? null : m.id)); }} style={{ width: 30, height: 30, color: C.text, opacity: 0.7 }}>
                                     <Ic n="dots" style={{ width: 16, height: 16 }} />
@@ -635,14 +817,19 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* PREVIEW PANEL (85% width, Bolt-style) */}
-        {previewOpen && latestPreview && (
+        {/* PREVIEW PANEL (Bolt-style) */}
+        {previewOpen && websiteData && (
           <div style={{ flex: 1, borderLeft: `1px solid ${C.border}`, background: C.bg, display: "flex", flexDirection: "column", minWidth: 0 }}>
             <div style={{ height: 44, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", borderBottom: `1px solid ${C.border}`, fontSize: 12, fontWeight: 600, color: C.textSec }}>
-              <span>Website Preview</span>
+              <span>Website Preview — {websiteData.branding?.name || "Preview"}</span>
               <HBtn onClick={() => setPreviewOpen(false)} style={{ width: 28, height: 28, color: C.textMuted }}><Ic n="close" className="h-4 w-4" /></HBtn>
             </div>
-            <iframe src={latestPreview} style={{ flex: 1, border: "none", background: "#fff" }} title="Preview" />
+            <iframe
+              srcDoc={buildPreviewHtml(websiteData)}
+              style={{ flex: 1, border: "none", background: "#fff" }}
+              title="Preview"
+              sandbox="allow-scripts allow-same-origin"
+            />
           </div>
         )}
 

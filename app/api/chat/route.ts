@@ -424,7 +424,8 @@ export async function POST(req: Request) {
           "",
           "Tell me what to change, or say **deploy** when you're ready to put it on your domain.",
         ].join("\n"),
-        previewUrl: `${origin}/s/${website.id}`,
+        previewUrl: "__blob__",
+        websiteData: website,
         assumptions: website.assumptions,
         sessionState: {
           ...sessionState,
