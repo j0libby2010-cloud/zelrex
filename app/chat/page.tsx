@@ -274,7 +274,13 @@ export default function ChatPage() {
   const [showSurvey, setShowSurvey] = useState(false);
   const [surveyData, setSurveyData] = useState<SurveyData | null>(null);
   const [surveyDismissed, setSurveyDismissed] = useState(false);
-  const [websiteData, setWebsiteData] = useState<any>(null);
+  const [websiteData, setWebsiteData] = useState<any>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("zelrex_website_data");
+      if (saved) try { return JSON.parse(saved); } catch { return null; }
+    }
+    return null;
+  });
 
   // Persist animated IDs across reloads so typewriter never replays
   const [animatedIds, setAnimatedIds] = useState<string[]>(() => safeJson<string[]>(typeof window !== "undefined" ? localStorage.getItem(ANIMATED_KEY) : null, []));
@@ -540,7 +546,11 @@ export default function ChatPage() {
       const raw = await res.text();
       let result: { reply?: string; previewUrl?: string; websiteData?: any } = {};
       try { result = JSON.parse(raw); } catch {}
-      if (result.websiteData) setWebsiteData(result.websiteData);
+      console.log("FULL API RESPONSE:", result);
+      if (result.websiteData) {
+        setWebsiteData(result.websiteData);
+        localStorage.setItem("zelrex_website_data", JSON.stringify(result.websiteData));
+      }
       const reply = result.reply?.trim() || "Something went wrong. Please try again.";
       setChats((p) => p.map((c) => c.id === activeChat!.id ? {
         ...c,
@@ -590,7 +600,10 @@ export default function ChatPage() {
       const ctrl = new AbortController(); abortRef.current = ctrl;
       const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify({ messages: [...activeChat.messages, userMsg] }) });
       const raw = await res.text(); let data: { reply?: string; previewUrl?: string; websiteData?: any } = {}; try { data = JSON.parse(raw); } catch {}
-      if (data.websiteData) setWebsiteData(data.websiteData);
+      if (data.websiteData) {
+        setWebsiteData(data.websiteData);
+        localStorage.setItem("zelrex_website_data", JSON.stringify(data.websiteData));
+      }
       const reply = data.reply?.trim() || "Something went wrong. Please try again.";
       setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, messages: [...c.messages, { id: uid("m"), role: "assistant" as const, content: reply, createdAt: Date.now(), previewUrl: data.previewUrl || undefined }], updatedAt: Date.now() } : c));
       if (data.previewUrl) { setTimeout(() => fireConfetti(), 300); }
@@ -828,7 +841,7 @@ export default function ChatPage() {
               srcDoc={buildPreviewHtml(websiteData)}
               style={{ flex: 1, border: "none", background: "#fff" }}
               title="Preview"
-              sandbox="allow-scripts allow-same-origin"
+              sandbox="allow-scripts"
             />
           </div>
         )}
