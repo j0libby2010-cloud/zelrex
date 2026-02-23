@@ -410,7 +410,11 @@ export async function POST(req: Request) {
       }
 
       console.log("ZELREX: website build completed", website.id);
-      await saveWebsite(website);
+      try { await saveWebsite(website); } catch (e) { console.warn("ZELREX: saveWebsite skipped (no KV):", e); }
+
+//This wraps the save in a try/catch so if KV isn't set up, it logs a warning but doesn't crash. The response with `websiteData` will still go through.
+
+
 
       const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin;
 
