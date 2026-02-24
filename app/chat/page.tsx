@@ -488,6 +488,15 @@ export default function ChatPage() {
     <div style="color:${textSec};font-size:13px">© ${new Date().getFullYear()} ${name}. All rights reserved.</div>
   </footer>
 
+  <script>
+  document.addEventListener('click', function(e) {
+    var link = e.target.closest('a');
+    if (link && link.getAttribute('href') && !link.getAttribute('href').startsWith('#')) {
+      e.preventDefault();
+    }
+  });
+  </script>
+
 </body>
 </html>`;
   }
