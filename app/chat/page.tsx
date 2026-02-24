@@ -140,7 +140,7 @@ function Typewriter({ text, speed = 8, onFinish }: { text: string; speed?: numbe
   return <div>{formatMessage(text.slice(0, n))}</div>;
 }
 
-function StatusBar({ phase, businessName, sidebarOpen }: { phase: BusinessPhase; businessName: string | null; sidebarOpen: boolean }) {
+function StatusBar({ phase, businessName, sidebarOpen, isMobile }: { phase: BusinessPhase; businessName: string | null; sidebarOpen: boolean; isMobile: boolean }) {
   const phases: { key: BusinessPhase; label: string }[] = [
     { key: "ready", label: "Start" },
     { key: "intake", label: "Discovery" },
@@ -151,7 +151,7 @@ function StatusBar({ phase, businessName, sidebarOpen }: { phase: BusinessPhase;
   const currentIdx = phases.findIndex((p) => p.key === phase);
   const accentColor = phase === "live" ? "#10B981" : phase === "building" ? "#8B5CF6" : phase === "evaluating" ? "#F59E0B" : C.accent;
 
-  const leftOffset = sidebarOpen ? 260 : 0;
+  const leftOffset = (!isMobile && sidebarOpen) ? 260 : 0;
 
   return (
     <div style={{ height: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 0, borderBottom: `1px solid ${C.border}`, background: currentIdx > 0 ? `linear-gradient(90deg, transparent, ${accentColor}06, transparent)` : "transparent", padding: "0 20px", marginLeft: leftOffset, width: `calc(100% - ${leftOffset}px)`, transition: "margin-left 300ms cubic-bezier(0.2,0,0,1), width 300ms cubic-bezier(0.2,0,0,1)" }}>
@@ -267,7 +267,9 @@ function shouldAnimate(m: Msg, chat: Chat | undefined) {
 // ═══════════════════════════════════════════════════════════════════════
 
 export default function ChatPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => { const check = () => setIsMobile(window.innerWidth < 768); check(); window.addEventListener("resize", check); return () => window.removeEventListener("resize", check); }, []);
   const [buildStage, setBuildStage] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -519,7 +521,7 @@ export default function ChatPage() {
   useEffect(() => { const h = () => { setOpenChatMenuId(null); setOpenMsgMenuId(null); setAttachMenuOpen(false); setSettingsOpen(false); }; window.addEventListener("mousedown", h); return () => window.removeEventListener("mousedown", h); }, []);
   useEffect(() => { if (previewOpen) setSidebarOpen(false); }, [previewOpen]);
 
-  function createNewChat() { const c: Chat = { id: uid("chat"), title: "New chat", messages: [], updatedAt: Date.now(), pendingSurvey: false }; setChats((p) => [c, ...p]); setActiveChatId(c.id); setOpenChatMenuId(null); setRenamingChatId(null); setInput(""); setDraftAttachments((p) => { for (const a of p) if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); return []; }); }
+  function createNewChat() { const c: Chat = { id: uid("chat"), title: "New chat", messages: [], updatedAt: Date.now(), pendingSurvey: false }; setChats((p) => [c, ...p]); setActiveChatId(c.id); setOpenChatMenuId(null); setRenamingChatId(null); setInput(""); setDraftAttachments((p) => { for (const a of p) if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); return []; }); if (isMobile) setSidebarOpen(false); }
   function deleteChat(id: string) { setChats((p) => p.filter((c) => c.id !== id)); setOpenChatMenuId(null); if (id === activeChatId) { const r = chats.filter((c) => c.id !== id); setActiveChatId(r[0]?.id ?? ""); } }
   function startRename(id: string) { setRenamingChatId(id); setRenameValue(chats.find((x) => x.id === id)?.title ?? ""); setOpenChatMenuId(null); }
   function commitRename() { if (!renamingChatId) return; setChats((p) => p.map((c) => (c.id === renamingChatId ? { ...c, title: renameValue.trim() || "New chat" } : c))); setRenamingChatId(null); setRenameValue(""); }
@@ -640,6 +642,9 @@ export default function ChatPage() {
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:3px}
         ::selection{background:${C.accent}40}
         textarea::placeholder{color:${C.textMuted}}
+        @media(max-width:768px){
+          .hide-mobile{display:none!important}
+        }
       `}</style>
 
       {/* HEADER */}
@@ -673,13 +678,18 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <StatusBar phase={phase} businessName={businessName} sidebarOpen={sidebarOpen} />
+      <StatusBar phase={phase} businessName={businessName} sidebarOpen={sidebarOpen} isMobile={isMobile} />
 
       {/* LAYOUT: sidebar + chat + preview */}
       <div style={{ display: "flex", height: "calc(100vh - 81px)", position: "relative" }}>
 
+        {/* SIDEBAR BACKDROP (mobile only) */}
+        {sidebarOpen && isMobile && (
+          <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 19 }} />
+        )}
+
         {/* SIDEBAR */}
-        <aside style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, borderRight: sidebarOpen ? `1px solid ${C.border}` : "none", background: C.bg, transition: "all 300ms cubic-bezier(0.2,0,0,1)", overflow: "hidden", display: "flex", flexDirection: "column", position: "absolute", top: -81, bottom: 0, left: 0, paddingTop: 81, zIndex: 20 }}>
+        <aside style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, borderRight: sidebarOpen ? `1px solid ${C.border}` : "none", background: C.bg, transition: "all 300ms cubic-bezier(0.2,0,0,1)", overflow: "hidden", display: "flex", flexDirection: "column", position: isMobile ? "fixed" : "absolute", top: isMobile ? 0 : -81, bottom: 0, left: 0, paddingTop: isMobile ? 60 : 81, zIndex: 20 }}>
           <div style={{ padding: 10, opacity: sidebarOpen ? 1 : 0, transition: "opacity 200ms" }}>
             <button onClick={createNewChat} type="button" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 0", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer", transition: "all 150ms" }}
               onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
@@ -701,7 +711,7 @@ export default function ChatPage() {
                 <div key={c.id} style={{ display: "flex", alignItems: "center", padding: "6px 8px", borderRadius: 8, marginBottom: 1, cursor: "pointer", background: isA ? "rgba(255,255,255,0.06)" : "transparent", transition: "background 150ms", position: "relative" }}
                   onMouseEnter={(e) => { if (!isA) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
                   onMouseLeave={(e) => { if (!isA) e.currentTarget.style.background = isA ? "rgba(255,255,255,0.06)" : "transparent"; }}>
-                  <button onClick={() => setActiveChatId(c.id)} type="button" style={{ flex: 1, textAlign: "left", background: "none", border: "none", cursor: "pointer", color: C.text, padding: 0, overflow: "hidden" }}>
+                  <button onClick={() => { setActiveChatId(c.id); if (isMobile) setSidebarOpen(false); }} type="button" style={{ flex: 1, textAlign: "left", background: "none", border: "none", cursor: "pointer", color: C.text, padding: 0, overflow: "hidden" }}>
                     {isR ? (
                       <input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") { setRenamingChatId(null); setRenameValue(""); } }} onBlur={commitRename} autoFocus style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", color: C.text, fontSize: 12, outline: "none" }} />
                     ) : (
@@ -734,7 +744,7 @@ export default function ChatPage() {
         </aside>
 
         {/* CHAT */}
-        <div style={{ flex: previewOpen ? "0 0 360px" : 1, display: "flex", flexDirection: "column", minWidth: 0, transition: "flex 300ms ease", marginLeft: sidebarOpen ? 260 : 0, transitionProperty: "flex, margin-left", transitionDuration: "300ms", transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}>
+        <div style={{ flex: previewOpen ? "0 0 360px" : 1, display: "flex", flexDirection: "column", minWidth: 0, transition: "flex 300ms ease", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0, transitionProperty: "flex, margin-left", transitionDuration: "300ms", transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}>
           <div style={{ flex: 1, overflowY: "auto", padding: previewOpen ? "16px 12px" : "16px 16px" }}>
             <div style={{ maxWidth: previewOpen ? "100%" : 820, margin: "0 auto" }}>
               {!hasMessages ? (
@@ -792,7 +802,7 @@ export default function ChatPage() {
           </div>
 
           {/* INPUT */}
-          <div style={{ padding: previewOpen ? "8px 12px 14px" : "8px 16px 18px", position: "relative" }}>
+          <div style={{ padding: isMobile ? "6px 8px 10px" : (previewOpen ? "8px 12px 14px" : "8px 16px 18px"), position: "relative" }}>
             {!surveyData && !showSurvey && activeChat?.pendingSurvey && (
               <div style={{ maxWidth: previewOpen ? "100%" : 820, margin: "0 auto 10px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, position: "relative", zIndex: 2 }}>
                 <div style={{ fontSize: 12, color: C.textSec }}>Survey paused. Continue to finish your website build.</div>
@@ -838,9 +848,9 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* PREVIEW PANEL (Bolt-style) */}
+        {/* PREVIEW PANEL (Bolt-style, fullscreen on mobile) */}
         {previewOpen && websiteData && (
-          <div style={{ flex: 1, borderLeft: `1px solid ${C.border}`, background: C.bg, display: "flex", flexDirection: "column", minWidth: 0 }}>
+          <div style={{ flex: 1, borderLeft: isMobile ? "none" : `1px solid ${C.border}`, background: C.bg, display: "flex", flexDirection: "column", minWidth: 0, ...(isMobile ? { position: "fixed", inset: 0, zIndex: 50 } : {}) }}>
             <div style={{ height: 44, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", borderBottom: `1px solid ${C.border}`, fontSize: 12, fontWeight: 600, color: C.textSec }}>
               <span>Website Preview — {websiteData.branding?.name || "Preview"}</span>
               <HBtn onClick={() => setPreviewOpen(false)} style={{ width: 28, height: 28, color: C.textMuted }}><Ic n="close" className="h-4 w-4" /></HBtn>
