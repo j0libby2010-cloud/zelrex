@@ -849,7 +849,6 @@ export default function ChatPage() {
               srcDoc={buildPreviewHtml(websiteData)}
               style={{ flex: 1, border: "none", background: "#fff" }}
               title="Preview"
-              sandbox="allow-scripts"
             />
           </div>
         )}
