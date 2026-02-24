@@ -274,16 +274,14 @@ export default function ChatPage() {
   const [showSurvey, setShowSurvey] = useState(false);
   const [surveyData, setSurveyData] = useState<SurveyData | null>(null);
   const [surveyDismissed, setSurveyDismissed] = useState(false);
-  const [websiteData, setWebsiteData] = useState<any>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("zelrex_website_data");
-      if (saved) try { return JSON.parse(saved); } catch { return null; }
-    }
-    return null;
-  });
+  const [websiteData, setWebsiteData] = useState<any>(null);
 
   // Persist animated IDs across reloads so typewriter never replays
   const [animatedIds, setAnimatedIds] = useState<string[]>(() => safeJson<string[]>(typeof window !== "undefined" ? localStorage.getItem(ANIMATED_KEY) : null, []));
+  useEffect(() => {
+    const saved = localStorage.getItem("zelrex_website_data");
+    if (saved) try { setWebsiteData(JSON.parse(saved)); } catch {}
+  }, []);
   useEffect(() => { localStorage.setItem(ANIMATED_KEY, JSON.stringify(animatedIds)); }, [animatedIds]);
 
   const [chats, setChats] = useState<Chat[]>(() => {
