@@ -277,17 +277,16 @@ export default function ChatPage() {
   const [websiteData, setWebsiteData] = useState<any>(null);
 
   // Persist animated IDs across reloads so typewriter never replays
-  const [animatedIds, setAnimatedIds] = useState<string[]>(() => safeJson<string[]>(typeof window !== "undefined" ? localStorage.getItem(ANIMATED_KEY) : null, []));
+  const [animatedIds, setAnimatedIds] = useState<string[]>([]);
+  useEffect(() => { const s = localStorage.getItem(ANIMATED_KEY); if (s) try { setAnimatedIds(JSON.parse(s)); } catch {} }, []);
   useEffect(() => {
     const saved = localStorage.getItem("zelrex_website_data");
     if (saved) try { setWebsiteData(JSON.parse(saved)); } catch {}
   }, []);
   useEffect(() => { localStorage.setItem(ANIMATED_KEY, JSON.stringify(animatedIds)); }, [animatedIds]);
 
-  const [chats, setChats] = useState<Chat[]>(() => {
-    const s = safeJson<Chat[]>(typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null, []);
-    return s.length ? s : [{ id: uid("chat"), title: "New chat", messages: [], updatedAt: Date.now() }];
-  });
+  const [chats, setChats] = useState<Chat[]>([{ id: uid("chat"), title: "New chat", messages: [], updatedAt: Date.now() }]);
+  useEffect(() => { const s = safeJson<Chat[]>(localStorage.getItem(STORAGE_KEY), []); if (s.length) { setChats(s); setActiveChatId(s[0]?.id ?? ""); } }, []);
 
   const [activeChatId, setActiveChatId] = useState(() => chats[0]?.id ?? "");
   const activeChat = useMemo(() => chats.find((c) => c.id === activeChatId) ?? chats[0], [chats, activeChatId]);
@@ -358,12 +357,12 @@ export default function ChatPage() {
 
     const methods = copy.contact?.methods?.items || [];
     const methodsHtml = methods.map((m: any) => `
-      <a href="${m.href || "#"}" style="display:flex;align-items:center;gap:16px;background:${surface};border:1px solid ${border};border-radius:12px;padding:20px;text-decoration:none;transition:border-color 0.2s" onmouseover="this.style.borderColor='${accent}'" onmouseout="this.style.borderColor='${border}'">
+      <div style="display:flex;align-items:center;gap:16px;background:${surface};border:1px solid ${border};border-radius:12px;padding:20px">
         <div>
           <div style="font-weight:600;font-size:14px;color:${text}">${m.label || ""}</div>
-          <div style="color:${textSec};font-size:13px;margin-top:2px">${m.value || ""}</div>
+          <div style="color:${accent};font-size:13px;margin-top:2px">${m.value || ""}</div>
         </div>
-      </a>
+      </div>
     `).join("");
 
     return `<!DOCTYPE html>
