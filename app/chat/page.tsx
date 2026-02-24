@@ -491,9 +491,11 @@ export default function ChatPage() {
   <script>
   document.addEventListener('click', function(e) {
     var link = e.target.closest('a');
-    if (link && link.getAttribute('href') && !link.getAttribute('href').startsWith('#')) {
-      e.preventDefault();
-    }
+    if (!link) return;
+    var href = link.getAttribute('href');
+    if (!href || href.startsWith('#')) return;
+    e.preventDefault();
+    e.stopPropagation();
   });
   </script>
 
