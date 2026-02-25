@@ -568,7 +568,7 @@ export default function ChatPage() {
       document.querySelectorAll('.nav-links a[data-nav]').forEach(function(a) {
         a.classList.toggle('active', a.getAttribute('data-nav') === page);
       });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo(0, 0);
     }
     document.addEventListener('click', function(e) {
       var el = e.target.closest('[data-nav]');
