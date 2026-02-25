@@ -338,53 +338,160 @@ export default function ChatPage() {
     const surface = t.surface || "#111111";
     const border = t.border || "rgba(255,255,255,0.08)";
     const name = site.branding?.name || "My Business";
-    const copy = site.copy;
+    const c = site.copy;
 
-    const tiers = copy.pricing?.pricing?.tiers || [];
-    const tiersHtml = tiers.map((tier: any) => `
-      <div style="background:${surface};border:1px solid ${border};border-radius:16px;padding:32px;${tier.highlighted ? `border-color:${accent};` : ""}">
-        <div style="font-weight:700;font-size:18px;color:${text}">${tier.name || ""}</div>
-        <div style="font-weight:900;font-size:36px;color:${text};margin:12px 0 8px;letter-spacing:-0.03em">${tier.price || ""}</div>
-        ${tier.note ? `<div style="color:${textSec};font-size:14px;line-height:1.5">${tier.note}</div>` : ""}
-        <div style="margin-top:20px;border-top:1px solid ${border};padding-top:16px">
-          ${(tier.features || []).map((f: string) => `
-            <div style="display:flex;align-items:center;gap:10px;color:${textSec};font-size:14px;margin-bottom:10px">
-              <span style="color:${accent}">✓</span> ${f}
-            </div>
-          `).join("")}
-        </div>
-        <a href="#contact" style="display:block;margin-top:20px;padding:12px 24px;background:${tier.highlighted ? accent : "transparent"};color:${tier.highlighted ? "#fff" : text};border:1px solid ${tier.highlighted ? accent : border};border-radius:999px;text-align:center;text-decoration:none;font-weight:600;font-size:14px">Get started</a>
-      </div>
-    `).join("");
-
-    const vpItems = copy.home?.valueProps?.items || [];
-    const vpHtml = vpItems.map((item: any) => `
-      <div style="background:${surface};border:1px solid ${border};border-radius:12px;padding:24px">
+    // Helper: render items as card grid
+    const cards = (items: any[], cols: number) => items.map((item: any) => `
+      <div style="background:${surface};border:1px solid ${border};border-radius:16px;padding:28px">
         <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:8px">${item.title || ""}</div>
-        <div style="color:${textSec};font-size:14px;line-height:1.6">${item.description || ""}</div>
-      </div>
-    `).join("");
+        <div style="color:${textSec};font-size:14px;line-height:1.7">${item.description || ""}</div>
+      </div>`).join("");
 
-    const steps = copy.home?.howItWorks?.steps || [];
-    const stepsHtml = steps.map((step: any, i: number) => `
-      <div style="display:flex;gap:20px;align-items:flex-start">
-        <div style="width:40px;height:40px;border-radius:50%;background:${accent}22;color:${accent};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0">${i + 1}</div>
+    // Helper: render steps
+    const stepsList = (steps: any[]) => steps.map((s: any, i: number) => `
+      <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:28px">
+        <div style="width:44px;height:44px;border-radius:50%;background:${accent}18;color:${accent};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0">${i + 1}</div>
         <div>
-          <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:6px">${step.title || ""}</div>
-          <div style="color:${textSec};font-size:14px;line-height:1.6">${step.description || ""}</div>
+          <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:6px">${s.title || ""}</div>
+          <div style="color:${textSec};font-size:14px;line-height:1.7">${s.description || ""}</div>
         </div>
-      </div>
-    `).join("");
+      </div>`).join("");
 
-    const methods = copy.contact?.methods?.items || [];
-    const methodsHtml = methods.map((m: any) => `
-      <div style="display:flex;align-items:center;gap:16px;background:${surface};border:1px solid ${border};border-radius:12px;padding:20px">
-        <div>
-          <div style="font-weight:600;font-size:14px;color:${text}">${m.label || ""}</div>
-          <div style="color:${accent};font-size:13px;margin-top:2px">${m.value || ""}</div>
+    // Helper: CTA block
+    const ctaBlock = (data: any) => !data ? "" : `
+      <section class="section" style="text-align:center">
+        <h2 class="h2" style="margin-bottom:12px">${data.title || ""}</h2>
+        ${data.subtitle ? `<p class="lead" style="margin:0 auto 28px">${data.subtitle}</p>` : ""}
+        <span class="btn-primary" data-nav="contact" style="cursor:pointer">${data.cta?.text || "Get in touch"}</span>
+      </section>`;
+
+    // ── HOME PAGE ──
+    const homeVp = c.home?.valueProps?.items || [];
+    const homeSteps = c.home?.howItWorks?.steps || [];
+    const homePage = `
+      <section class="section" style="padding-top:100px;padding-bottom:80px">
+        <div class="eyebrow">${c.home?.valueProps?.eyebrow || name}</div>
+        <h1 class="h1" style="max-width:720px;margin-bottom:20px">${c.home?.hero?.headline || name}</h1>
+        <p class="lead" style="margin-bottom:36px">${c.home?.hero?.subheadline || ""}</p>
+        <span class="btn-primary" data-nav="contact" style="cursor:pointer">${c.home?.primaryCta?.cta?.text || "Get started"}</span>
+      </section>
+      <div class="divider"></div>
+      <section class="section">
+        <div class="eyebrow">${c.home?.valueProps?.eyebrow || "What we do"}</div>
+        <h2 class="h2" style="margin-bottom:8px">${c.home?.valueProps?.title || ""}</h2>
+        <p class="lead" style="margin-bottom:36px">${c.home?.valueProps?.subtitle || ""}</p>
+        <div class="grid-${homeVp.length > 3 ? "3" : "2"}">${cards(homeVp, 2)}</div>
+      </section>
+      <div class="divider"></div>
+      <section class="section">
+        <div class="eyebrow">${c.home?.howItWorks?.eyebrow || "How it works"}</div>
+        <h2 class="h2" style="margin-bottom:8px">${c.home?.howItWorks?.title || ""}</h2>
+        <p class="lead" style="margin-bottom:36px">${c.home?.howItWorks?.subtitle || ""}</p>
+        <div style="max-width:640px">${stepsList(homeSteps)}</div>
+      </section>
+      ${ctaBlock(c.home?.primaryCta)}`;
+
+    // ── SERVICES / OFFER PAGE ──
+    const offerItems = c.offer?.whatYouGet?.items || homeVp;
+    const whoItems = c.offer?.whoItsFor?.items || [];
+    const servicesPage = `
+      <section class="section" style="padding-top:100px;padding-bottom:80px">
+        <div class="eyebrow">Services</div>
+        <h1 class="h1" style="max-width:720px;margin-bottom:20px">${c.offer?.hero?.headline || "What we offer"}</h1>
+        <p class="lead" style="margin-bottom:36px">${c.offer?.hero?.subheadline || ""}</p>
+      </section>
+      <div class="divider"></div>
+      <section class="section">
+        <div class="eyebrow">${c.offer?.whatYouGet?.eyebrow || "What you get"}</div>
+        <h2 class="h2" style="margin-bottom:8px">${c.offer?.whatYouGet?.title || "What's included"}</h2>
+        <p class="lead" style="margin-bottom:36px">${c.offer?.whatYouGet?.subtitle || ""}</p>
+        <div class="grid-2">${cards(offerItems, 2)}</div>
+      </section>
+      ${whoItems.length ? `<div class="divider"></div>
+      <section class="section">
+        <div class="eyebrow">${c.offer?.whoItsFor?.eyebrow || "Who it's for"}</div>
+        <h2 class="h2" style="margin-bottom:8px">${c.offer?.whoItsFor?.title || "Is this for you?"}</h2>
+        <p class="lead" style="margin-bottom:36px">${c.offer?.whoItsFor?.subtitle || ""}</p>
+        <div class="grid-2">${cards(whoItems, 2)}</div>
+      </section>` : ""}
+      ${ctaBlock(c.offer?.cta)}`;
+
+    // ── PRICING PAGE ──
+    const tiers = c.pricing?.pricing?.tiers || [];
+    const tiersHtml = tiers.map((tier: any) => `
+      <div style="background:${surface};border:1px solid ${tier.highlighted ? accent : border};border-radius:16px;padding:32px;${tier.highlighted ? `box-shadow:0 0 40px ${accent}15;` : ""}">
+        <div style="font-weight:700;font-size:18px;color:${text}">${tier.name || ""}</div>
+        <div style="font-weight:900;font-size:40px;color:${text};margin:16px 0 8px;letter-spacing:-0.03em">${tier.price || ""}</div>
+        ${tier.note ? `<div style="color:${textSec};font-size:14px;line-height:1.5;margin-bottom:8px">${tier.note}</div>` : ""}
+        <div style="margin-top:20px;border-top:1px solid ${border};padding-top:20px">
+          ${(tier.features || []).map((f: string) => `
+            <div style="display:flex;align-items:center;gap:10px;color:${textSec};font-size:14px;margin-bottom:12px">
+              <span style="color:${accent};font-size:16px">✓</span> ${f}
+            </div>`).join("")}
         </div>
-      </div>
-    `).join("");
+        <span class="btn-primary" data-nav="contact" style="cursor:pointer;display:block;text-align:center;margin-top:24px;${tier.highlighted ? "" : `background:transparent;border:1px solid ${border};color:${text};`}">Get started</span>
+      </div>`).join("");
+
+    const pricingPage = `
+      <section class="section" style="padding-top:100px;padding-bottom:80px">
+        <div class="eyebrow">${c.pricing?.pricing?.eyebrow || "Pricing"}</div>
+        <h1 class="h1" style="max-width:720px;margin-bottom:20px">${c.pricing?.hero?.headline || "Simple, transparent pricing"}</h1>
+        <p class="lead" style="margin-bottom:36px">${c.pricing?.hero?.subheadline || c.pricing?.pricing?.subtitle || ""}</p>
+      </section>
+      <div class="divider"></div>
+      <section class="section">
+        <div class="grid-${tiers.length > 2 ? "3" : tiers.length === 2 ? "2" : "1"}" ${tiers.length === 1 ? 'style="max-width:440px"' : ""}>${tiersHtml}</div>
+      </section>
+      ${ctaBlock(c.pricing?.cta)}`;
+
+    // ── ABOUT PAGE ──
+    const values = c.about?.values?.items || [];
+    const aboutPage = `
+      <section class="section" style="padding-top:100px;padding-bottom:80px">
+        <div class="eyebrow">${c.about?.story?.eyebrow || "About"}</div>
+        <h1 class="h1" style="max-width:720px;margin-bottom:20px">${c.about?.hero?.headline || "About " + name}</h1>
+        <p class="lead" style="margin-bottom:36px">${c.about?.hero?.subheadline || ""}</p>
+      </section>
+      <div class="divider"></div>
+      <section class="section">
+        <h2 class="h2" style="margin-bottom:16px">${c.about?.story?.title || "Our story"}</h2>
+        <div style="color:${textSec};font-size:16px;line-height:1.8;max-width:720px">${c.about?.story?.body || ""}</div>
+      </section>
+      ${values.length ? `<div class="divider"></div>
+      <section class="section">
+        <div class="eyebrow">${c.about?.values?.eyebrow || "Values"}</div>
+        <h2 class="h2" style="margin-bottom:8px">${c.about?.values?.title || "What we believe"}</h2>
+        <div class="grid-2" style="margin-top:28px">${cards(values, 2)}</div>
+      </section>` : ""}
+      ${ctaBlock(c.about?.cta)}`;
+
+    // ── CONTACT PAGE ──
+    const methods = c.contact?.methods?.items || [];
+    const nextSteps = c.contact?.nextSteps?.items || [];
+    const contactPage = `
+      <section class="section" style="padding-top:100px;padding-bottom:80px">
+        <div class="eyebrow">${c.contact?.methods?.eyebrow || "Contact"}</div>
+        <h1 class="h1" style="max-width:720px;margin-bottom:20px">${c.contact?.hero?.headline || "Get in touch"}</h1>
+        <p class="lead" style="margin-bottom:36px">${c.contact?.hero?.subheadline || ""}</p>
+      </section>
+      <div class="divider"></div>
+      <section class="section">
+        <h2 class="h2" style="margin-bottom:24px">${c.contact?.methods?.title || "Reach out"}</h2>
+        <div class="grid-2" style="max-width:540px">
+          ${methods.map((m: any) => `
+            <div style="background:${surface};border:1px solid ${border};border-radius:12px;padding:24px">
+              <div style="font-weight:600;font-size:14px;color:${text};margin-bottom:4px">${m.label || ""}</div>
+              <div style="color:${accent};font-size:15px;font-weight:500">${m.value || ""}</div>
+            </div>`).join("")}
+        </div>
+      </section>
+      ${nextSteps.length ? `<div class="divider"></div>
+      <section class="section">
+        <div class="eyebrow">${c.contact?.nextSteps?.eyebrow || "Next steps"}</div>
+        <h2 class="h2" style="margin-bottom:8px">${c.contact?.nextSteps?.title || "What happens next"}</h2>
+        <div class="grid-2" style="margin-top:28px">${cards(nextSteps, 2)}</div>
+      </section>` : ""}
+      ${ctaBlock(c.contact?.cta)}`;
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -395,132 +502,80 @@ export default function ChatPage() {
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
     body { font-family: 'Inter', -apple-system, sans-serif; background: ${bg}; color: ${text}; -webkit-font-smoothing: antialiased; }
-    a { color: inherit; }
+    .page { display: none; }
+    .page.active { display: block; }
     .section { padding: 80px 24px; max-width: 1100px; margin: 0 auto; }
-    .section-sm { padding: 60px 24px; max-width: 1100px; margin: 0 auto; }
     .eyebrow { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${accent}; margin-bottom: 14px; }
     .h1 { font-size: clamp(36px, 5vw, 56px); font-weight: 900; line-height: 1.08; letter-spacing: -0.03em; color: ${text}; }
     .h2 { font-size: clamp(28px, 3.5vw, 40px); font-weight: 800; line-height: 1.12; letter-spacing: -0.025em; color: ${text}; }
     .lead { font-size: 17px; line-height: 1.6; color: ${textSec}; max-width: 600px; }
-    .btn-primary { display: inline-flex; align-items: center; padding: 14px 32px; background: ${accent}; color: #fff; border-radius: 999px; font-weight: 700; font-size: 15px; text-decoration: none; transition: transform 0.15s, box-shadow 0.15s; }
+    .btn-primary { display: inline-flex; align-items: center; padding: 14px 32px; background: ${accent}; color: #fff; border-radius: 999px; font-weight: 700; font-size: 15px; text-decoration: none; transition: transform 0.15s, box-shadow 0.15s; cursor: pointer; }
     .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px ${accent}44; }
     .nav { position: sticky; top: 0; z-index: 100; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); background: ${bg}dd; border-bottom: 1px solid ${border}; }
     .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
     .nav-links { display: flex; gap: 28px; align-items: center; }
-    .nav-links a { font-size: 13px; font-weight: 500; color: ${textSec}; text-decoration: none; transition: color 0.15s; }
+    .nav-links a { font-size: 13px; font-weight: 500; color: ${textSec}; text-decoration: none; transition: color 0.15s; cursor: pointer; }
     .nav-links a:hover { color: ${text}; }
+    .nav-links a.active { color: ${accent}; }
+    .grid-1 { display: grid; grid-template-columns: 1fr; gap: 16px; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     .divider { height: 1px; background: ${border}; max-width: 1100px; margin: 0 auto; }
+    footer { border-top: 1px solid ${border}; padding: 32px 24px; text-align: center; }
+    footer span { color: ${textSec}; font-size: 13px; }
     @media (max-width: 768px) {
       .grid-2, .grid-3 { grid-template-columns: 1fr; }
-      .nav-links { display: none; }
+      .nav-links { gap: 16px; }
+      .nav-links .btn-primary { display: none; }
       .section { padding: 60px 20px; }
+    }
+    @media (max-width: 480px) {
+      .nav-links { gap: 12px; }
+      .nav-links a { font-size: 11px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- NAV -->
   <nav class="nav">
     <div class="nav-inner">
-      <div style="font-weight:800;font-size:18px;letter-spacing:-0.02em">${name}</div>
+      <a data-nav="home" style="font-weight:800;font-size:18px;letter-spacing:-0.02em;cursor:pointer;text-decoration:none;color:${text}">${name}</a>
       <div class="nav-links">
-        <a href="#services">Services</a>
-        <a href="#process">Process</a>
-        <a href="#pricing">Pricing</a>
-        <a href="#about">About</a>
-        <a href="#contact">Contact</a>
-        <a href="#contact" class="btn-primary" style="padding:8px 20px;font-size:13px">${copy.home?.primaryCta?.cta?.text || "Get in touch"}</a>
+        <a data-nav="home" class="active">Home</a>
+        <a data-nav="services">Services</a>
+        <a data-nav="pricing">Pricing</a>
+        <a data-nav="about">About</a>
+        <a data-nav="contact">Contact</a>
+        <span class="btn-primary" data-nav="contact" style="padding:8px 20px;font-size:13px">${c.home?.primaryCta?.cta?.text || "Get in touch"}</span>
       </div>
     </div>
   </nav>
 
-  <!-- HERO -->
-  <section class="section" style="padding-top:100px;padding-bottom:100px">
-    <div class="eyebrow">${copy.home?.valueProps?.eyebrow || name}</div>
-    <h1 class="h1" style="max-width:700px;margin-bottom:20px">${copy.home?.hero?.headline || name}</h1>
-    <p class="lead" style="margin-bottom:36px">${copy.home?.hero?.subheadline || ""}</p>
-    <a href="#contact" class="btn-primary">${copy.home?.primaryCta?.cta?.text || "Get started"}</a>
-  </section>
+  <div id="page-home" class="page active">${homePage}</div>
+  <div id="page-services" class="page">${servicesPage}</div>
+  <div id="page-pricing" class="page">${pricingPage}</div>
+  <div id="page-about" class="page">${aboutPage}</div>
+  <div id="page-contact" class="page">${contactPage}</div>
 
-  <div class="divider"></div>
-
-  <!-- VALUE PROPS -->
-  <section class="section" id="services">
-    <div class="eyebrow">${copy.home?.valueProps?.eyebrow || "Services"}</div>
-    <h2 class="h2" style="margin-bottom:8px">${copy.home?.valueProps?.title || ""}</h2>
-    <p class="lead" style="margin-bottom:36px">${copy.home?.valueProps?.subtitle || ""}</p>
-    <div class="grid-${vpItems.length > 3 ? "3" : "2"}">
-      ${vpHtml}
-    </div>
-  </section>
-
-  <div class="divider"></div>
-
-  <!-- HOW IT WORKS -->
-  <section class="section" id="process">
-    <div class="eyebrow">${copy.home?.howItWorks?.eyebrow || "Process"}</div>
-    <h2 class="h2" style="margin-bottom:8px">${copy.home?.howItWorks?.title || ""}</h2>
-    <p class="lead" style="margin-bottom:40px">${copy.home?.howItWorks?.subtitle || ""}</p>
-    <div style="display:grid;gap:32px;max-width:600px">
-      ${stepsHtml}
-    </div>
-  </section>
-
-  <div class="divider"></div>
-
-  <!-- PRICING -->
-  <section class="section" id="pricing">
-    <div class="eyebrow">${copy.pricing?.pricing?.eyebrow || "Pricing"}</div>
-    <h2 class="h2" style="margin-bottom:8px">${copy.pricing?.pricing?.title || "Pricing"}</h2>
-    <p class="lead" style="margin-bottom:36px">${copy.pricing?.pricing?.subtitle || ""}</p>
-    <div class="grid-${tiers.length > 2 ? "3" : tiers.length === 2 ? "2" : "1"}" ${tiers.length === 1 ? "style=\"max-width:440px\"" : ""}>
-      ${tiersHtml}
-    </div>
-  </section>
-
-  <div class="divider"></div>
-
-  <!-- ABOUT -->
-  <section class="section" id="about">
-    <div class="eyebrow">${copy.about?.story?.eyebrow || "About"}</div>
-    <h2 class="h2" style="margin-bottom:16px">${copy.about?.story?.title || "About " + name}</h2>
-    <p class="lead" style="max-width:700px">${copy.about?.story?.body || ""}</p>
-  </section>
-
-  <div class="divider"></div>
-
-  <!-- CONTACT -->
-  <section class="section" id="contact">
-    <div class="eyebrow">${copy.contact?.methods?.eyebrow || "Contact"}</div>
-    <h2 class="h2" style="margin-bottom:8px">${copy.contact?.hero?.headline || "Get in touch"}</h2>
-    <p class="lead" style="margin-bottom:36px">${copy.contact?.hero?.subheadline || ""}</p>
-    <div class="grid-2" style="max-width:500px">
-      ${methodsHtml}
-    </div>
-  </section>
-
-  <!-- FOOTER -->
-  <footer style="border-top:1px solid ${border};padding:32px 24px;text-align:center">
-    <div style="color:${textSec};font-size:13px">© ${new Date().getFullYear()} ${name}. All rights reserved.</div>
-  </footer>
+  <footer><span>&copy; ${new Date().getFullYear()} ${name}. All rights reserved.</span></footer>
 
   <script>
-  // Handle all anchor clicks with JS scrolling to prevent iframe navigation
-  document.addEventListener('click', function(e) {
-    var link = e.target.closest('a');
-    if (!link) return;
-    e.preventDefault();
-    e.stopPropagation();
-    var href = link.getAttribute('href');
-    if (href && href.startsWith('#') && href.length > 1) {
-      var target = document.querySelector(href);
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    function navigate(page) {
+      document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+      var target = document.getElementById('page-' + page);
+      if (target) target.classList.add('active');
+      document.querySelectorAll('.nav-links a[data-nav]').forEach(function(a) {
+        a.classList.toggle('active', a.getAttribute('data-nav') === page);
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  }, true);
+    document.addEventListener('click', function(e) {
+      var el = e.target.closest('[data-nav]');
+      if (el) { navigate(el.getAttribute('data-nav')); e.preventDefault(); return; }
+      var link = e.target.closest('a');
+      if (link) { e.preventDefault(); }
+    }, true);
   </script>
 
 </body>
