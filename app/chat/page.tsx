@@ -334,7 +334,7 @@ export default function ChatPage() {
             </div>
           `).join("")}
         </div>
-        <a href="#contact" style="display:block;margin-top:20px;padding:12px 24px;background:${tier.highlighted ? accent : "transparent"};color:${tier.highlighted ? "#fff" : text};border:1px solid ${tier.highlighted ? accent : border};border-radius:999px;text-align:center;text-decoration:none;font-weight:600;font-size:14px">Get started</a>
+        <a onclick="scrollTo('#contact')" style="display:block;margin-top:20px;padding:12px 24px;background:${tier.highlighted ? accent : "transparent"};color:${tier.highlighted ? "#fff" : text};border:1px solid ${tier.highlighted ? accent : border};border-radius:999px;text-align:center;text-decoration:none;font-weight:600;font-size:14px;cursor:pointer">Get started</a>
       </div>
     `).join("");
 
@@ -409,12 +409,12 @@ export default function ChatPage() {
     <div class="nav-inner">
       <div style="font-weight:800;font-size:18px;letter-spacing:-0.02em">${name}</div>
       <div class="nav-links">
-        <a href="#services">Services</a>
-        <a href="#process">Process</a>
-        <a href="#pricing">Pricing</a>
-        <a href="#about">About</a>
-        <a href="#contact">Contact</a>
-        <a href="#contact" class="btn-primary" style="padding:8px 20px;font-size:13px">${copy.home?.primaryCta?.cta?.text || "Get in touch"}</a>
+        <a onclick="scrollTo('#services')" style="cursor:pointer">Services</a>
+        <a onclick="scrollTo('#process')" style="cursor:pointer">Process</a>
+        <a onclick="scrollTo('#pricing')" style="cursor:pointer">Pricing</a>
+        <a onclick="scrollTo('#about')" style="cursor:pointer">About</a>
+        <a onclick="scrollTo('#contact')" style="cursor:pointer">Contact</a>
+        <a onclick="scrollTo('#contact')" class="btn-primary" style="padding:8px 20px;font-size:13px;cursor:pointer">${copy.home?.primaryCta?.cta?.text || "Get in touch"}</a>
       </div>
     </div>
   </nav>
@@ -424,7 +424,7 @@ export default function ChatPage() {
     <div class="eyebrow">${copy.home?.valueProps?.eyebrow || name}</div>
     <h1 class="h1" style="max-width:700px;margin-bottom:20px">${copy.home?.hero?.headline || name}</h1>
     <p class="lead" style="margin-bottom:36px">${copy.home?.hero?.subheadline || ""}</p>
-    <a href="#contact" class="btn-primary">${copy.home?.primaryCta?.cta?.text || "Get started"}</a>
+    <a onclick="scrollTo('#contact')" class="btn-primary" style="cursor:pointer">${copy.home?.primaryCta?.cta?.text || "Get started"}</a>
   </section>
 
   <div class="divider"></div>
@@ -490,14 +490,22 @@ export default function ChatPage() {
   </footer>
 
   <script>
+  function scrollTo(sel) {
+    var el = document.querySelector(sel);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  // Block ALL anchor navigation - nothing should ever leave this page
   document.addEventListener('click', function(e) {
     var link = e.target.closest('a');
     if (!link) return;
     var href = link.getAttribute('href');
-    if (!href || href.startsWith('#')) return;
-    e.preventDefault();
-    e.stopPropagation();
-  });
+    if (href) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      return false;
+    }
+  }, true);
   </script>
 
 </body>
