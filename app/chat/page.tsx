@@ -262,6 +262,25 @@ function shouldAnimate(m: Msg, chat: Chat | undefined) {
   return m.id === last?.id && m.role === "assistant";
 }
 
+// ─── PREVIEW FRAME (uses blob URL for full isolation) ─────────────
+function PreviewFrame({ html }: { html: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const blobUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    // Clean up old blob URL
+    if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current);
+    // Create new blob URL from HTML
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    blobUrlRef.current = url;
+    if (iframeRef.current) iframeRef.current.src = url;
+    return () => { if (blobUrlRef.current) URL.revokeObjectURL(blobUrlRef.current); };
+  }, [html]);
+
+  return <iframe ref={iframeRef} style={{ flex: 1, border: "none", background: "#fff" }} title="Preview" />;
+}
+
 // ═══════════════════════════════════════════════════════════════════════
 // MAIN
 // ═══════════════════════════════════════════════════════════════════════
@@ -334,7 +353,7 @@ export default function ChatPage() {
             </div>
           `).join("")}
         </div>
-        <a data-scroll="#contact" style="display:block;margin-top:20px;padding:12px 24px;background:${tier.highlighted ? accent : "transparent"};color:${tier.highlighted ? "#fff" : text};border:1px solid ${tier.highlighted ? accent : border};border-radius:999px;text-align:center;text-decoration:none;font-weight:600;font-size:14px;cursor:pointer">Get started</a>
+        <a href="#contact" style="display:block;margin-top:20px;padding:12px 24px;background:${tier.highlighted ? accent : "transparent"};color:${tier.highlighted ? "#fff" : text};border:1px solid ${tier.highlighted ? accent : border};border-radius:999px;text-align:center;text-decoration:none;font-weight:600;font-size:14px">Get started</a>
       </div>
     `).join("");
 
@@ -409,12 +428,12 @@ export default function ChatPage() {
     <div class="nav-inner">
       <div style="font-weight:800;font-size:18px;letter-spacing:-0.02em">${name}</div>
       <div class="nav-links">
-        <a data-scroll="#services" style="cursor:pointer">Services</a>
-        <a data-scroll="#process" style="cursor:pointer">Process</a>
-        <a data-scroll="#pricing" style="cursor:pointer">Pricing</a>
-        <a data-scroll="#about" style="cursor:pointer">About</a>
-        <a data-scroll="#contact" style="cursor:pointer">Contact</a>
-        <a data-scroll="#contact" class="btn-primary" style="padding:8px 20px;font-size:13px;cursor:pointer">${copy.home?.primaryCta?.cta?.text || "Get in touch"}</a>
+        <a href="#services">Services</a>
+        <a href="#process">Process</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+        <a href="#contact" class="btn-primary" style="padding:8px 20px;font-size:13px">${copy.home?.primaryCta?.cta?.text || "Get in touch"}</a>
       </div>
     </div>
   </nav>
@@ -424,7 +443,7 @@ export default function ChatPage() {
     <div class="eyebrow">${copy.home?.valueProps?.eyebrow || name}</div>
     <h1 class="h1" style="max-width:700px;margin-bottom:20px">${copy.home?.hero?.headline || name}</h1>
     <p class="lead" style="margin-bottom:36px">${copy.home?.hero?.subheadline || ""}</p>
-    <a data-scroll="#contact" class="btn-primary" style="cursor:pointer">${copy.home?.primaryCta?.cta?.text || "Get started"}</a>
+    <a href="#contact" class="btn-primary">${copy.home?.primaryCta?.cta?.text || "Get started"}</a>
   </section>
 
   <div class="divider"></div>
@@ -490,16 +509,17 @@ export default function ChatPage() {
   </footer>
 
   <script>
+  // Handle all anchor clicks with JS scrolling to prevent iframe navigation
   document.addEventListener('click', function(e) {
-    var el = e.target.closest('[data-scroll]');
-    if (el) {
-      var target = document.querySelector(el.getAttribute('data-scroll'));
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      e.preventDefault();
-      return;
-    }
     var link = e.target.closest('a');
-    if (link) { e.preventDefault(); e.stopPropagation(); }
+    if (!link) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var href = link.getAttribute('href');
+    if (href && href.startsWith('#') && href.length > 1) {
+      var target = document.querySelector(href);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }, true);
   </script>
 
@@ -858,12 +878,7 @@ export default function ChatPage() {
               <span>Website Preview — {websiteData.branding?.name || "Preview"}</span>
               <HBtn onClick={() => setPreviewOpen(false)} style={{ width: 28, height: 28, color: C.textMuted }}><Ic n="close" className="h-4 w-4" /></HBtn>
             </div>
-            <iframe
-              srcDoc={buildPreviewHtml(websiteData)}
-              style={{ flex: 1, border: "none", background: "#fff" }}
-              title="Preview"
-              sandbox="allow-scripts"
-            />
+            <PreviewFrame html={buildPreviewHtml(websiteData)} />
           </div>
         )}
 
