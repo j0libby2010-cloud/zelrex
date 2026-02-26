@@ -1,569 +1,480 @@
-/**
- * ZELREX COPY GENERATOR — v3
- * 
- * TWO PATHS:
- * 
- * 1. WITH SURVEY DATA (preferred):
- *    Builds copy directly from the user's answers. No AI call needed.
- *    Every price, deliverable, and contact method is REAL data the user typed.
- *    This is faster (~0ms vs ~8s), cheaper ($0 vs ~$0.15), and more accurate.
- * 
- * 2. WITHOUT SURVEY DATA (chat-only fallback):
- *    Calls Claude Sonnet to write bespoke copy from chat context.
- *    This is the original path. Still works, but produces less precise copy
- *    because it's inferring details from conversation fragments.
- * 
- * RULE: If survey data exists, ALWAYS use path 1. Never call the AI
- * when we already have the exact data we need.
- */
+// website/core/generateCopy.ts
+//
+// REWRITE: Uses Claude to generate genuinely unique, business-specific website copy.
+// The old version was 100% hardcoded templates — every site got identical text.
+// Now each website gets bespoke copy written by Claude based on full survey data.
 
 import Anthropic from "@anthropic-ai/sdk";
 import { WebsiteCopy } from "./websiteCopy";
 import { ZelrexWebsite } from "./websiteTypes";
-import { BusinessContext, SurveyData } from "./buildWebsite";
+import { ZelrexAssumptions } from "./deriveAssumptions";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-});
-
-// ─── Main entry point ───────────────────────────────────────────────
-
-export async function generateWebsiteCopy(input: {
-  branding: ZelrexWebsite["branding"];
-  assumptions: any;
-  businessContext?: BusinessContext;
-  surveyData?: SurveyData;
-}): Promise<WebsiteCopy> {
-  const { branding, businessContext, surveyData } = input;
-
-  // Path 1: Survey data exists — build copy directly from real data
-  if (surveyData && surveyData.businessName) {
-    console.log("ZELREX COPY: building from survey data (no AI call needed)");
-    return buildCopyFromSurvey(branding, surveyData);
-  }
-
-  // Path 2: Chat context only — call AI for bespoke copy
-  if (businessContext && businessContext.businessType) {
-    try {
-      console.log("ZELREX COPY: generating with AI from chat context");
-      return await generateAICopy(branding, businessContext, input.assumptions);
-    } catch (error) {
-      console.error("ZELREX COPY: AI generation failed, using fallback", error);
-    }
-  }
-
-  // Path 3: Nothing — basic defaults (should rarely happen)
-  console.log("ZELREX COPY: using fallback defaults");
-  return buildFallbackCopy(branding);
+// Re-export SurveyData so buildWebsite and route can import from one place
+export interface SurveyData {
+  businessName: string;
+  tagline: string;
+  businessType: string;
+  targetAudience: string;
+  mainService: string;
+  serviceDescription: string;
+  deliverables: string[];
+  turnaround: string;
+  pricingModel: "package" | "hourly" | "retainer" | "project";
+  price: string;
+  hasMultipleTiers: boolean;
+  tiers: Array<{ name: string; price: string; features: string[] }>;
+  guarantee: string;
+  primaryColor: string;
+  stylePreference: "dark-premium" | "light-clean" | "bold-colorful" | "minimal-elegant";
+  fontPreference: "modern" | "classic" | "editorial" | "tech";
+  email: string;
+  phone: string;
+  location: string;
+  hours: string;
+  socialLinks: { platform: string; url: string }[];
+  calendlyUrl: string;
+  aboutStory: string;
+  uniqueSellingPoint: string;
+  platformsLeavingFrom: string;
 }
 
-// ═════════════════════════════════════════════════════════════════════
-// PATH 1: BUILD COPY FROM SURVEY DATA (PREFERRED)
-// Every field comes from what the user actually typed.
-// ═════════════════════════════════════════════════════════════════════
+interface CopyInput {
+  branding: ZelrexWebsite["branding"];
+  assumptions?: ZelrexAssumptions;
+  businessContext?: {
+    businessType: string;
+    audience: string;
+    offer: string;
+    pricing: string;
+  };
+  surveyData?: SurveyData;
+}
 
-function buildCopyFromSurvey(
-  branding: ZelrexWebsite["branding"],
-  s: SurveyData
-): WebsiteCopy {
-  const name = s.businessName || branding.name || "My Business";
-  const deliverables = s.deliverables.filter(Boolean);
-  const hasTiers = s.hasMultipleTiers && s.tiers.length > 0 && s.tiers[0].name;
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
-  // Build pricing display string
-  const priceDisplay = hasTiers
-    ? s.tiers.map(t => t.name).join(" / ")
-    : s.price || "Contact for pricing";
+// ─── The prompt that makes every website unique ──────────────────────
 
-  // Build contact methods from real data
-  const contactMethods: Array<{ label: string; value: string; href: string }> = [];
-  if (s.email) {
-    contactMethods.push({ label: "Email", value: s.email, href: `mailto:${s.email}` });
+function buildCopyPrompt(input: CopyInput): string {
+  const sv = input.surveyData;
+  const b = input.branding;
+  const ctx = input.businessContext;
+
+  // If we have survey data, use it extensively
+  if (sv) {
+    const tiersBlock = sv.hasMultipleTiers && sv.tiers.length > 0
+      ? sv.tiers.map((t, i) => `  Tier ${i + 1}: "${t.name}" at ${t.price} — includes: ${t.features.filter(Boolean).join(", ")}`).join("\n")
+      : `  Single price: ${sv.price} (${sv.pricingModel} model)`;
+
+    const deliverablesBlock = sv.deliverables.filter(Boolean).join(", ");
+
+    return `You are a world-class freelance copywriter. Write ALL website copy for this specific business. Every word must be written for THIS exact business — no generic templates, no filler.
+
+BUSINESS PROFILE:
+- Name: "${sv.businessName}"
+- Tagline: "${sv.tagline || "(none provided — write one)"}"
+- Service type: ${sv.businessType}
+- Main service: "${sv.mainService}"
+- What the client gets: "${sv.serviceDescription}"
+- Specific deliverables: ${deliverablesBlock || "Not specified"}
+- Turnaround: ${sv.turnaround || "Not specified"}
+- Target audience: "${sv.targetAudience}"
+- Unique selling point: "${sv.uniqueSellingPoint || "(none provided — infer one from the service)"}"
+- Guarantee: "${sv.guarantee || "(none)"}"
+- Leaving platforms: ${sv.platformsLeavingFrom || "Not specified"}
+
+PRICING:
+${tiersBlock}
+
+ABOUT THE PERSON:
+${sv.aboutStory || "No personal story provided — write a compelling 2-sentence origin story based on their service type and audience."}
+
+BRAND VOICE:
+- Style: ${sv.stylePreference} 
+- Tone: ${b.tone}
+- Font feel: ${sv.fontPreference}
+
+COPYWRITING RULES — FOLLOW THESE EXACTLY:
+1. Headlines must be specific to THIS business. Never "Welcome to [name]" or "What we offer". Instead, lead with the outcome or transformation. E.g., for a video editor: "Your content, edited to convert." For a designer: "Brand identity that closes deals."
+2. Subheadlines expand the headline with one specific, concrete detail.
+3. Value prop items must describe what THIS specific freelancer actually does — use their deliverables, not generic benefits.
+4. "How it works" steps must describe THIS person's actual process, not a generic 3-step template.
+5. "Who it's for" items must describe their ACTUAL target audience with specific, recognizable pain points.
+6. Pricing must use their REAL prices and tier names. Never "$—" or placeholder prices.
+7. The about story must feel personal and authentic. If they provided one, enhance it. If not, write something believable for their service type.
+8. CTAs should use action verbs specific to the service: "Book your edit", "Start your rebrand", "Schedule a strategy call" — NOT "Get started" or "Learn more".
+9. Contact section must feel inviting and specific to how this freelancer works.
+10. NEVER use these words/phrases: "streamline", "leverage", "game-changer", "take your X to the next level", "in today's fast-paced", "comprehensive solution", "cutting-edge". Write like a human, not a chatbot.
+11. Every section needs at least 3-4 items (value props, deliverables, features, etc.)
+12. The entire site should feel like ONE coherent voice, not disconnected sections.
+
+Return ONLY valid JSON matching this exact structure. No markdown, no backticks, no explanation.
+
+{
+  "home": {
+    "hero": { "headline": "...", "subheadline": "..." },
+    "valueProps": {
+      "eyebrow": "...",
+      "title": "...",
+      "subtitle": "...",
+      "items": [{ "title": "...", "description": "..." }, ...]
+    },
+    "howItWorks": {
+      "eyebrow": "...",
+      "title": "...",
+      "subtitle": "...",
+      "steps": [{ "title": "...", "description": "..." }, ...]
+    },
+    "socialProof": {
+      "eyebrow": "...",
+      "title": "...",
+      "subtitle": "...",
+      "items": [{ "label": "...", "value": "...", "detail": "..." }, ...]
+    },
+    "primaryCta": {
+      "title": "...",
+      "subtitle": "...",
+      "cta": { "text": "...", "intent": "primary" }
+    }
+  },
+  "offer": {
+    "hero": { "headline": "...", "subheadline": "..." },
+    "whatYouGet": {
+      "eyebrow": "...",
+      "title": "...",
+      "subtitle": "...",
+      "items": [{ "title": "...", "description": "..." }, ...]
+    },
+    "whoItsFor": {
+      "eyebrow": "...",
+      "title": "...",
+      "subtitle": "...",
+      "items": [{ "title": "...", "description": "..." }, ...]
+    },
+    "cta": {
+      "title": "...",
+      "subtitle": "...",
+      "cta": { "text": "...", "intent": "primary" }
+    }
+  },
+  "pricing": {
+    "hero": { "headline": "...", "subheadline": "..." },
+    "pricing": {
+      "eyebrow": "...",
+      "title": "...",
+      "subtitle": "...",
+      "tiers": [{ "name": "...", "price": "...", "note": "...", "features": ["..."], "highlighted": true/false }, ...]
+    },
+    "cta": {
+      "title": "...",
+      "subtitle": "...",
+      "cta": { "text": "...", "intent": "primary" }
+    }
+  },
+  "about": {
+    "hero": { "headline": "...", "subheadline": "..." },
+    "story": {
+      "eyebrow": "...",
+      "title": "...",
+      "body": "..."
+    },
+    "values": {
+      "eyebrow": "...",
+      "title": "...",
+      "items": [{ "title": "...", "description": "..." }, ...]
+    },
+    "cta": {
+      "title": "...",
+      "subtitle": "...",
+      "cta": { "text": "...", "intent": "primary" }
+    }
+  },
+  "contact": {
+    "hero": { "headline": "...", "subheadline": "..." },
+    "methods": {
+      "eyebrow": "...",
+      "title": "...",
+      "subtitle": "...",
+      "items": [{ "label": "...", "value": "...", "href": "..." }, ...]
+    },
+    "nextSteps": {
+      "eyebrow": "...",
+      "title": "...",
+      "items": [{ "title": "...", "description": "..." }, ...]
+    },
+    "cta": {
+      "title": "...",
+      "subtitle": "...",
+      "cta": { "text": "...", "intent": "primary" }
+    }
   }
-  if (s.phone) {
-    contactMethods.push({ label: "Phone", value: s.phone, href: `tel:${s.phone.replace(/\D/g, "")}` });
-  }
-  if (s.calendlyUrl) {
-    contactMethods.push({ label: "Book a call", value: "Schedule online", href: s.calendlyUrl });
-  }
-  if (contactMethods.length === 0) {
-    contactMethods.push({ label: "Get in touch", value: "Send a message", href: "#contact" });
+}`;
   }
 
-  // Build pricing tiers from real data
-  const pricingTiers = hasTiers
-    ? s.tiers.filter(t => t.name).map((tier, i) => ({
-        name: tier.name,
-        price: tier.price || "Contact",
-        note: i === 0 ? "Best for getting started" : i === 1 ? "Most popular" : "For ongoing needs",
-        features: tier.features.filter(Boolean),
-        highlighted: i === 1 || (s.tiers.length === 1 && i === 0),
-      }))
-    : [{
-        name: s.mainService || name,
-        price: s.price || "Contact for pricing",
-        note: s.turnaround ? `Delivered in ${s.turnaround}` : "Tailored to your needs",
-        features: deliverables.length > 0
-          ? deliverables
-          : ["Full service delivery", "Clear scope and timeline", "Professional execution"],
-        highlighted: true,
-      }];
+  // Fallback: chat-only context (no survey)
+  return `You are a world-class freelance copywriter. Write all website copy for this business.
 
-  // CTA text based on business type
-  const ctaText = s.calendlyUrl
-    ? "Book your call"
-    : s.email
-      ? "Get in touch"
-      : "Get started";
+Business: "${b.name}"
+Tagline: "${b.tagline || ""}"
+Tone: ${b.tone}
+Type: ${ctx?.businessType || "freelance service"}
+Audience: ${ctx?.audience || "professionals"}
+Offer: ${ctx?.offer || "consulting"}
+Pricing: ${ctx?.pricing || "custom"}
 
-  // Build the "why me vs platforms" angle if they're leaving Upwork/Fiverr
-  const leavingPlatform = s.platformsLeavingFrom?.trim();
+Write specific, unique copy. No generic templates. Lead with outcomes, not descriptions. Use action verbs for CTAs.
+
+Return ONLY valid JSON in the exact structure shown above (home, offer, pricing, about, contact). No markdown.`;
+}
+
+// ─── Generate copy via Claude ────────────────────────────────────────
+
+export async function generateWebsiteCopy(input: CopyInput): Promise<WebsiteCopy> {
+  const prompt = buildCopyPrompt(input);
+
+  try {
+    console.log("ZELREX COPY: generating bespoke copy via Claude...");
+
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-5-20250929",
+      max_tokens: 4096,
+      temperature: 0.7, // Higher temp = more creative, unique copy
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const raw = response.content?.[0]?.type === "text" ? response.content[0].text : "";
+    const cleaned = raw.replace(/```json\s*|```\s*/g, "").trim();
+
+    let copy: WebsiteCopy;
+    try {
+      copy = JSON.parse(cleaned);
+    } catch (parseError) {
+      console.error("ZELREX COPY: JSON parse failed, attempting repair...");
+      // Try to extract JSON from potential surrounding text
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        copy = JSON.parse(jsonMatch[0]);
+      } else {
+        throw parseError;
+      }
+    }
+
+    // Inject real contact methods from survey if available
+    if (input.surveyData) {
+      const sv = input.surveyData;
+      const methods: Array<{ label: string; value: string; href?: string }> = [];
+      if (sv.email) methods.push({ label: "Email", value: sv.email, href: `mailto:${sv.email}` });
+      if (sv.phone) methods.push({ label: "Phone", value: sv.phone, href: `tel:${sv.phone.replace(/\D/g, "")}` });
+      if (sv.calendlyUrl) methods.push({ label: "Book a call", value: "Schedule a time", href: sv.calendlyUrl });
+      if (sv.location) methods.push({ label: "Location", value: sv.location });
+      if (sv.hours) methods.push({ label: "Hours", value: sv.hours });
+
+      if (methods.length > 0) {
+        copy.contact.methods.items = methods;
+      }
+
+      // Ensure pricing uses real data
+      if (sv.hasMultipleTiers && sv.tiers.length > 0) {
+        const realTiers = sv.tiers
+          .filter((t) => t.name && t.price)
+          .map((t, i) => ({
+            name: t.name,
+            price: t.price,
+            note: copy.pricing?.pricing?.tiers?.[i]?.note || "",
+            features: t.features.filter(Boolean).length > 0 ? t.features.filter(Boolean) : copy.pricing?.pricing?.tiers?.[i]?.features || [],
+            highlighted: i === Math.floor(sv.tiers.filter((t) => t.name && t.price).length / 2), // highlight middle tier
+          }));
+        if (realTiers.length > 0) {
+          copy.pricing.pricing.tiers = realTiers;
+        }
+      } else if (sv.price) {
+        // Single price — make sure it appears
+        if (copy.pricing?.pricing?.tiers) {
+          copy.pricing.pricing.tiers = copy.pricing.pricing.tiers.map((tier) => ({
+            ...tier,
+            price: tier.price.includes("$") ? tier.price : sv.price,
+          }));
+        }
+      }
+    }
+
+    console.log("ZELREX COPY: bespoke copy generated successfully");
+    return copy;
+
+  } catch (error) {
+    console.error("ZELREX COPY: Claude generation failed, using enhanced fallback", error);
+    return buildFallbackCopy(input);
+  }
+}
+
+// ─── Fallback: survey-aware template (better than old hardcoded version) ──
+
+function buildFallbackCopy(input: CopyInput): WebsiteCopy {
+  const b = input.branding;
+  const sv = input.surveyData;
+  const ctx = input.businessContext;
+  const name = b.name;
+  const service = sv?.mainService || ctx?.offer || "our service";
+  const audience = sv?.targetAudience || ctx?.audience || "our clients";
+  const tagline = b.tagline || sv?.tagline || `Professional ${sv?.businessType || "services"}`;
 
   return {
     home: {
       hero: {
-        headline: s.uniqueSellingPoint || s.tagline || `${s.mainService} for ${s.targetAudience}`,
-        subheadline: s.serviceDescription || s.tagline || `${name} helps ${s.targetAudience} with ${s.mainService}.`,
+        headline: sv?.uniqueSellingPoint || `${name}: ${service} that delivers.`,
+        subheadline: tagline,
       },
       valueProps: {
         eyebrow: "Why " + name,
-        title: leavingPlatform
-          ? `Skip the ${leavingPlatform} fees. Work with me directly.`
-          : `What makes ${name} different`,
-        subtitle: s.uniqueSellingPoint || `Professional ${s.businessType} built around your needs.`,
-        items: deliverables.length >= 3
-          ? deliverables.slice(0, 6).map((d, i) => ({
-              title: d,
-              description: i === 0
-                ? `Core deliverable included in every ${s.pricingModel === "package" ? "package" : "engagement"}.`
-                : "Included as standard.",
-            }))
-          : [
-              { title: s.mainService || "Expert service", description: s.serviceDescription || "Professional execution tailored to your needs." },
-              { title: s.turnaround ? `${s.turnaround} delivery` : "Fast turnaround", description: "No unnecessary delays. Clear timelines from day one." },
-              { title: "Direct communication", description: "Work with me directly. No middlemen, no platform fees, no surprises." },
-            ],
+        title: `What makes ${name} different`,
+        subtitle: `Built for ${audience}.`,
+        items: sv?.deliverables?.filter(Boolean).map((d) => ({
+          title: d,
+          description: `Included in every ${sv?.pricingModel || "project"}.`,
+        })) || [
+          { title: service, description: `Tailored for ${audience}.` },
+          { title: "Fast turnaround", description: sv?.turnaround ? `Delivered in ${sv.turnaround}.` : "Quick delivery without cutting corners." },
+          { title: "Direct communication", description: "Work directly with me — no middlemen, no delays." },
+        ],
       },
       howItWorks: {
         eyebrow: "Process",
-        title: `How working with ${name} works`,
-        subtitle: "A clear process from first contact to final delivery.",
+        title: `How ${name} works`,
+        subtitle: "A clear, repeatable process from start to finish.",
         steps: [
-          { title: "Share your brief", description: s.calendlyUrl ? "Book a call or send me the details of what you need." : "Tell me what you need and I'll confirm if it's a good fit." },
-          { title: "I get to work", description: `I'll deliver ${s.mainService || "your project"} ${s.turnaround ? `within ${s.turnaround}` : "on the agreed timeline"}.` },
-          { title: "Review and launch", description: s.guarantee || "Review the work, request any adjustments, and launch with confidence." },
+          { title: "Tell me what you need", description: `Share your goals and I'll scope the ${sv?.pricingModel || "project"}.` },
+          { title: "I get to work", description: sv?.serviceDescription || `I deliver ${service} tailored to your needs.` },
+          { title: "You review and launch", description: sv?.turnaround ? `Typical turnaround: ${sv.turnaround}. Revisions included.` : "Quick review, easy revisions, fast delivery." },
         ],
       },
       socialProof: {
-        eyebrow: "The approach",
-        title: "Built on results, not promises",
-        subtitle: "Clear deliverables. Direct communication. No platform overhead.",
+        eyebrow: "Results",
+        title: "Built for real outcomes",
+        subtitle: `${name} is designed around what actually matters.`,
         items: [
-          { label: "Delivery", value: s.turnaround || "Fast", detail: "clear timelines, no surprises" },
-          { label: "Pricing", value: s.pricingModel === "hourly" ? "Hourly" : s.pricingModel === "retainer" ? "Monthly" : "Fixed", detail: "transparent, no hidden fees" },
-          { label: "Communication", value: "Direct", detail: "work with me, not a middleman" },
+          { label: "Turnaround", value: sv?.turnaround || "Fast", detail: "from brief to delivery" },
+          { label: "Communication", value: "Direct", detail: "no account managers in between" },
+          { label: "Quality", value: "Premium", detail: sv?.guarantee || "satisfaction guaranteed" },
         ],
       },
       primaryCta: {
-        title: `Ready to start your ${s.businessType || "project"}?`,
-        subtitle: s.guarantee || "No commitment required. Let's talk about what you need.",
-        cta: { text: ctaText, urgencyLine: undefined, intent: "primary" },
+        title: `Ready to get started with ${name}?`,
+        subtitle: `${audience} — this is built for you.`,
+        cta: { text: sv?.calendlyUrl ? "Book a call" : "Get in touch", intent: "primary" },
       },
     },
-
     offer: {
       hero: {
-        headline: s.mainService || `${s.businessType} services`,
-        subheadline: s.serviceDescription || `Professional ${s.businessType} for ${s.targetAudience}.`,
+        headline: sv?.mainService || "What I offer",
+        subheadline: sv?.serviceDescription || `Professional ${sv?.businessType || "services"} for ${audience}.`,
       },
       whatYouGet: {
-        eyebrow: "What's included",
-        title: "Everything you get",
-        subtitle: "Clear deliverables. No mystery, no hidden scope.",
-        items: deliverables.length > 0
-          ? deliverables.map(d => ({ title: d, description: "Included as standard in every engagement." }))
-          : [
-              { title: s.mainService || "Core service", description: "The primary deliverable tailored to your needs." },
-              { title: "Revisions", description: "Adjustments until you're satisfied with the result." },
-              { title: "Direct support", description: "Communicate with me directly throughout the process." },
-            ],
+        eyebrow: "Deliverables",
+        title: "What's included",
+        subtitle: sv?.serviceDescription || "",
+        items: sv?.deliverables?.filter(Boolean).map((d) => ({
+          title: d,
+          description: `Part of the ${sv?.mainService || "package"}.`,
+        })) || [
+          { title: service, description: `Customized for ${audience}.` },
+        ],
       },
       whoItsFor: {
-        eyebrow: "Fit check",
-        title: "This is for you if…",
-        subtitle: "I work best with people who value quality and clear communication.",
+        eyebrow: "Ideal client",
+        title: "Is this for you?",
+        subtitle: `${name} works best with ${audience}.`,
         items: [
-          { title: `You need professional ${s.businessType}`, description: `You know what you want and you're ready to invest in quality ${s.businessType}.` },
-          { title: "You value direct relationships", description: leavingPlatform ? `You're tired of ${leavingPlatform} fees and want to work directly with the person doing the work.` : "You want to work with the person doing the work, not a sales team." },
-          { title: "You respect timelines", description: `I deliver on time. I expect the same respect for the process in return.` },
+          { title: audience, description: `If this sounds like you, we're a great fit.` },
+          { title: "You value quality", description: "You want work that represents your brand well." },
+          { title: "You want a partner, not a vendor", description: "Direct collaboration, honest feedback, real results." },
         ],
       },
       cta: {
-        title: "Let's work together",
-        subtitle: s.guarantee || "Start with a conversation. No pressure.",
-        cta: { text: ctaText, urgencyLine: undefined, intent: "primary" },
+        title: "Let's talk about your project",
+        subtitle: sv?.guarantee || "No commitment — just a conversation about what you need.",
+        cta: { text: sv?.calendlyUrl ? "Book a call" : "Reach out", intent: "primary" },
       },
     },
-
     pricing: {
       hero: {
         headline: "Pricing",
-        subheadline: s.pricingModel === "project"
-          ? "Every project is scoped individually. Here's what to expect."
-          : "Transparent pricing. No hidden fees.",
+        subheadline: "Transparent pricing. No surprises.",
       },
       pricing: {
         eyebrow: "Investment",
-        title: hasTiers ? "Choose your level" : "Simple pricing",
-        subtitle: s.guarantee
-          ? `${s.guarantee}`
-          : "Clear scope. Clear price. No surprises.",
-        tiers: pricingTiers,
+        title: "Simple, clear pricing",
+        subtitle: sv?.pricingModel === "hourly" ? "Billed by the hour." : sv?.pricingModel === "retainer" ? "Monthly retainer." : "Fixed-price packages.",
+        tiers: sv?.hasMultipleTiers && sv.tiers.length > 0
+          ? sv.tiers.filter((t) => t.name && t.price).map((t, i, arr) => ({
+              name: t.name,
+              price: t.price,
+              note: "",
+              features: t.features.filter(Boolean),
+              highlighted: i === Math.floor(arr.length / 2),
+            }))
+          : [{ name: sv?.mainService || service, price: sv?.price || "Custom", note: "", features: sv?.deliverables?.filter(Boolean) || ["Custom scope"], highlighted: true }],
       },
       cta: {
-        title: "Ready to get started?",
-        subtitle: "Reach out and I'll confirm availability.",
-        cta: { text: ctaText, intent: "primary" },
+        title: "Questions about pricing?",
+        subtitle: "Happy to walk you through the options.",
+        cta: { text: "Get in touch", intent: "primary" },
       },
     },
-
     about: {
       hero: {
         headline: `About ${name}`,
-        subheadline: s.aboutStory
-          ? s.aboutStory.split(".")[0] + "."
-          : `Professional ${s.businessType} built on experience and direct relationships.`,
+        subheadline: tagline,
       },
       story: {
-        eyebrow: "The story",
-        title: `Why ${name} exists`,
-        body: s.aboutStory || `${name} was built to deliver professional ${s.businessType} without the overhead of platforms or agencies. ${s.uniqueSellingPoint || `I work directly with ${s.targetAudience} to deliver clear, measurable results.`}`,
+        eyebrow: "My story",
+        title: `The person behind ${name}`,
+        body: sv?.aboutStory || `${name} was built to serve ${audience} with premium ${sv?.businessType || "services"}. Every project is handled personally with the care and attention it deserves.`,
       },
       values: {
-        eyebrow: "Principles",
-        title: "What I optimize for",
+        eyebrow: "Values",
+        title: "How I work",
         items: [
-          { title: "Quality over volume", description: "I take on a limited number of projects to give each one the attention it deserves." },
-          { title: "Clear communication", description: "You'll always know where your project stands. No guessing." },
-          { title: "Results that matter", description: `Every ${s.businessType} deliverable is designed to produce a real outcome, not just look good.` },
+          { title: "Quality over quantity", description: "I take on a limited number of clients to give each one my full attention." },
+          { title: "Clear communication", description: "You'll always know where your project stands." },
+          { title: "Results-driven", description: `Everything I do is designed to get you real outcomes.` },
         ],
       },
       cta: {
         title: `Want to work with ${name}?`,
-        subtitle: "Start with a conversation.",
-        cta: { text: ctaText, intent: "primary" },
-      },
-    },
-
-    contact: {
-      hero: {
-        headline: "Get in touch",
-        subheadline: s.hours
-          ? `Available ${s.hours}. ${s.location ? `Based in ${s.location}.` : ""}`
-          : s.location
-            ? `Based in ${s.location}. Available for remote work worldwide.`
-            : "I respond within 24 hours.",
-      },
-      methods: {
-        eyebrow: "Contact",
-        title: "How to reach me",
-        subtitle: "Pick whichever works best for you.",
-        items: contactMethods,
-      },
-      nextSteps: {
-        eyebrow: "What happens next",
-        title: "After you reach out",
-        items: [
-          { title: "I'll respond within 24 hours", description: "With questions or a confirmation that I can help." },
-          { title: "We'll scope the work", description: `I'll send you a clear proposal with deliverables, timeline${s.pricingModel === "project" ? ", and a fixed price" : ""}.` },
-          { title: "Work begins", description: `Once confirmed, I start immediately. ${s.turnaround ? `Expect delivery in ${s.turnaround}.` : ""}` },
-        ],
-      },
-      cta: {
-        title: "Let's start",
-        subtitle: "One message is all it takes.",
-        cta: { text: ctaText, intent: "primary" },
-      },
-    },
-  };
-}
-
-// ═════════════════════════════════════════════════════════════════════
-// PATH 2: AI COPY GENERATION (CHAT-ONLY FALLBACK)
-// Used when building from conversation context without survey.
-// ═════════════════════════════════════════════════════════════════════
-
-async function generateAICopy(
-  branding: ZelrexWebsite["branding"],
-  ctx: BusinessContext,
-  assumptions: any
-): Promise<WebsiteCopy> {
-  const prompt = `You are a world-class freelancer website copywriter. Write all the copy for a freelance service website.
-
-BUSINESS DETAILS:
-- Business name: ${branding.name}
-- Business type: ${ctx.businessType} (this is a freelancer/service provider)
-- Target audience: ${ctx.audience}
-- Core offer: ${ctx.offer}
-- Pricing: ${ctx.pricing}
-- Brand tone: ${branding.tone}
-- Tagline: ${branding.tagline || "none provided"}
-
-CRITICAL RULES:
-- This is a FREELANCER website. Write as "I" not "we" unless it's an agency.
-- Every headline must be specific to THIS business, not generic
-- No fake claims, no "10,000 customers", no unverifiable stats
-- No exclamation marks, no hype words like "revolutionary" or "game-changing"
-- CTAs must be concrete: "Book your call", "Send your brief", not "Learn more"
-- Pricing must show "${ctx.pricing}" exactly — never "$X" or placeholders
-- Keep descriptions concise — 1-2 sentences max per item
-- The tone should be "${branding.tone}" throughout
-- The "who it's for" section must EXCLUDE people who aren't a fit
-
-Return ONLY a valid JSON object matching this exact structure (no markdown, no backticks):
-
-{
-  "home": {
-    "hero": {
-      "headline": "specific headline — not 'Welcome to [name]'",
-      "subheadline": "one sentence explaining what this freelancer does and for whom"
-    },
-    "valueProps": {
-      "eyebrow": "2-3 word label",
-      "title": "why this person specifically is worth hiring",
-      "subtitle": "one sentence",
-      "items": [
-        { "title": "benefit 1", "description": "1-2 sentences" },
-        { "title": "benefit 2", "description": "1-2 sentences" },
-        { "title": "benefit 3", "description": "1-2 sentences" }
-      ]
-    },
-    "howItWorks": {
-      "eyebrow": "Process",
-      "title": "how working together works",
-      "subtitle": "one sentence",
-      "steps": [
-        { "title": "step 1", "description": "what happens" },
-        { "title": "step 2", "description": "what happens" },
-        { "title": "step 3", "description": "what happens" }
-      ]
-    },
-    "socialProof": {
-      "eyebrow": "The approach",
-      "title": "proof of quality — focus on process, not fake metrics",
-      "subtitle": "one sentence",
-      "items": [
-        { "label": "label", "value": "value", "detail": "context" },
-        { "label": "label", "value": "value", "detail": "context" },
-        { "label": "label", "value": "value", "detail": "context" }
-      ]
-    },
-    "primaryCta": {
-      "title": "action headline",
-      "subtitle": "friction reducer",
-      "cta": { "text": "specific CTA text", "urgencyLine": null, "intent": "primary" }
-    }
-  },
-  "offer": {
-    "hero": { "headline": "offer headline", "subheadline": "one sentence" },
-    "whatYouGet": {
-      "eyebrow": "Included",
-      "title": "what you get",
-      "subtitle": "one sentence",
-      "items": [
-        { "title": "deliverable 1", "description": "what this is" },
-        { "title": "deliverable 2", "description": "what this is" },
-        { "title": "deliverable 3", "description": "what this is" }
-      ]
-    },
-    "whoItsFor": {
-      "eyebrow": "Fit",
-      "title": "who this is for — must exclude people",
-      "subtitle": "one sentence",
-      "items": [
-        { "title": "trait 1", "description": "why" },
-        { "title": "trait 2", "description": "why" },
-        { "title": "trait 3", "description": "why" }
-      ]
-    },
-    "cta": { "title": "offer CTA", "subtitle": "one sentence", "cta": { "text": "CTA text", "urgencyLine": null, "intent": "primary" } }
-  },
-  "pricing": {
-    "hero": { "headline": "Pricing", "subheadline": "pricing subtitle" },
-    "pricing": {
-      "eyebrow": "Investment",
-      "title": "pricing title",
-      "subtitle": "one sentence",
-      "tiers": [{
-        "name": "tier name",
-        "price": "${ctx.pricing}",
-        "note": "what this is best for",
-        "features": ["feature 1", "feature 2", "feature 3", "feature 4"],
-        "highlighted": true
-      }]
-    },
-    "cta": { "title": "CTA", "subtitle": "one sentence", "cta": { "text": "CTA text", "intent": "primary" } }
-  },
-  "about": {
-    "hero": { "headline": "About ${branding.name}", "subheadline": "subtitle" },
-    "story": { "eyebrow": "The story", "title": "why this exists", "body": "2-3 sentences. No fake founder story." },
-    "values": {
-      "eyebrow": "Principles",
-      "title": "what I optimize for",
-      "items": [
-        { "title": "value 1", "description": "one sentence" },
-        { "title": "value 2", "description": "one sentence" },
-        { "title": "value 3", "description": "one sentence" }
-      ]
-    },
-    "cta": { "title": "CTA", "subtitle": "one sentence", "cta": { "text": "CTA text", "intent": "primary" } }
-  },
-  "contact": {
-    "hero": { "headline": "Get in touch", "subheadline": "contact subtitle" },
-    "methods": {
-      "eyebrow": "Contact",
-      "title": "How to reach me",
-      "subtitle": "one sentence",
-      "items": [
-        { "label": "Email", "value": "hello@yourdomain.com", "href": "mailto:hello@yourdomain.com" },
-        { "label": "Booking", "value": "Schedule a call", "href": "#booking" }
-      ]
-    },
-    "nextSteps": {
-      "eyebrow": "What happens next",
-      "title": "after you reach out",
-      "items": [
-        { "title": "step 1", "description": "what happens" },
-        { "title": "step 2", "description": "what happens" },
-        { "title": "step 3", "description": "what happens" }
-      ]
-    },
-    "cta": { "title": "CTA", "subtitle": "one sentence", "cta": { "text": "CTA text", "intent": "primary" } }
-  }
-}`;
-
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-5-20250929",
-    max_tokens: 4096,
-    temperature: 0.6,
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  const text = response.content?.[0]?.type === "text" ? response.content[0].text : "";
-  const cleaned = text.replace(/```json\s*|```\s*/g, "").trim();
-  const parsed = JSON.parse(cleaned) as WebsiteCopy;
-
-  if (!parsed.home?.hero?.headline || !parsed.offer?.hero?.headline) {
-    throw new Error("AI copy missing required fields");
-  }
-
-  return parsed;
-}
-
-// ═════════════════════════════════════════════════════════════════════
-// PATH 3: FALLBACK DEFAULTS (EMERGENCY ONLY)
-// ═════════════════════════════════════════════════════════════════════
-
-function buildFallbackCopy(branding: ZelrexWebsite["branding"]): WebsiteCopy {
-  const name = branding.name || "My Business";
-  return {
-    home: {
-      hero: {
-        headline: `${name}: professional results, direct relationship.`,
-        subheadline: branding.tagline || "Quality work. Clear timelines. No platform overhead.",
-      },
-      valueProps: {
-        eyebrow: "Why " + name,
-        title: "Work directly with the person doing the work",
-        subtitle: "No middlemen. No platform fees. Just clear deliverables and honest communication.",
-        items: [
-          { title: "Direct communication", description: "Talk to the person doing the work, not a project manager." },
-          { title: "Clear deliverables", description: "You'll know exactly what you're getting before we start." },
-          { title: "Fast turnaround", description: "No bureaucracy means faster delivery." },
-        ],
-      },
-      howItWorks: {
-        eyebrow: "Process",
-        title: "How it works",
-        subtitle: "A simple process from start to finish.",
-        steps: [
-          { title: "Share your brief", description: "Tell me what you need." },
-          { title: "I deliver the work", description: "Professional execution on your timeline." },
-          { title: "Review and refine", description: "Adjustments until you're satisfied." },
-        ],
-      },
-      socialProof: {
-        eyebrow: "The approach",
-        title: "Built on clarity and quality",
-        subtitle: "Every project starts with clear expectations.",
-        items: [
-          { label: "Delivery", value: "On time", detail: "every time" },
-          { label: "Pricing", value: "Transparent", detail: "no hidden fees" },
-          { label: "Quality", value: "Professional", detail: "built to last" },
-        ],
-      },
-      primaryCta: {
-        title: "Ready to start?",
-        subtitle: "No commitment required.",
+        subtitle: "Let's start a conversation.",
         cta: { text: "Get in touch", intent: "primary" },
       },
     },
-    offer: {
-      hero: { headline: "What I offer", subheadline: "Clear deliverables, professional execution." },
-      whatYouGet: {
-        eyebrow: "Included", title: "What you get", subtitle: "Everything included.",
-        items: [
-          { title: "Core service", description: "The primary deliverable." },
-          { title: "Revisions", description: "Until you're satisfied." },
-          { title: "Direct support", description: "Communicate with me directly." },
-        ],
-      },
-      whoItsFor: {
-        eyebrow: "Fit", title: "Who this is for", subtitle: "Best for people who value quality.",
-        items: [
-          { title: "You need professional work", description: "Not a DIY template." },
-          { title: "You value direct relationships", description: "No middlemen." },
-          { title: "You respect timelines", description: "Mutual professionalism." },
-        ],
-      },
-      cta: { title: "Let's work together", subtitle: "Start with a conversation.", cta: { text: "Get in touch", intent: "primary" } },
-    },
-    pricing: {
-      hero: { headline: "Pricing", subheadline: "Transparent. No surprises." },
-      pricing: {
-        eyebrow: "Investment", title: "Simple pricing", subtitle: "Clear scope, clear price.",
-        tiers: [{ name: name, price: "Contact for pricing", note: "Tailored to your needs", features: ["Full service", "Clear timeline", "Professional quality"], highlighted: true }],
-      },
-      cta: { title: "Get started", subtitle: "Reach out to discuss.", cta: { text: "Get in touch", intent: "primary" } },
-    },
-    about: {
-      hero: { headline: `About ${name}`, subheadline: "Professional quality. Direct relationships." },
-      story: { eyebrow: "The story", title: `Why ${name} exists`, body: `${name} was built to deliver professional work without the overhead of platforms or agencies.` },
-      values: {
-        eyebrow: "Principles", title: "What I optimize for",
-        items: [
-          { title: "Quality", description: "Every deliverable meets a professional standard." },
-          { title: "Clarity", description: "You'll always know where things stand." },
-          { title: "Results", description: "Work that produces real outcomes." },
-        ],
-      },
-      cta: { title: `Work with ${name}`, subtitle: "Start with a conversation.", cta: { text: "Get in touch", intent: "primary" } },
-    },
     contact: {
-      hero: { headline: "Get in touch", subheadline: "I respond within 24 hours." },
+      hero: {
+        headline: "Get in touch",
+        subheadline: `Let's talk about how ${name} can help.`,
+      },
       methods: {
-        eyebrow: "Contact", title: "How to reach me", subtitle: "Pick what works best.",
-        items: [{ label: "Email", value: "hello@yourdomain.com", href: "mailto:hello@yourdomain.com" }],
+        eyebrow: "Contact",
+        title: "Reach out",
+        subtitle: "Pick whatever works best for you.",
+        items: [
+          ...(sv?.email ? [{ label: "Email", value: sv.email, href: `mailto:${sv.email}` }] : []),
+          ...(sv?.phone ? [{ label: "Phone", value: sv.phone, href: `tel:${sv.phone.replace(/\D/g, "")}` }] : []),
+          ...(sv?.calendlyUrl ? [{ label: "Book a call", value: "Schedule a time", href: sv.calendlyUrl }] : []),
+          ...(sv?.location ? [{ label: "Location", value: sv.location }] : []),
+          ...(sv?.hours ? [{ label: "Hours", value: sv.hours }] : []),
+        ],
       },
       nextSteps: {
-        eyebrow: "What happens next", title: "After you reach out",
+        eyebrow: "What happens next",
+        title: "How it starts",
         items: [
-          { title: "I'll respond within 24 hours", description: "With questions or confirmation." },
-          { title: "We scope the work", description: "Clear deliverables, clear timeline." },
-          { title: "Work begins", description: "On time, as described." },
+          { title: "You reach out", description: "Send a message or book a call." },
+          { title: "We scope the work", description: `I'll learn about your needs and put together a clear plan.` },
+          { title: "We get started", description: sv?.turnaround ? `Typical turnaround: ${sv.turnaround}.` : "Fast, focused execution." },
         ],
       },
-      cta: { title: "Start the conversation", subtitle: "One message is enough.", cta: { text: "Send a message", intent: "primary" } },
+      cta: {
+        title: "Ready?",
+        subtitle: "One message is all it takes.",
+        cta: { text: sv?.calendlyUrl ? "Book a call" : "Send a message", intent: "primary" },
+      },
     },
   };
 }

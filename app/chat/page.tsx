@@ -360,10 +360,16 @@ export default function ChatPage() {
   useEffect(() => { localStorage.setItem(ANIMATED_KEY, JSON.stringify(animatedIds)); }, [animatedIds]);
 
   const [chats, setChats] = useState<Chat[]>([{ id: uid("chat"), title: "New chat", messages: [], updatedAt: Date.now() }]);
-  useEffect(() => { const s = safeJson<Chat[]>(localStorage.getItem(STORAGE_KEY), []); if (s.length) { setChats(s); setActiveChatId(s[0]?.id ?? ""); } }, []);
-
   const [activeChatId, setActiveChatId] = useState(() => chats[0]?.id ?? "");
   const activeChat = useMemo(() => chats.find((c) => c.id === activeChatId) ?? chats[0], [chats, activeChatId]);
+
+  useEffect(() => {
+    const s = safeJson<Chat[]>(localStorage.getItem(STORAGE_KEY), []);
+    if (s.length) {
+      setChats(s);
+      setActiveChatId(s[0]?.id ?? "");
+    }
+  }, []);
 
   // Sync websiteData/deployData from active chat when switching chats
   useEffect(() => {
@@ -387,7 +393,7 @@ export default function ChatPage() {
   const [inputFocused, setInputFocused] = useState(false);
 
   function buildPreviewHtml(site: any): string {
-    if (!site?.copy?.home?.hero) return "<html><body><p>No website data</p></body></html>";
+    if (!site?.copy?.home?.hero) return "<html><body style='background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui'><p>No website data</p></body></html>";
 
     const t = site.theme || {};
     const bg = t.bg || "#0a0a0a";
@@ -398,206 +404,478 @@ export default function ChatPage() {
     const border = t.border || "rgba(255,255,255,0.08)";
     const name = site.branding?.name || "My Business";
     const c = site.copy;
-    const sv = site.survey || {}; // Raw survey data for fallbacks
+    const sv = site.survey || {};
 
     // ─── TEMPLATE SELECTION ──────────────────────────────
-    // Map from survey preferences or auto-select based on business name
     const fontPref = sv.fontPreference || "";
     const tplMap: Record<string, string> = { modern: "minimal", classic: "editorial", editorial: "editorial", tech: "bold" };
     const tpl = site.template || tplMap[fontPref] || ["minimal", "bold", "editorial"][Math.abs(name.charCodeAt(0) + name.length) % 3];
     const isBold = tpl === "bold";
     const isEditorial = tpl === "editorial";
 
-    // Template-specific tokens
+    // Template tokens
     const heroAlign = isBold ? "center" : "left";
-    const headFont = isEditorial ? "'Georgia', 'Times New Roman', serif" : "'Inter', -apple-system, sans-serif";
-    const cardRadius = isBold ? "20px" : isEditorial ? "8px" : "16px";
-    const btnRadius = isBold ? "12px" : isEditorial ? "6px" : "999px";
-    const sectionAlt = isBold ? `background:${surface}` : isEditorial ? `background:${bg};border-top:1px solid ${border};border-bottom:1px solid ${border}` : "";
-    const heroGradient = isBold ? `background:linear-gradient(135deg, ${accent}15 0%, transparent 60%)` : "";
-    const cardBg = isEditorial ? "transparent" : surface;
-    const cardBorder = isEditorial ? `border-left:3px solid ${accent};border-radius:0;padding-left:24px` : `border:1px solid ${border};border-radius:${cardRadius}`;
+    const headFont = isEditorial ? "'Playfair Display', Georgia, serif" : "'Inter', -apple-system, sans-serif";
+    const btnRadius = isBold ? "12px" : isEditorial ? "4px" : "999px";
 
-    // Helper: render items as card grid
-    const cards = (items: any[]) => items.map((item: any) => `
-      <div style="background:${cardBg};${cardBorder};padding:${isEditorial ? "20px 0 20px 24px" : "28px"}">
-        <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:8px;font-family:${headFont}">${item.title || ""}</div>
-        <div style="color:${textSec};font-size:14px;line-height:1.7">${item.description || ""}</div>
-      </div>`).join("");
+    // ─── STRUCTURALLY DIFFERENT HELPERS PER TEMPLATE ─────
 
-    // Helper: render steps
-    const stepsList = (steps: any[]) => steps.map((s: any, i: number) => `
-      <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:${isBold ? "36px" : "28px"}">
-        <div style="width:${isBold ? "52px" : "44px"};height:${isBold ? "52px" : "44px"};border-radius:${isBold ? "14px" : "50%"};background:${accent}18;color:${accent};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:${isBold ? "18px" : "16px"};flex-shrink:0">${i + 1}</div>
-        <div>
-          <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:6px;font-family:${headFont}">${s.title || ""}</div>
-          <div style="color:${textSec};font-size:14px;line-height:1.7">${s.description || ""}</div>
-        </div>
-      </div>`).join("");
+    // Cards
+    const cards = (items: any[]) => {
+      if (isEditorial) {
+        return items.map((item: any) => `
+          <div style="border-left:3px solid ${accent};padding:20px 0 20px 28px;margin-bottom:28px">
+            <div style="font-weight:700;font-size:18px;color:${text};margin-bottom:8px;font-family:${headFont}">${item.title || ""}</div>
+            <div style="color:${textSec};font-size:15px;line-height:1.8">${item.description || ""}</div>
+          </div>`).join("");
+      }
+      if (isBold) {
+        return items.map((item: any) => `
+          <div style="background:${surface};border:1px solid ${border};border-top:3px solid ${accent};border-radius:20px;padding:36px 28px;transition:transform 0.2s">
+            <div style="font-weight:800;font-size:19px;color:${text};margin-bottom:12px">${item.title || ""}</div>
+            <div style="color:${textSec};font-size:15px;line-height:1.7">${item.description || ""}</div>
+          </div>`).join("");
+      }
+      return items.map((item: any) => `
+        <div style="background:${surface};border:1px solid ${border};border-radius:16px;padding:28px">
+          <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:8px">${item.title || ""}</div>
+          <div style="color:${textSec};font-size:14px;line-height:1.7">${item.description || ""}</div>
+        </div>`).join("");
+    };
 
-    // Helper: CTA block
-    const ctaBlock = (data: any) => !data ? "" : `
-      <section class="section" style="text-align:${isBold ? "center" : heroAlign}${isBold ? `;${heroGradient};border-radius:24px;margin:40px auto;max-width:1060px` : ""}">
-        <h2 class="h2" style="margin-bottom:12px">${data.title || ""}</h2>
-        ${data.subtitle ? `<p class="lead" style="${isBold ? "margin:0 auto 28px" : "margin-bottom:28px"}">${data.subtitle}</p>` : ""}
-        <span class="btn-primary" data-nav="contact" style="cursor:pointer">${data.cta?.text || "Get in touch"}</span>
-      </section>`;
+    // Steps
+    const stepsList = (steps: any[]) => {
+      if (isEditorial) {
+        return `<div class="grid-${Math.min(steps.length, 3)}" style="gap:40px">
+          ${steps.map((s: any, i: number) => `
+            <div style="text-align:center">
+              <div style="font-family:${headFont};font-size:56px;font-weight:900;color:${accent}15;margin-bottom:8px;line-height:1">${String(i + 1).padStart(2, "0")}</div>
+              <div style="font-weight:700;font-size:17px;color:${text};margin-bottom:10px;font-family:${headFont}">${s.title || ""}</div>
+              <div style="color:${textSec};font-size:14px;line-height:1.7">${s.description || ""}</div>
+            </div>`).join("")}
+        </div>`;
+      }
+      if (isBold) {
+        return steps.map((s: any, i: number) => `
+          <div style="display:flex;gap:24px;align-items:flex-start;margin-bottom:40px">
+            <div style="width:56px;height:56px;border-radius:16px;background:${accent};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:22px;flex-shrink:0">${i + 1}</div>
+            <div style="padding-top:6px">
+              <div style="font-weight:800;font-size:19px;color:${text};margin-bottom:8px">${s.title || ""}</div>
+              <div style="color:${textSec};font-size:15px;line-height:1.7">${s.description || ""}</div>
+            </div>
+          </div>`).join("");
+      }
+      return steps.map((s: any, i: number) => `
+        <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:28px">
+          <div style="width:40px;height:40px;border-radius:50%;background:${accent}15;color:${accent};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0">${i + 1}</div>
+          <div>
+            <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:6px">${s.title || ""}</div>
+            <div style="color:${textSec};font-size:14px;line-height:1.7">${s.description || ""}</div>
+          </div>
+        </div>`).join("");
+    };
 
-    // Social links from survey (contact info, socials)
+    // CTA Block — structurally different per template
+    const ctaBlock = (data: any) => {
+      if (!data) return "";
+      if (isBold) return `
+        <section class="section" style="text-align:center">
+          <div style="background:linear-gradient(135deg, ${accent}12 0%, ${accent}04 100%);border:1px solid ${accent}20;border-radius:28px;padding:64px 40px;max-width:900px;margin:0 auto">
+            <h2 class="h2" style="margin-bottom:16px">${data.title || ""}</h2>
+            ${data.subtitle ? `<p class="lead" style="margin:0 auto 28px;text-align:center">${data.subtitle}</p>` : ""}
+            <span class="btn-primary" data-nav="contact" style="cursor:pointer;font-size:16px;padding:18px 40px">${data.cta?.text || "Get in touch"}</span>
+          </div>
+        </section>`;
+      if (isEditorial) return `
+        <section class="section" style="border-top:2px solid ${accent};padding-top:48px;margin-top:40px">
+          <h2 class="h2" style="margin-bottom:12px">${data.title || ""}</h2>
+          ${data.subtitle ? `<p class="lead" style="margin-bottom:28px">${data.subtitle}</p>` : ""}
+          <span class="btn-primary" data-nav="contact" style="cursor:pointer">${data.cta?.text || "Get in touch"}</span>
+        </section>`;
+      return `
+        <section class="section">
+          <h2 class="h2" style="margin-bottom:12px">${data.title || ""}</h2>
+          ${data.subtitle ? `<p class="lead" style="margin-bottom:28px">${data.subtitle}</p>` : ""}
+          <span class="btn-primary" data-nav="contact" style="cursor:pointer">${data.cta?.text || "Get in touch"}</span>
+        </section>`;
+    };
+
+    // Socials
     const socials = site.branding?.socialLinks || {};
     const socialHtml = Object.entries(socials).filter(([,v]) => v).map(([k, v]) => `
       <a href="${v}" target="_blank" rel="noopener" style="color:${textSec};font-size:13px;text-decoration:none;transition:color 0.15s"
          onmouseover="this.style.color='${text}'" onmouseout="this.style.color='${textSec}'">${(k as string).charAt(0).toUpperCase() + (k as string).slice(1)}</a>`).join('<span style="color:' + border + '">·</span>');
 
-    // ── HOME PAGE ──
+    // Social proof — structurally different per template
+    const proofItems = c.home?.socialProof?.items || [];
+    const socialProofSection = proofItems.length === 0 ? "" : (() => {
+      if (isBold) {
+        return `<div class="divider"></div>
+        <section class="section" style="text-align:center;background:${surface}">
+          <div class="eyebrow">${c.home?.socialProof?.eyebrow || "Results"}</div>
+          <h2 class="h2" style="margin-bottom:48px;margin-left:auto;margin-right:auto">${c.home?.socialProof?.title || ""}</h2>
+          <div class="grid-3">${proofItems.map((p: any) => `
+            <div style="padding:32px">
+              <div style="font-size:48px;font-weight:900;color:${accent};letter-spacing:-0.03em;margin-bottom:8px">${p.value || ""}</div>
+              <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:6px">${p.label || ""}</div>
+              <div style="color:${textSec};font-size:14px">${p.detail || ""}</div>
+            </div>`).join("")}</div>
+        </section>`;
+      }
+      if (isEditorial) {
+        return `<div class="divider"></div>
+        <section class="section">
+          <div class="eyebrow">${c.home?.socialProof?.eyebrow || "Results"}</div>
+          <h2 class="h2" style="margin-bottom:36px">${c.home?.socialProof?.title || ""}</h2>
+          <div style="display:flex;gap:48px;flex-wrap:wrap">${proofItems.map((p: any) => `
+            <div>
+              <div style="font-size:36px;font-weight:900;color:${text};font-family:${headFont};margin-bottom:4px">${p.value || ""}</div>
+              <div style="font-weight:600;font-size:14px;color:${accent};text-transform:uppercase;letter-spacing:0.06em">${p.label || ""}</div>
+              ${p.detail ? `<div style="color:${textSec};font-size:13px;margin-top:4px">${p.detail}</div>` : ""}
+            </div>`).join("")}</div>
+        </section>`;
+      }
+      return `<div class="divider"></div>
+      <section class="section">
+        <div class="eyebrow">${c.home?.socialProof?.eyebrow || "Results"}</div>
+        <h2 class="h2" style="margin-bottom:8px">${c.home?.socialProof?.title || ""}</h2>
+        ${c.home?.socialProof?.subtitle ? `<p class="lead" style="margin-bottom:32px">${c.home.socialProof.subtitle}</p>` : ""}
+        <div class="grid-3">${proofItems.map((p: any) => `
+          <div style="background:${surface};border:1px solid ${border};border-radius:16px;padding:24px;text-align:center">
+            <div style="font-size:28px;font-weight:900;color:${accent};margin-bottom:8px">${p.value || ""}</div>
+            <div style="font-weight:600;font-size:14px;color:${text};margin-bottom:4px">${p.label || ""}</div>
+            <div style="color:${textSec};font-size:13px">${p.detail || ""}</div>
+          </div>`).join("")}</div>
+      </section>`;
+    })();
+
+    // ── HOME PAGE — structurally different heroes ──
     const homeVp = c.home?.valueProps?.items || [];
     const homeSteps = c.home?.howItWorks?.steps || [];
-    const homePage = `
-      <section class="section hero-section" style="padding-top:${isBold ? "120px" : "100px"};padding-bottom:80px;text-align:${heroAlign};${heroGradient}">
-        <div class="eyebrow">${c.home?.valueProps?.eyebrow || name}</div>
-        <h1 class="h1" style="max-width:${isBold ? "800px" : "720px"};margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.home?.hero?.headline || name}</h1>
-        <p class="lead" style="margin-bottom:36px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.home?.hero?.subheadline || ""}</p>
-        <span class="btn-primary" data-nav="contact" style="cursor:pointer">${c.home?.primaryCta?.cta?.text || "Get started"}</span>
-      </section>
-      <div class="divider"></div>
-      <section class="section" ${sectionAlt ? `style="${sectionAlt};padding:80px 24px"` : ""}>
-        <div class="eyebrow">${c.home?.valueProps?.eyebrow || "What we do"}</div>
-        <h2 class="h2" style="margin-bottom:8px">${c.home?.valueProps?.title || ""}</h2>
-        <p class="lead" style="margin-bottom:36px">${c.home?.valueProps?.subtitle || ""}</p>
-        <div class="grid-${homeVp.length > 3 ? "3" : "2"}">${cards(homeVp)}</div>
-      </section>
-      <div class="divider"></div>
-      <section class="section">
-        <div class="eyebrow">${c.home?.howItWorks?.eyebrow || "How it works"}</div>
-        <h2 class="h2" style="margin-bottom:8px">${c.home?.howItWorks?.title || ""}</h2>
-        <p class="lead" style="margin-bottom:36px">${c.home?.howItWorks?.subtitle || ""}</p>
-        <div style="max-width:640px;${isBold ? "margin:0 auto" : ""}">${stepsList(homeSteps)}</div>
-      </section>
-      ${ctaBlock(c.home?.primaryCta)}`;
+    const ctaText = c.home?.primaryCta?.cta?.text || "Get in touch";
+    const homePage = (() => {
+      if (isBold) return `
+        <section class="section hero-section" style="padding-top:140px;padding-bottom:100px;text-align:center;background:linear-gradient(180deg, ${accent}08 0%, transparent 50%)">
+          <div class="eyebrow" style="font-size:13px;letter-spacing:0.12em">${c.home?.valueProps?.eyebrow || name}</div>
+          <h1 class="h1" style="max-width:900px;margin:0 auto 24px;font-size:clamp(44px,6vw,72px)">${c.home?.hero?.headline || name}</h1>
+          <p class="lead" style="margin:0 auto 40px;max-width:640px;font-size:19px">${c.home?.hero?.subheadline || ""}</p>
+          <span class="btn-primary" data-nav="contact" style="cursor:pointer;font-size:16px;padding:18px 44px">${ctaText}</span>
+        </section>
+        <section class="section" style="background:${surface};padding:80px 24px">
+          <div style="text-align:center;margin-bottom:48px">
+            <div class="eyebrow">${c.home?.valueProps?.eyebrow || "What we do"}</div>
+            <h2 class="h2" style="margin:0 auto">${c.home?.valueProps?.title || ""}</h2>
+            ${c.home?.valueProps?.subtitle ? `<p class="lead" style="margin:12px auto 0">${c.home.valueProps.subtitle}</p>` : ""}
+          </div>
+          <div class="grid-${homeVp.length > 3 ? "3" : "2"}" style="max-width:1000px;margin:0 auto">${cards(homeVp)}</div>
+        </section>
+        <section class="section" style="padding:100px 24px">
+          <div style="text-align:center;margin-bottom:48px">
+            <div class="eyebrow">${c.home?.howItWorks?.eyebrow || "How it works"}</div>
+            <h2 class="h2">${c.home?.howItWorks?.title || ""}</h2>
+          </div>
+          <div style="max-width:640px;margin:0 auto">${stepsList(homeSteps)}</div>
+        </section>
+        ${socialProofSection}
+        ${ctaBlock(c.home?.primaryCta)}`;
+      if (isEditorial) return `
+        <section class="section hero-section" style="padding-top:120px;padding-bottom:80px">
+          <div style="max-width:760px">
+            <h1 class="h1" style="font-size:clamp(40px,5.5vw,68px);margin-bottom:24px;line-height:1.05">${c.home?.hero?.headline || name}</h1>
+            <p class="lead" style="margin-bottom:40px;font-size:18px;line-height:1.8">${c.home?.hero?.subheadline || ""}</p>
+            <span class="btn-primary" data-nav="contact" style="cursor:pointer;text-transform:uppercase;letter-spacing:0.06em;font-size:13px;padding:16px 36px">${ctaText}</span>
+          </div>
+        </section>
+        <div class="divider"></div>
+        <section class="section" style="padding:80px 24px">
+          <div class="eyebrow">${c.home?.valueProps?.eyebrow || "What we do"}</div>
+          <h2 class="h2" style="margin-bottom:12px">${c.home?.valueProps?.title || ""}</h2>
+          ${c.home?.valueProps?.subtitle ? `<p class="lead" style="margin-bottom:40px">${c.home.valueProps.subtitle}</p>` : ""}
+          <div style="max-width:700px">${cards(homeVp)}</div>
+        </section>
+        <section class="section" style="border-top:1px solid ${border};border-bottom:1px solid ${border};padding:80px 24px">
+          <div class="eyebrow">${c.home?.howItWorks?.eyebrow || "Process"}</div>
+          <h2 class="h2" style="margin-bottom:40px">${c.home?.howItWorks?.title || ""}</h2>
+          ${stepsList(homeSteps)}
+        </section>
+        ${socialProofSection}
+        ${ctaBlock(c.home?.primaryCta)}`;
+      // Minimal (default)
+      return `
+        <section class="section hero-section" style="padding-top:100px;padding-bottom:80px">
+          <div class="eyebrow">${c.home?.valueProps?.eyebrow || name}</div>
+          <h1 class="h1" style="max-width:720px;margin-bottom:20px">${c.home?.hero?.headline || name}</h1>
+          <p class="lead" style="margin-bottom:36px">${c.home?.hero?.subheadline || ""}</p>
+          <span class="btn-primary" data-nav="contact" style="cursor:pointer">${ctaText}</span>
+        </section>
+        <div class="divider"></div>
+        <section class="section">
+          <div class="eyebrow">${c.home?.valueProps?.eyebrow || "What we do"}</div>
+          <h2 class="h2" style="margin-bottom:8px">${c.home?.valueProps?.title || ""}</h2>
+          <p class="lead" style="margin-bottom:36px">${c.home?.valueProps?.subtitle || ""}</p>
+          <div class="grid-${homeVp.length > 3 ? "3" : "2"}">${cards(homeVp)}</div>
+        </section>
+        <div class="divider"></div>
+        <section class="section">
+          <div class="eyebrow">${c.home?.howItWorks?.eyebrow || "How it works"}</div>
+          <h2 class="h2" style="margin-bottom:8px">${c.home?.howItWorks?.title || ""}</h2>
+          <p class="lead" style="margin-bottom:36px">${c.home?.howItWorks?.subtitle || ""}</p>
+          <div style="max-width:640px">${stepsList(homeSteps)}</div>
+        </section>
+        ${socialProofSection}
+        ${ctaBlock(c.home?.primaryCta)}`;
+    })();
 
     // ── SERVICES PAGE ──
     const offerItems = c.offer?.whatYouGet?.items || homeVp;
     const whoItems = c.offer?.whoItsFor?.items || [];
+    const guaranteeHtml = sv.guarantee ? (() => {
+      if (isBold) return `
+        <section class="section" style="text-align:center">
+          <div style="display:inline-flex;align-items:center;gap:16px;padding:28px 36px;border-radius:20px;background:${accent}08;border:1px solid ${accent}20">
+            <span style="font-size:28px">🛡️</span>
+            <div style="text-align:left">
+              <div style="font-weight:800;font-size:17px;color:${text};margin-bottom:4px">Our Guarantee</div>
+              <div style="color:${textSec};font-size:15px">${sv.guarantee}</div>
+            </div>
+          </div>
+          ${sv.turnaround ? `<div style="margin-top:20px;color:${textSec};font-size:15px">Typical turnaround: <strong style="color:${text}">${sv.turnaround}</strong></div>` : ""}
+        </section>`;
+      return `
+        <section class="section">
+          <div style="display:flex;align-items:center;gap:16px;padding:24px 28px;border-radius:12px;background:${accent}06;border:1px solid ${accent}18;max-width:600px">
+            <span style="font-size:24px">🛡️</span>
+            <div>
+              <div style="font-weight:700;font-size:15px;color:${text};margin-bottom:2px">Guarantee</div>
+              <div style="color:${textSec};font-size:14px">${sv.guarantee}</div>
+            </div>
+          </div>
+          ${sv.turnaround ? `<div style="margin-top:16px;color:${textSec};font-size:14px">Typical turnaround: <strong style="color:${text}">${sv.turnaround}</strong></div>` : ""}
+        </section>`;
+    })() : "";
+
     const servicesPage = `
-      <section class="section hero-section" style="padding-top:100px;padding-bottom:80px;text-align:${heroAlign};${heroGradient}">
+      <section class="section hero-section" style="padding-top:${isBold ? "120px" : "100px"};padding-bottom:80px;text-align:${heroAlign};${isBold ? `background:linear-gradient(180deg, ${accent}06 0%, transparent 40%)` : ""}">
         <div class="eyebrow">Services</div>
-        <h1 class="h1" style="max-width:720px;margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.offer?.hero?.headline || "What we offer"}</h1>
+        <h1 class="h1" style="max-width:${isBold ? "800px" : "720px"};margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.offer?.hero?.headline || "What we offer"}</h1>
         <p class="lead" style="margin-bottom:36px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.offer?.hero?.subheadline || ""}</p>
       </section>
       <div class="divider"></div>
-      <section class="section" ${sectionAlt ? `style="${sectionAlt};padding:80px 24px"` : ""}>
-        <div class="eyebrow">${c.offer?.whatYouGet?.eyebrow || "What you get"}</div>
+      <section class="section" ${isBold ? `style="background:${surface};padding:80px 24px"` : ""}>
+        <div class="eyebrow">${c.offer?.whatYouGet?.eyebrow || "Deliverables"}</div>
         <h2 class="h2" style="margin-bottom:8px">${c.offer?.whatYouGet?.title || "What's included"}</h2>
         <p class="lead" style="margin-bottom:36px">${c.offer?.whatYouGet?.subtitle || ""}</p>
-        <div class="grid-2">${cards(offerItems)}</div>
+        <div class="${isEditorial ? "" : "grid-2"}" ${isEditorial ? 'style="max-width:700px"' : ""}>${cards(offerItems)}</div>
       </section>
       ${whoItems.length ? `<div class="divider"></div>
       <section class="section">
-        <div class="eyebrow">${c.offer?.whoItsFor?.eyebrow || "Who it's for"}</div>
+        <div class="eyebrow">${c.offer?.whoItsFor?.eyebrow || "Ideal client"}</div>
         <h2 class="h2" style="margin-bottom:8px">${c.offer?.whoItsFor?.title || "Is this for you?"}</h2>
         <p class="lead" style="margin-bottom:36px">${c.offer?.whoItsFor?.subtitle || ""}</p>
-        <div class="grid-2">${cards(whoItems)}</div>
+        <div class="${isEditorial ? "" : "grid-2"}" ${isEditorial ? 'style="max-width:700px"' : ""}>${cards(whoItems)}</div>
       </section>` : ""}
-      ${sv.guarantee ? `<div class="divider"></div>
-      <section class="section" style="text-align:${isBold ? "center" : heroAlign}">
-        <div style="display:inline-flex;align-items:center;gap:12px;padding:20px 28px;border-radius:${cardRadius};background:${accent}08;border:1px solid ${accent}25">
-          <span style="font-size:24px">🛡️</span>
-          <div>
-            <div style="font-weight:700;font-size:15px;color:${text};margin-bottom:2px">Our Guarantee</div>
-            <div style="color:${textSec};font-size:14px">${sv.guarantee}</div>
-          </div>
-        </div>
-        ${sv.turnaround ? `<div style="margin-top:16px;color:${textSec};font-size:14px">⏱ Typical turnaround: <strong style="color:${text}">${sv.turnaround}</strong></div>` : ""}
-      </section>` : ""}
+      ${guaranteeHtml}
       ${ctaBlock(c.offer?.cta)}`;
 
-    // ── PRICING PAGE ──
+    // ── PRICING PAGE — structurally different per template ──
     const tiers = c.pricing?.pricing?.tiers || [];
-    const tiersHtml = tiers.map((tier: any) => `
-      <div style="background:${surface};border:1px solid ${tier.highlighted ? accent : border};border-radius:${cardRadius};padding:32px;${tier.highlighted ? `box-shadow:0 0 40px ${accent}15;` : ""}">
-        <div style="font-weight:700;font-size:18px;color:${text};font-family:${headFont}">${tier.name || ""}</div>
-        <div style="font-weight:900;font-size:40px;color:${text};margin:16px 0 8px;letter-spacing:-0.03em">${tier.price || ""}</div>
-        ${tier.note ? `<div style="color:${textSec};font-size:14px;line-height:1.5;margin-bottom:8px">${tier.note}</div>` : ""}
-        <div style="margin-top:20px;border-top:1px solid ${border};padding-top:20px">
-          ${(tier.features || []).map((f: string) => `
-            <div style="display:flex;align-items:center;gap:10px;color:${textSec};font-size:14px;margin-bottom:12px">
-              <span style="color:${accent};font-size:16px">✓</span> ${f}
-            </div>`).join("")}
-        </div>
-        <span class="btn-primary" data-nav="contact" style="cursor:pointer;display:block;text-align:center;margin-top:24px;${tier.highlighted ? "" : `background:transparent;border:1px solid ${border};color:${text};`}">Get started</span>
-      </div>`).join("");
+    const tiersHtml = (() => {
+      if (isEditorial) {
+        return tiers.map((tier: any) => `
+          <div style="border:1px solid ${tier.highlighted ? accent : border};padding:40px 32px;${tier.highlighted ? `border-width:2px;` : ""}">
+            <div style="font-weight:700;font-size:20px;color:${text};font-family:${headFont};margin-bottom:8px">${tier.name || ""}</div>
+            <div style="font-weight:900;font-size:44px;color:${text};margin:12px 0;letter-spacing:-0.03em;font-family:${headFont}">${tier.price || ""}</div>
+            ${tier.note ? `<div style="color:${textSec};font-size:14px;margin-bottom:16px;font-style:italic">${tier.note}</div>` : ""}
+            <div style="border-top:1px solid ${border};padding-top:20px;margin-top:20px">
+              ${(tier.features || []).map((f: string) => `
+                <div style="color:${textSec};font-size:14px;margin-bottom:10px;padding-left:16px;position:relative">
+                  <span style="position:absolute;left:0;color:${accent}">—</span> ${f}
+                </div>`).join("")}
+            </div>
+            <span class="btn-primary" data-nav="contact" style="cursor:pointer;display:block;text-align:center;margin-top:28px;${tier.highlighted ? "" : `background:transparent;border:2px solid ${border};color:${text};`}text-transform:uppercase;letter-spacing:0.04em;font-size:13px">${c.pricing?.cta?.cta?.text || "Get started"}</span>
+          </div>`).join("");
+      }
+      if (isBold) {
+        return tiers.map((tier: any) => `
+          <div style="background:${tier.highlighted ? `linear-gradient(135deg, ${accent}15, ${accent}05)` : surface};border:${tier.highlighted ? `2px solid ${accent}` : `1px solid ${border}`};border-radius:24px;padding:40px 32px;${tier.highlighted ? `box-shadow:0 20px 60px ${accent}15;transform:scale(1.03);` : ""}position:relative">
+            ${tier.highlighted ? `<div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:${accent};color:#fff;font-size:12px;font-weight:800;padding:4px 16px;border-radius:999px;letter-spacing:0.06em">POPULAR</div>` : ""}
+            <div style="font-weight:800;font-size:20px;color:${text};text-align:center">${tier.name || ""}</div>
+            <div style="font-weight:900;font-size:52px;color:${text};margin:20px 0 12px;letter-spacing:-0.04em;text-align:center">${tier.price || ""}</div>
+            ${tier.note ? `<div style="color:${textSec};font-size:14px;text-align:center;margin-bottom:12px">${tier.note}</div>` : ""}
+            <div style="border-top:1px solid ${border};padding-top:24px;margin-top:24px">
+              ${(tier.features || []).map((f: string) => `
+                <div style="display:flex;align-items:center;gap:12px;color:${textSec};font-size:15px;margin-bottom:14px">
+                  <span style="color:${accent};font-size:18px;font-weight:bold">✓</span> ${f}
+                </div>`).join("")}
+            </div>
+            <span class="btn-primary" data-nav="contact" style="cursor:pointer;display:block;text-align:center;margin-top:28px;font-size:16px;padding:16px;${tier.highlighted ? "" : `background:transparent;border:2px solid ${border};color:${text};`}">${c.pricing?.cta?.cta?.text || "Get started"}</span>
+          </div>`).join("");
+      }
+      return tiers.map((tier: any) => `
+        <div style="background:${surface};border:1px solid ${tier.highlighted ? accent : border};border-radius:16px;padding:32px;${tier.highlighted ? `box-shadow:0 0 40px ${accent}12;` : ""}">
+          <div style="font-weight:700;font-size:18px;color:${text}">${tier.name || ""}</div>
+          <div style="font-weight:900;font-size:40px;color:${text};margin:16px 0 8px;letter-spacing:-0.03em">${tier.price || ""}</div>
+          ${tier.note ? `<div style="color:${textSec};font-size:14px;margin-bottom:8px">${tier.note}</div>` : ""}
+          <div style="margin-top:20px;border-top:1px solid ${border};padding-top:20px">
+            ${(tier.features || []).map((f: string) => `
+              <div style="display:flex;align-items:center;gap:10px;color:${textSec};font-size:14px;margin-bottom:12px">
+                <span style="color:${accent}">✓</span> ${f}
+              </div>`).join("")}
+          </div>
+          <span class="btn-primary" data-nav="contact" style="cursor:pointer;display:block;text-align:center;margin-top:24px;${tier.highlighted ? "" : `background:transparent;border:1px solid ${border};color:${text};`}">${c.pricing?.cta?.cta?.text || "Get started"}</span>
+        </div>`).join("");
+    })();
 
     const pricingPage = `
-      <section class="section hero-section" style="padding-top:100px;padding-bottom:80px;text-align:${heroAlign};${heroGradient}">
+      <section class="section hero-section" style="padding-top:${isBold ? "120px" : "100px"};padding-bottom:80px;text-align:${heroAlign};${isBold ? `background:linear-gradient(180deg, ${accent}06 0%, transparent 40%)` : ""}">
         <div class="eyebrow">${c.pricing?.pricing?.eyebrow || "Pricing"}</div>
-        <h1 class="h1" style="max-width:720px;margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.pricing?.hero?.headline || "Simple, transparent pricing"}</h1>
-        <p class="lead" style="margin-bottom:36px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.pricing?.hero?.subheadline || c.pricing?.pricing?.subtitle || ""}</p>
+        <h1 class="h1" style="max-width:720px;margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.pricing?.hero?.headline || "Pricing"}</h1>
+        <p class="lead" style="margin-bottom:36px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.pricing?.hero?.subheadline || ""}</p>
       </section>
       <div class="divider"></div>
       <section class="section">
-        <div class="grid-${tiers.length > 2 ? "3" : tiers.length === 2 ? "2" : "1"}" ${tiers.length === 1 ? 'style="max-width:440px"' : ""}>${tiersHtml}</div>
+        <div class="grid-${tiers.length > 2 ? "3" : tiers.length === 2 ? "2" : "1"}" ${tiers.length === 1 ? 'style="max-width:440px"' : ""} style="align-items:${isBold ? "center" : "start"}">${tiersHtml}</div>
       </section>
       ${ctaBlock(c.pricing?.cta)}`;
 
     // ── ABOUT PAGE ──
     const values = c.about?.values?.items || [];
-    const aboutPage = `
-      <section class="section hero-section" style="padding-top:100px;padding-bottom:80px;text-align:${heroAlign};${heroGradient}">
-        <div class="eyebrow">${c.about?.story?.eyebrow || "About"}</div>
-        <h1 class="h1" style="max-width:720px;margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.about?.hero?.headline || "About " + name}</h1>
-        <p class="lead" style="margin-bottom:36px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.about?.hero?.subheadline || ""}</p>
-      </section>
-      <div class="divider"></div>
-      <section class="section" ${sectionAlt ? `style="${sectionAlt};padding:80px 24px"` : ""}>
-        <h2 class="h2" style="margin-bottom:16px">${c.about?.story?.title || "Our story"}</h2>
-        <div style="color:${textSec};font-size:16px;line-height:1.8;max-width:720px">${c.about?.story?.body || sv.aboutStory || ""}</div>
-      </section>
-      ${values.length ? `<div class="divider"></div>
-      <section class="section">
-        <div class="eyebrow">${c.about?.values?.eyebrow || "Values"}</div>
-        <h2 class="h2" style="margin-bottom:8px">${c.about?.values?.title || "What we believe"}</h2>
-        <div class="grid-2" style="margin-top:28px">${cards(values)}</div>
-      </section>` : ""}
-      ${ctaBlock(c.about?.cta)}`;
+    const aboutPage = (() => {
+      if (isEditorial) return `
+        <section class="section hero-section" style="padding-top:120px;padding-bottom:80px">
+          <h1 class="h1" style="max-width:800px;font-size:clamp(40px,5.5vw,64px);margin-bottom:24px">${c.about?.hero?.headline || "About " + name}</h1>
+          <p class="lead" style="font-size:18px;line-height:1.8">${c.about?.hero?.subheadline || ""}</p>
+        </section>
+        <div class="divider"></div>
+        <section class="section" style="border-top:1px solid ${border};border-bottom:1px solid ${border};padding:80px 24px">
+          <div class="eyebrow">${c.about?.story?.eyebrow || "The story"}</div>
+          <h2 class="h2" style="margin-bottom:20px">${c.about?.story?.title || "Our story"}</h2>
+          <div style="color:${textSec};font-size:17px;line-height:2;max-width:680px;font-family:Georgia,serif">${c.about?.story?.body || sv.aboutStory || ""}</div>
+        </section>
+        ${values.length ? `
+        <section class="section">
+          <div class="eyebrow">${c.about?.values?.eyebrow || "Principles"}</div>
+          <h2 class="h2" style="margin-bottom:32px">${c.about?.values?.title || "How we work"}</h2>
+          <div style="max-width:700px">${cards(values)}</div>
+        </section>` : ""}
+        ${ctaBlock(c.about?.cta)}`;
+      if (isBold) return `
+        <section class="section hero-section" style="padding-top:140px;padding-bottom:100px;text-align:center;background:linear-gradient(180deg, ${accent}08 0%, transparent 50%)">
+          <div class="eyebrow">${c.about?.story?.eyebrow || "About"}</div>
+          <h1 class="h1" style="max-width:800px;margin:0 auto 24px">${c.about?.hero?.headline || "About " + name}</h1>
+          <p class="lead" style="margin:0 auto">${c.about?.hero?.subheadline || ""}</p>
+        </section>
+        <section class="section" style="background:${surface};padding:80px 24px">
+          <div style="max-width:720px;margin:0 auto;text-align:center">
+            <h2 class="h2" style="margin-bottom:20px">${c.about?.story?.title || "Our story"}</h2>
+            <div style="color:${textSec};font-size:17px;line-height:1.9">${c.about?.story?.body || sv.aboutStory || ""}</div>
+          </div>
+        </section>
+        ${values.length ? `
+        <section class="section" style="padding:80px 24px">
+          <div style="text-align:center;margin-bottom:48px">
+            <div class="eyebrow">${c.about?.values?.eyebrow || "Values"}</div>
+            <h2 class="h2">${c.about?.values?.title || "How we work"}</h2>
+          </div>
+          <div class="grid-${values.length > 2 ? "3" : "2"}" style="max-width:1000px;margin:0 auto">${cards(values)}</div>
+        </section>` : ""}
+        ${ctaBlock(c.about?.cta)}`;
+      return `
+        <section class="section hero-section" style="padding-top:100px;padding-bottom:80px">
+          <div class="eyebrow">${c.about?.story?.eyebrow || "About"}</div>
+          <h1 class="h1" style="max-width:720px;margin-bottom:20px">${c.about?.hero?.headline || "About " + name}</h1>
+          <p class="lead" style="margin-bottom:36px">${c.about?.hero?.subheadline || ""}</p>
+        </section>
+        <div class="divider"></div>
+        <section class="section">
+          <h2 class="h2" style="margin-bottom:16px">${c.about?.story?.title || "Our story"}</h2>
+          <div style="color:${textSec};font-size:16px;line-height:1.8;max-width:720px">${c.about?.story?.body || sv.aboutStory || ""}</div>
+        </section>
+        ${values.length ? `<div class="divider"></div>
+        <section class="section">
+          <div class="eyebrow">${c.about?.values?.eyebrow || "Values"}</div>
+          <h2 class="h2" style="margin-bottom:8px">${c.about?.values?.title || "How we work"}</h2>
+          <div class="grid-2" style="margin-top:28px">${cards(values)}</div>
+        </section>` : ""}
+        ${ctaBlock(c.about?.cta)}`;
+    })();
 
     // ── CONTACT PAGE ──
     const methods = c.contact?.methods?.items || [];
     const nextSteps = c.contact?.nextSteps?.items || [];
-    // Build contact details from survey data as primary source
-    const contactDetails: Array<{label:string;value:string}> = [];
-    if (sv.email) contactDetails.push({ label: "Email", value: sv.email });
-    if (sv.phone) contactDetails.push({ label: "Phone", value: sv.phone });
+    const contactDetails: Array<{label:string;value:string;href?:string}> = [];
+    if (sv.email) contactDetails.push({ label: "Email", value: sv.email, href: `mailto:${sv.email}` });
+    if (sv.phone) contactDetails.push({ label: "Phone", value: sv.phone, href: `tel:${sv.phone}` });
     if (sv.location) contactDetails.push({ label: "Location", value: sv.location });
     if (sv.hours) contactDetails.push({ label: "Hours", value: sv.hours });
-    // Use AI-generated methods as fallback, but prefer survey data
     const contactItems = contactDetails.length > 0 ? contactDetails : methods;
     const bookingUrl = sv.calendlyUrl || "";
 
-    const contactPage = `
-      <section class="section hero-section" style="padding-top:100px;padding-bottom:80px;text-align:${heroAlign};${heroGradient}">
-        <div class="eyebrow">${c.contact?.methods?.eyebrow || "Contact"}</div>
-        <h1 class="h1" style="max-width:720px;margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.contact?.hero?.headline || "Get in touch"}</h1>
-        <p class="lead" style="margin-bottom:36px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.contact?.hero?.subheadline || ""}</p>
-        ${bookingUrl ? `<a href="${bookingUrl}" target="_blank" rel="noopener" class="btn-primary" style="text-decoration:none;margin-top:8px">Book a call</a>` : ""}
-      </section>
-      <div class="divider"></div>
-      <section class="section">
-        <h2 class="h2" style="margin-bottom:24px">${c.contact?.methods?.title || "Reach out"}</h2>
-        <div class="grid-2" style="max-width:540px">
-          ${contactItems.map((m: any) => `
-            <div style="background:${cardBg};${cardBorder};padding:24px">
-              <div style="font-weight:600;font-size:14px;color:${text};margin-bottom:4px">${m.label || ""}</div>
-              <div style="color:${accent};font-size:15px;font-weight:500">${m.value || ""}</div>
-            </div>`).join("")}
-        </div>
-      </section>
-      ${nextSteps.length ? `<div class="divider"></div>
-      <section class="section">
-        <div class="eyebrow">${c.contact?.nextSteps?.eyebrow || "Next steps"}</div>
-        <h2 class="h2" style="margin-bottom:8px">${c.contact?.nextSteps?.title || "What happens next"}</h2>
-        <div class="grid-2" style="margin-top:28px">${cards(nextSteps)}</div>
-      </section>` : ""}
-      ${ctaBlock(c.contact?.cta)}`;
+    const contactPage = (() => {
+      const contactCards = contactItems.map((m: any) => {
+        if (isBold) return `
+          <div style="background:${surface};border:1px solid ${border};border-radius:20px;padding:28px;text-align:center">
+            <div style="font-weight:700;font-size:14px;color:${textSec};text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">${m.label || ""}</div>
+            ${m.href ? `<a href="${m.href}" style="color:${accent};font-size:17px;font-weight:700;text-decoration:none">${m.value || ""}</a>` :
+              `<div style="color:${accent};font-size:17px;font-weight:700">${m.value || ""}</div>`}
+          </div>`;
+        if (isEditorial) return `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid ${border}">
+            <span style="font-weight:600;font-size:14px;color:${textSec};text-transform:uppercase;letter-spacing:0.04em">${m.label || ""}</span>
+            ${m.href ? `<a href="${m.href}" style="color:${accent};font-size:15px;font-weight:600;text-decoration:none">${m.value || ""}</a>` :
+              `<span style="color:${text};font-size:15px;font-weight:600">${m.value || ""}</span>`}
+          </div>`;
+        return `
+          <div style="background:${surface};border:1px solid ${border};border-radius:16px;padding:24px">
+            <div style="font-weight:600;font-size:14px;color:${textSec};margin-bottom:4px">${m.label || ""}</div>
+            ${m.href ? `<a href="${m.href}" style="color:${accent};font-size:15px;font-weight:500;text-decoration:none">${m.value || ""}</a>` :
+              `<div style="color:${accent};font-size:15px;font-weight:500">${m.value || ""}</div>`}
+          </div>`;
+      }).join("");
+
+      return `
+        <section class="section hero-section" style="padding-top:${isBold ? "120px" : "100px"};padding-bottom:80px;text-align:${heroAlign};${isBold ? `background:linear-gradient(180deg, ${accent}06 0%, transparent 40%)` : ""}">
+          <div class="eyebrow">${c.contact?.methods?.eyebrow || "Contact"}</div>
+          <h1 class="h1" style="max-width:720px;margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.contact?.hero?.headline || "Get in touch"}</h1>
+          <p class="lead" style="margin-bottom:36px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.contact?.hero?.subheadline || ""}</p>
+          ${bookingUrl ? `<a href="${bookingUrl}" target="_blank" rel="noopener" class="btn-primary" style="text-decoration:none">${c.contact?.cta?.cta?.text || "Book a call"}</a>` : ""}
+        </section>
+        <div class="divider"></div>
+        <section class="section">
+          <h2 class="h2" style="margin-bottom:24px">${c.contact?.methods?.title || "Reach out"}</h2>
+          <div ${isEditorial ? 'style="max-width:560px"' : `class="grid-2" style="max-width:540px"`}>${contactCards}</div>
+        </section>
+        ${nextSteps.length ? `<div class="divider"></div>
+        <section class="section">
+          <div class="eyebrow">${c.contact?.nextSteps?.eyebrow || "Next steps"}</div>
+          <h2 class="h2" style="margin-bottom:8px">${c.contact?.nextSteps?.title || "What happens next"}</h2>
+          <div ${isEditorial ? 'style="max-width:700px;margin-top:28px"' : 'class="grid-2" style="margin-top:28px"'}>${cards(nextSteps)}</div>
+        </section>` : ""}
+        ${ctaBlock(c.contact?.cta)}`;
+    })();
+
+    // ─── CSS — template-specific ────────────────────────────────
+    const templateCSS = isBold ? `
+      body { background: ${bg}; }
+      .section { max-width: 1140px; }
+      .nav-inner { max-width: 1140px; }
+      .h1 { font-size: clamp(44px, 6vw, 72px); font-weight: 900; line-height: 1.04; }
+      .h2 { font-size: clamp(32px, 4vw, 48px); font-weight: 800; }
+      .lead { font-size: 18px; }
+      .btn-primary { padding: 16px 36px; border-radius: 12px; font-size: 16px; }
+    ` : isEditorial ? `
+      body { background: ${bg}; font-family: 'Inter', Georgia, serif; }
+      .h1 { font-family: 'Playfair Display', Georgia, serif; font-size: clamp(40px, 5.5vw, 68px); font-weight: 900; line-height: 1.05; letter-spacing: -0.02em; }
+      .h2 { font-family: 'Playfair Display', Georgia, serif; font-size: clamp(28px, 3.5vw, 44px); font-weight: 800; }
+      .lead { font-size: 17px; line-height: 1.8; }
+      .btn-primary { padding: 14px 32px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.06em; font-size: 13px; }
+      .eyebrow { letter-spacing: 0.12em; }
+    ` : `
+      body { background: ${bg}; }
+      .h1 { font-size: clamp(36px, 5vw, 56px); font-weight: 900; line-height: 1.08; }
+      .h2 { font-size: clamp(28px, 3.5vw, 40px); font-weight: 800; }
+      .btn-primary { padding: 14px 32px; border-radius: 999px; }
+    `;
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -614,10 +892,10 @@ export default function ChatPage() {
     .page.active { display: block; }
     .section { padding: 80px 24px; max-width: 1100px; margin: 0 auto; }
     .eyebrow { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${accent}; margin-bottom: 14px; }
-    .h1 { font-size: clamp(${isBold ? "40px" : "36px"}, 5vw, ${isBold ? "64px" : "56px"}); font-weight: 900; line-height: ${isBold ? "1.04" : "1.08"}; letter-spacing: -0.03em; color: ${text}; font-family: ${isEditorial ? "'Playfair Display', Georgia, serif" : headFont}; }
-    .h2 { font-size: clamp(${isBold ? "30px" : "28px"}, 3.5vw, ${isBold ? "44px" : "40px"}); font-weight: 800; line-height: 1.12; letter-spacing: -0.025em; color: ${text}; font-family: ${isEditorial ? "'Playfair Display', Georgia, serif" : headFont}; }
-    .lead { font-size: ${isBold ? "18px" : "17px"}; line-height: 1.6; color: ${textSec}; max-width: 600px; }
-    .btn-primary { display: inline-flex; align-items: center; padding: ${isBold ? "16px 36px" : "14px 32px"}; background: ${accent}; color: #fff; border-radius: ${btnRadius}; font-weight: 700; font-size: 15px; text-decoration: none; transition: transform 0.15s, box-shadow 0.15s; cursor: pointer; }
+    .h1 { font-weight: 900; letter-spacing: -0.03em; color: ${text}; }
+    .h2 { font-weight: 800; letter-spacing: -0.025em; color: ${text}; line-height: 1.12; }
+    .lead { font-size: 17px; line-height: 1.6; color: ${textSec}; max-width: 600px; }
+    .btn-primary { display: inline-flex; align-items: center; background: ${accent}; color: #fff; font-weight: 700; font-size: 15px; text-decoration: none; transition: transform 0.15s, box-shadow 0.15s; cursor: pointer; border: none; }
     .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px ${accent}44; }
     .nav { position: sticky; top: 0; z-index: 100; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); background: ${bg}dd; border-bottom: 1px solid ${border}; }
     .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
@@ -625,13 +903,14 @@ export default function ChatPage() {
     .nav-links a { font-size: 13px; font-weight: 500; color: ${textSec}; text-decoration: none; transition: color 0.15s; cursor: pointer; }
     .nav-links a:hover { color: ${text}; }
     .nav-links a.active { color: ${accent}; }
-    .grid-1 { display: grid; grid-template-columns: 1fr; gap: ${isBold ? "20px" : "16px"}; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: ${isBold ? "20px" : "16px"}; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: ${isBold ? "20px" : "16px"}; }
+    .grid-1 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     .divider { height: 1px; background: ${border}; max-width: 1100px; margin: 0 auto; }
     footer { border-top: 1px solid ${border}; padding: 32px 24px; text-align: center; }
     footer span { color: ${textSec}; font-size: 13px; }
     .footer-socials { margin-top: 12px; display: flex; justify-content: center; gap: 16px; }
+    ${templateCSS}
     @media (max-width: 768px) {
       .grid-2, .grid-3 { grid-template-columns: 1fr; }
       .nav-links { gap: 16px; }
@@ -655,7 +934,7 @@ export default function ChatPage() {
         <a data-nav="pricing">Pricing</a>
         <a data-nav="about">About</a>
         <a data-nav="contact">Contact</a>
-        <span class="btn-primary" data-nav="contact" style="padding:8px 20px;font-size:13px">${c.home?.primaryCta?.cta?.text || "Get in touch"}</span>
+        <span class="btn-primary" data-nav="contact" style="padding:8px 20px;font-size:13px">${ctaText}</span>
       </div>
     </div>
   </nav>
