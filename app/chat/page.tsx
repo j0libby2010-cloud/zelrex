@@ -296,6 +296,8 @@ export default function ChatPage() {
   const [surveyData, setSurveyData] = useState<SurveyData | null>(null);
   const [surveyDismissed, setSurveyDismissed] = useState(false);
   const [websiteData, setWebsiteData] = useState<any>(null);
+  const [deployData, setDeployData] = useState<{ projectId: string; url: string; projectName: string; customDomain?: string; domainVerified?: boolean } | null>(null);
+  const [isDeploying, setIsDeploying] = useState(false);
 
   // Persist animated IDs across reloads so typewriter never replays
   const [animatedIds, setAnimatedIds] = useState<string[]>([]);
@@ -303,6 +305,8 @@ export default function ChatPage() {
   useEffect(() => {
     const saved = localStorage.getItem("zelrex_website_data");
     if (saved) try { setWebsiteData(JSON.parse(saved)); } catch {}
+    const savedDeploy = localStorage.getItem("zelrex_deploy_data");
+    if (savedDeploy) try { setDeployData(JSON.parse(savedDeploy)); } catch {}
   }, []);
   useEffect(() => { localStorage.setItem(ANIMATED_KEY, JSON.stringify(animatedIds)); }, [animatedIds]);
 
@@ -568,7 +572,7 @@ export default function ChatPage() {
       document.querySelectorAll('.nav-links a[data-nav]').forEach(function(a) {
         a.classList.toggle('active', a.getAttribute('data-nav') === page);
       });
-      window.scrollTo(0, 0);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
     document.addEventListener('click', function(e) {
       var el = e.target.closest('[data-nav]');
@@ -598,6 +602,136 @@ export default function ChatPage() {
   useEffect(() => { const el = textareaRef.current; if (!el) return; el.style.height = "0px"; el.style.height = `${Math.min(180, el.scrollHeight)}px`; }, [input]);
   useEffect(() => { const h = () => { setOpenChatMenuId(null); setOpenMsgMenuId(null); setAttachMenuOpen(false); setSettingsOpen(false); }; window.addEventListener("mousedown", h); return () => window.removeEventListener("mousedown", h); }, []);
   useEffect(() => { if (previewOpen) setSidebarOpen(false); }, [previewOpen]);
+
+  // ─── Helper: push an assistant message into the active chat ────────
+  function pushAssistantMsg(content: string) {
+    const msg: Msg = { id: uid("msg"), role: "assistant", content, createdAt: Date.now() };
+    setChats((p) => p.map((ch) => ch.id === activeChatId ? { ...ch, messages: [...ch.messages, msg], updatedAt: Date.now() } : ch));
+  }
+
+  // ─── DEPLOY: push live to Vercel ──────────────────────────────────
+  async function handleDeploy() {
+    if (!websiteData || isDeploying) return;
+    setIsDeploying(true);
+    pushAssistantMsg("Deploying your website...");
+
+    try {
+      const html = buildPreviewHtml(websiteData);
+      const res = await fetch("/api/deploy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: deployData?.projectId ? "redeploy" : "deploy",
+          html,
+          businessName: websiteData.branding?.name || "my-business",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || data.error) {
+        pushAssistantMsg(`Deployment failed: ${data.error || "Unknown error"}. Check your Vercel API token in environment variables.`);
+        setIsDeploying(false);
+        return;
+      }
+
+      const dd = { projectId: data.projectId, url: data.url, projectName: data.projectName || "" };
+      setDeployData(dd);
+      localStorage.setItem("zelrex_deploy_data", JSON.stringify(dd));
+
+      pushAssistantMsg(
+        `**Your site is live!** 🚀\n\n` +
+        `**URL:** [${data.url}](${data.url})\n\n` +
+        `To connect your own domain, type something like:\n` +
+        `\`connect domain yourbusiness.com\``
+      );
+    } catch (e: any) {
+      pushAssistantMsg(`Deployment error: ${e.message}`);
+    }
+    setIsDeploying(false);
+  }
+
+  // ─── ADD DOMAIN ───────────────────────────────────────────────────
+  async function handleAddDomain(domain: string) {
+    if (!deployData?.projectId) {
+      pushAssistantMsg("Deploy your site first before adding a custom domain.");
+      return;
+    }
+
+    pushAssistantMsg(`Connecting **${domain}** to your site...`);
+
+    try {
+      const res = await fetch("/api/deploy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "add-domain", projectId: deployData.projectId, domain }),
+      });
+
+      const data = await res.json();
+
+      if (data.verified) {
+        const dd = { ...deployData, customDomain: domain, domainVerified: true };
+        setDeployData(dd);
+        localStorage.setItem("zelrex_deploy_data", JSON.stringify(dd));
+        pushAssistantMsg(`**${domain}** is connected and live! Your site is ready at **https://${domain}**`);
+        return;
+      }
+
+      // DNS setup needed
+      const dd = { ...deployData, customDomain: domain, domainVerified: false };
+      setDeployData(dd);
+      localStorage.setItem("zelrex_deploy_data", JSON.stringify(dd));
+
+      const dnsInstructions = (data.dnsRecords || []).map((r: any) =>
+        `- **Type:** ${r.type} | **Name:** ${r.name} | **Value:** ${r.value}`
+      ).join("\n");
+
+      pushAssistantMsg(
+        `**Domain added.** Now configure your DNS:\n\n` +
+        `Go to your domain registrar (Squarespace, GoDaddy, Namecheap, Cloudflare, etc.) and add these DNS records:\n\n` +
+        `${dnsInstructions}\n\n` +
+        `DNS changes can take up to 48 hours to propagate. Once you've set them up, type:\n` +
+        `\`verify domain\``
+      );
+    } catch (e: any) {
+      pushAssistantMsg(`Domain setup error: ${e.message}`);
+    }
+  }
+
+  // ─── VERIFY DOMAIN ────────────────────────────────────────────────
+  async function handleVerifyDomain() {
+    if (!deployData?.projectId || !deployData?.customDomain) {
+      pushAssistantMsg("No domain to verify. Add a domain first with `connect domain yourdomain.com`");
+      return;
+    }
+
+    pushAssistantMsg(`Checking DNS for **${deployData.customDomain}**...`);
+
+    try {
+      const res = await fetch("/api/deploy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "verify-domain", projectId: deployData.projectId, domain: deployData.customDomain }),
+      });
+
+      const data = await res.json();
+
+      if (data.verified) {
+        const dd = { ...deployData, domainVerified: true };
+        setDeployData(dd);
+        localStorage.setItem("zelrex_deploy_data", JSON.stringify(dd));
+        pushAssistantMsg(`**${deployData.customDomain}** is verified and live! Your site is ready at **https://${deployData.customDomain}**`);
+      } else {
+        pushAssistantMsg(
+          `**${deployData.customDomain}** is not verified yet.\n\n` +
+          `${data.message}\n\n` +
+          `Make sure your DNS records are set correctly and try again in a few minutes with \`verify domain\`.`
+        );
+      }
+    } catch (e: any) {
+      pushAssistantMsg(`Verification error: ${e.message}`);
+    }
+  }
 
   function createNewChat() { const c: Chat = { id: uid("chat"), title: "New chat", messages: [], updatedAt: Date.now(), pendingSurvey: false }; setChats((p) => [c, ...p]); setActiveChatId(c.id); setOpenChatMenuId(null); setRenamingChatId(null); setInput(""); setDraftAttachments((p) => { for (const a of p) if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); return []; }); if (isMobile) setSidebarOpen(false); }
   function deleteChat(id: string) { setChats((p) => p.filter((c) => c.id !== id)); setOpenChatMenuId(null); if (id === activeChatId) { const r = chats.filter((c) => c.id !== id); setActiveChatId(r[0]?.id ?? ""); } }
@@ -661,6 +795,38 @@ export default function ChatPage() {
   async function sendMessage(override?: string) {
     const text = (override ?? input).trim();
     if ((!text && !draftAttachments.length) || !activeChat || isSending) return;
+
+    // ─── DEPLOY COMMANDS (intercepted before API call) ──────────────
+    const lc = text.toLowerCase();
+
+    if (/^(deploy|go live|publish|launch site|push live)$/i.test(lc)) {
+      const userMsg: Msg = { id: uid("m"), role: "user", content: text, createdAt: Date.now() };
+      setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, messages: [...c.messages, userMsg], updatedAt: Date.now() } : c));
+      setInput("");
+      if (!websiteData) { pushAssistantMsg("Build your website first before deploying. Type **make me a website** to get started."); return; }
+      handleDeploy();
+      return;
+    }
+
+    const domainMatch = lc.match(/(?:connect|add|set|use)\s+(?:domain|custom domain)\s+(.+)/);
+    if (domainMatch) {
+      const domain = domainMatch[1].replace(/^https?:\/\//, "").replace(/\/.*$/, "").trim();
+      const userMsg: Msg = { id: uid("m"), role: "user", content: text, createdAt: Date.now() };
+      setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, messages: [...c.messages, userMsg], updatedAt: Date.now() } : c));
+      setInput("");
+      handleAddDomain(domain);
+      return;
+    }
+
+    if (/^verify\s+domain$/i.test(lc)) {
+      const userMsg: Msg = { id: uid("m"), role: "user", content: text, createdAt: Date.now() };
+      setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, messages: [...c.messages, userMsg], updatedAt: Date.now() } : c));
+      setInput("");
+      handleVerifyDomain();
+      return;
+    }
+    // ─── END DEPLOY COMMANDS ────────────────────────────────────────
+
     setIsSending(true); setOpenMsgMenuId(null);
     const userMsg: Msg = { id: uid("m"), role: "user", content: text, createdAt: Date.now() };
     const autoTitle = activeChat.messages.length === 0;
@@ -736,6 +902,11 @@ export default function ChatPage() {
             {websiteData && (
               <HBtn onClick={() => setPreviewOpen(!previewOpen)} style={{ padding: "5px 12px", border: `1px solid ${previewOpen ? C.accent + "40" : C.border}`, background: previewOpen ? C.accentSoft : "transparent", color: previewOpen ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
                 <Ic n="preview" className="h-3.5 w-3.5" /> Preview
+              </HBtn>
+            )}
+            {websiteData && (
+              <HBtn onClick={handleDeploy} style={{ padding: "5px 12px", border: `1px solid ${deployData?.url ? "#10B98140" : C.border}`, background: deployData?.url ? "rgba(16,185,129,0.08)" : "transparent", color: deployData?.url ? "#10B981" : C.textSec, fontSize: 12, fontWeight: 500, gap: 5, opacity: isDeploying ? 0.5 : 1 }}>
+                <Ic n="send" className="h-3.5 w-3.5" /> {isDeploying ? "Deploying..." : deployData?.url ? "Redeploy" : "Deploy"}
               </HBtn>
             )}
             <HBtn onClick={() => alert("Sign in coming soon")} style={{ padding: "5px 12px", border: `1px solid ${C.border}`, color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
