@@ -123,11 +123,35 @@ export function WebsiteSurvey({
     setData((prev) => ({ ...prev, [key]: value }));
   }
 
+  const [errors, setErrors] = useState<string[]>([]);
+
+  function validateStep(s: number): string[] {
+    const e: string[] = [];
+    if (s === 0) {
+      if (!data.businessName.trim()) e.push("Business name is required");
+      if (!data.businessType) e.push("Select your service type");
+      if (!data.targetAudience.trim()) e.push("Describe your ideal client");
+    } else if (s === 1) {
+      if (!data.mainService.trim()) e.push("Name your main service");
+      if (!data.serviceDescription.trim()) e.push("Describe what the client gets");
+      if (!data.hasMultipleTiers && !data.price.trim()) e.push("Set your price");
+      if (data.hasMultipleTiers && data.tiers.every((t) => !t.name.trim() || !t.price.trim())) e.push("Fill in at least one tier");
+    } else if (s === 2) {
+      // No hard requirements — all have defaults
+    } else if (s === 3) {
+      if (!data.email.trim()) e.push("Email is required for your contact page");
+    }
+    return e;
+  }
+
   function next() {
+    const errs = validateStep(step);
+    if (errs.length > 0) { setErrors(errs); return; }
+    setErrors([]);
     if (step < totalSteps - 1) setStep(step + 1);
     else onComplete(data);
   }
-  function back() { if (step > 0) setStep(step - 1); }
+  function back() { setErrors([]); if (step > 0) setStep(step - 1); }
 
   const stepTitles = ["Your Business", "Your Service", "Brand & Style", "Contact Info", "Review & Build"];
 
@@ -146,6 +170,7 @@ export function WebsiteSurvey({
         display: "flex", flexDirection: "column",
         overflow: "hidden",
       }}>
+        <style>{`@media(max-width:640px){.survey-option-grid{grid-template-columns:1fr!important}}`}</style>
         {/* Header */}
         <div style={{
           padding: "20px 24px 16px",
@@ -186,6 +211,13 @@ export function WebsiteSurvey({
         </div>
 
         {/* Footer */}
+        {errors.length > 0 && (
+          <div style={{ padding: "0 24px 8px" }}>
+            <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
+              {errors.map((e, i) => <div key={i} style={{ fontSize: 12, color: S.danger, lineHeight: 1.6 }}>• {e}</div>)}
+            </div>
+          </div>
+        )}
         <div style={{
           padding: "16px 24px 20px",
           borderTop: `1px solid ${S.border}`,
@@ -220,8 +252,8 @@ export function WebsiteSurvey({
 
 // ─── Shared Input Components ────────────────────────────────────────
 
-function Label({ children }: { children: React.ReactNode }) {
-  return <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: S.text, marginBottom: 6 }}>{children}</label>;
+function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
+  return <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: S.text, marginBottom: 6 }}>{children}{required && <span style={{ color: S.danger, marginLeft: 4 }}>*</span>}</label>;
 }
 
 function Hint({ children }: { children: React.ReactNode }) {
@@ -278,7 +310,7 @@ function OptionGrid({ options, value, onChange }: {
   onChange: (v: string) => void;
 }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+    <div className="survey-option-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
       {options.map((opt) => {
         const active = value === opt.key;
         return (
@@ -307,7 +339,7 @@ function StepBusiness({ data, update }: { data: SurveyData; update: <K extends k
   return (
     <div>
       <FieldGroup>
-        <Label>Business name</Label>
+        <Label required>Business name</Label>
         <Input value={data.businessName} onChange={(v) => update("businessName", v)} placeholder="e.g., Sarah Chen Design" />
       </FieldGroup>
 
@@ -318,7 +350,7 @@ function StepBusiness({ data, update }: { data: SurveyData; update: <K extends k
       </FieldGroup>
 
       <FieldGroup>
-        <Label>What type of service do you offer?</Label>
+        <Label required>What type of service do you offer?</Label>
         <OptionGrid
           value={data.businessType}
           onChange={(v) => update("businessType", v)}
@@ -336,7 +368,7 @@ function StepBusiness({ data, update }: { data: SurveyData; update: <K extends k
       </FieldGroup>
 
       <FieldGroup>
-        <Label>Who is your ideal client?</Label>
+        <Label required>Who is your ideal client?</Label>
         <Hint>Be specific. "Everyone" means no one.</Hint>
         <Input value={data.targetAudience} onChange={(v) => update("targetAudience", v)} placeholder="e.g., SaaS startups with 10-50 employees who need a rebrand" />
       </FieldGroup>
@@ -355,13 +387,13 @@ function StepService({ data, update }: { data: SurveyData; update: <K extends ke
   return (
     <div>
       <FieldGroup>
-        <Label>Main service name</Label>
+        <Label required>Main service name</Label>
         <Hint>What would you call this offer on a menu?</Hint>
         <Input value={data.mainService} onChange={(v) => update("mainService", v)} placeholder="e.g., Complete Brand Identity Package" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label>Describe what the client gets (2-3 sentences)</Label>
+        <Label required>Describe what the client gets (2-3 sentences)</Label>
         <TextArea value={data.serviceDescription} onChange={(v) => update("serviceDescription", v)} placeholder="e.g., I design your complete brand identity from scratch — logo, colors, typography, and brand guidelines. You get 3 concepts, unlimited revisions on the chosen direction, and a brand book delivered in 2 weeks." />
       </FieldGroup>
 
@@ -409,7 +441,7 @@ function StepService({ data, update }: { data: SurveyData; update: <K extends ke
       </FieldGroup>
 
       <FieldGroup>
-        <Label>{data.hasMultipleTiers ? "See tiers below" : "Your price"}</Label>
+        <Label required>{data.hasMultipleTiers ? "See tiers below" : "Your price"}</Label>
         {!data.hasMultipleTiers && (
           <Input value={data.price} onChange={(v) => update("price", v)} placeholder="e.g., $1,500, $150/hr, $500/month" />
         )}
@@ -551,7 +583,7 @@ function StepContact({ data, update }: { data: SurveyData; update: <K extends ke
   return (
     <div>
       <FieldGroup>
-        <Label>Email address (shown on site)</Label>
+        <Label required>Email address (shown on site)</Label>
         <Input value={data.email} onChange={(v) => update("email", v)} placeholder="hello@yourdomain.com" />
       </FieldGroup>
 

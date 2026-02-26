@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatMessage } from "./formatMessage";
 import { WebsiteSurvey, SurveyData } from "@/website/pages/components/Websitesurvey";
 
 type Role = "user" | "assistant";
 type Msg = { id: string; role: Role; content: string; createdAt: number; previewUrl?: string };
-type Chat = { id: string; title: string; messages: Msg[]; updatedAt: number; pendingSurvey?: boolean };
+type Chat = { id: string; title: string; messages: Msg[]; updatedAt: number; pendingSurvey?: boolean; websiteData?: any; deployData?: any };
 type DraftAttachment = { id: string; file: File; kind: "image" | "file"; previewUrl?: string };
 type BusinessPhase = "ready" | "intake" | "evaluating" | "building" | "live";
 
@@ -206,17 +206,17 @@ function fireConfetti() {
 
 function WelcomeScreen({ onAction }: { onAction: (t: string) => void }) {
   const cards = [
-    { icon: "rocket", title: "Launch a business", sub: "From idea to live paid link", action: "I want to launch a business" },
-    { icon: "target", title: "Evaluate a market", sub: "Data-driven opportunity scoring", action: "Help me evaluate a market" },
-    { icon: "bolt", title: "Stress test my idea", sub: "Validate before you invest", action: "Stress test my business idea" },
+    { icon: "rocket", title: "Build my website", sub: "Premium site, live in minutes", action: "Build me a website for my freelance business" },
+    { icon: "target", title: "Evaluate my market", sub: "Find your most profitable niche", action: "Help me evaluate my market" },
+    { icon: "bolt", title: "Stress test my offer", sub: "Fix weak spots before launch", action: "Stress test my freelance offer" },
   ];
   return (
-    <div style={{ display: "flex", flex: 1, flexDirection: "column", alignItems: "center", justifyContent: "center", paddingBottom: 40, paddingTop: 48 }}>
-      <h1 style={{ fontSize: 44, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.1, textAlign: "center", color: C.text }}>What are you trying to launch?</h1>
-      <p style={{ marginTop: 12, fontSize: 16, lineHeight: 1.6, color: C.textSec, textAlign: "center", maxWidth: 560 }}>
-        A specialized intelligence layer for the modern entrepreneur, engineered to build, launch, and scale comprehensive online businesses with clinical precision.
+    <div style={{ display: "flex", flex: 1, flexDirection: "column", alignItems: "center", justifyContent: "center", paddingBottom: 40, paddingTop: 48, padding: "48px 20px 40px" }}>
+      <h1 className="welcome-h1" style={{ fontSize: 44, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.1, textAlign: "center", color: C.text }}>Go independent. Get paid.</h1>
+      <p style={{ marginTop: 12, fontSize: 16, lineHeight: 1.6, color: C.textSec, textAlign: "center", maxWidth: 520 }}>
+        Stop losing 20% to platforms. Zelrex builds your premium freelance site, connects Stripe, and helps you land higher-paying clients directly.
       </p>
-      <div style={{ marginTop: 36, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, width: "100%", maxWidth: 540 }}>
+      <div className="welcome-grid" style={{ marginTop: 36, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, width: "100%", maxWidth: 540 }}>
         {cards.map((c) => (
           <button key={c.title} type="button" onClick={() => onAction(c.action)}
             style={{ textAlign: "left", padding: "20px 16px", borderRadius: 14, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)", cursor: "pointer", transition: "all 200ms ease", color: C.text }}
@@ -228,7 +228,6 @@ function WelcomeScreen({ onAction }: { onAction: (t: string) => void }) {
           </button>
         ))}
       </div>
-      <style>{`@media(max-width:560px){[style*="grid-template-columns: 1fr 1fr 1fr"]{grid-template-columns:1fr!important;max-width:280px!important}}`}</style>
     </div>
   );
 }
@@ -285,7 +284,39 @@ function PreviewFrame({ html }: { html: string }) {
 // MAIN
 // ═══════════════════════════════════════════════════════════════════════
 
+// ─── LOADING SCREEN (Anthropic-style with Zelrex branding) ──────────
+function LoadingScreen({ onDone }: { onDone: () => void }) {
+  const [phase, setPhase] = useState(0); // 0=logo, 1=line, 2=text, 3=fade
+  useEffect(() => {
+    const t1 = setTimeout(() => setPhase(1), 200);
+    const t2 = setTimeout(() => setPhase(2), 600);
+    const t3 = setTimeout(() => setPhase(3), 1600);
+    const t4 = setTimeout(onDone, 2100);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+  }, [onDone]);
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", transition: "opacity 0.5s ease", opacity: phase >= 3 ? 0 : 1, pointerEvents: phase >= 3 ? "none" : "all" }}>
+      {/* Z mark */}
+      <div style={{ position: "relative", width: 56, height: 56, marginBottom: 16, opacity: phase >= 0 ? 1 : 0, transform: phase >= 0 ? "scale(1)" : "scale(0.8)", transition: "all 0.4s cubic-bezier(0.16,1,0.3,1)" }}>
+        <svg viewBox="0 0 56 56" width="56" height="56">
+          <text x="50%" y="52%" textAnchor="middle" dominantBaseline="central" fill="rgba(225,230,240,0.95)" fontFamily="Inter, -apple-system, sans-serif" fontWeight="800" fontSize="34" letterSpacing="-0.02em">Z</text>
+        </svg>
+      </div>
+      {/* Momentum line */}
+      <div style={{ width: 120, height: 3, borderRadius: 2, overflow: "hidden", marginBottom: 24 }}>
+        <div style={{ width: phase >= 1 ? "100%" : "0%", height: "100%", borderRadius: 2, background: `linear-gradient(90deg, #7EB4E2, ${C.accent}, #121D39)`, transition: "width 0.8s cubic-bezier(0.16,1,0.3,1)" }} />
+      </div>
+      {/* Text */}
+      <div style={{ opacity: phase >= 2 ? 1 : 0, transform: phase >= 2 ? "translateY(0)" : "translateY(8px)", transition: "all 0.4s ease" }}>
+        <div style={{ fontSize: 13, fontWeight: 500, color: C.textSec, letterSpacing: "0.08em", textTransform: "uppercase" }}>Zelrex</div>
+      </div>
+      <style>{`@keyframes z-pulse{0%,100%{opacity:0.5}50%{opacity:1}}`}</style>
+    </div>
+  );
+}
+
 export default function ChatPage() {
+  const [appLoaded, setAppLoaded] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => { const check = () => setIsMobile(window.innerWidth < 768); check(); window.addEventListener("resize", check); return () => window.removeEventListener("resize", check); }, []);
@@ -299,14 +330,32 @@ export default function ChatPage() {
   const [deployData, setDeployData] = useState<{ projectId: string; url: string; projectName: string; customDomain?: string; domainVerified?: boolean } | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
 
+  // Helper: save websiteData to both state and active chat
+  function saveWebsiteData(data: any) {
+    setWebsiteData(data);
+    if (activeChat?.id) setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, websiteData: data } : c));
+  }
+  function saveDeployData(data: any) {
+    setDeployData(data);
+    if (activeChat?.id) setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, deployData: data } : c));
+  }
+
   // Persist animated IDs across reloads so typewriter never replays
   const [animatedIds, setAnimatedIds] = useState<string[]>([]);
   useEffect(() => { const s = localStorage.getItem(ANIMATED_KEY); if (s) try { setAnimatedIds(JSON.parse(s)); } catch {} }, []);
   useEffect(() => {
+    // Migrate old global websiteData to first chat if exists
     const saved = localStorage.getItem("zelrex_website_data");
-    if (saved) try { setWebsiteData(JSON.parse(saved)); } catch {}
-    const savedDeploy = localStorage.getItem("zelrex_deploy_data");
-    if (savedDeploy) try { setDeployData(JSON.parse(savedDeploy)); } catch {}
+    if (saved) {
+      try {
+        const wd = JSON.parse(saved);
+        if (wd && chats[0] && !chats[0].websiteData) {
+          setChats((p) => p.map((c, i) => i === 0 ? { ...c, websiteData: wd } : c));
+        }
+      } catch {}
+      localStorage.removeItem("zelrex_website_data");
+      localStorage.removeItem("zelrex_deploy_data");
+    }
   }, []);
   useEffect(() => { localStorage.setItem(ANIMATED_KEY, JSON.stringify(animatedIds)); }, [animatedIds]);
 
@@ -315,6 +364,12 @@ export default function ChatPage() {
 
   const [activeChatId, setActiveChatId] = useState(() => chats[0]?.id ?? "");
   const activeChat = useMemo(() => chats.find((c) => c.id === activeChatId) ?? chats[0], [chats, activeChatId]);
+
+  // Sync websiteData/deployData from active chat when switching chats
+  useEffect(() => {
+    if (activeChat?.websiteData) { setWebsiteData(activeChat.websiteData); } else { setWebsiteData(null); setPreviewOpen(false); }
+    if (activeChat?.deployData) { setDeployData(activeChat.deployData); } else { setDeployData(null); }
+  }, [activeChatId, activeChat]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const filteredChats = useMemo(() => { const q = searchQuery.trim().toLowerCase(); if (!q) return chats; return chats.filter((c) => c.title?.toLowerCase().includes(q) || c.messages.some((m) => m.content.toLowerCase().includes(q))); }, [chats, searchQuery]);
@@ -343,88 +398,124 @@ export default function ChatPage() {
     const border = t.border || "rgba(255,255,255,0.08)";
     const name = site.branding?.name || "My Business";
     const c = site.copy;
+    const sv = site.survey || {}; // Raw survey data for fallbacks
+
+    // ─── TEMPLATE SELECTION ──────────────────────────────
+    // Map from survey preferences or auto-select based on business name
+    const fontPref = sv.fontPreference || "";
+    const tplMap: Record<string, string> = { modern: "minimal", classic: "editorial", editorial: "editorial", tech: "bold" };
+    const tpl = site.template || tplMap[fontPref] || ["minimal", "bold", "editorial"][Math.abs(name.charCodeAt(0) + name.length) % 3];
+    const isBold = tpl === "bold";
+    const isEditorial = tpl === "editorial";
+
+    // Template-specific tokens
+    const heroAlign = isBold ? "center" : "left";
+    const headFont = isEditorial ? "'Georgia', 'Times New Roman', serif" : "'Inter', -apple-system, sans-serif";
+    const cardRadius = isBold ? "20px" : isEditorial ? "8px" : "16px";
+    const btnRadius = isBold ? "12px" : isEditorial ? "6px" : "999px";
+    const sectionAlt = isBold ? `background:${surface}` : isEditorial ? `background:${bg};border-top:1px solid ${border};border-bottom:1px solid ${border}` : "";
+    const heroGradient = isBold ? `background:linear-gradient(135deg, ${accent}15 0%, transparent 60%)` : "";
+    const cardBg = isEditorial ? "transparent" : surface;
+    const cardBorder = isEditorial ? `border-left:3px solid ${accent};border-radius:0;padding-left:24px` : `border:1px solid ${border};border-radius:${cardRadius}`;
 
     // Helper: render items as card grid
-    const cards = (items: any[], cols: number) => items.map((item: any) => `
-      <div style="background:${surface};border:1px solid ${border};border-radius:16px;padding:28px">
-        <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:8px">${item.title || ""}</div>
+    const cards = (items: any[]) => items.map((item: any) => `
+      <div style="background:${cardBg};${cardBorder};padding:${isEditorial ? "20px 0 20px 24px" : "28px"}">
+        <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:8px;font-family:${headFont}">${item.title || ""}</div>
         <div style="color:${textSec};font-size:14px;line-height:1.7">${item.description || ""}</div>
       </div>`).join("");
 
     // Helper: render steps
     const stepsList = (steps: any[]) => steps.map((s: any, i: number) => `
-      <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:28px">
-        <div style="width:44px;height:44px;border-radius:50%;background:${accent}18;color:${accent};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0">${i + 1}</div>
+      <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:${isBold ? "36px" : "28px"}">
+        <div style="width:${isBold ? "52px" : "44px"};height:${isBold ? "52px" : "44px"};border-radius:${isBold ? "14px" : "50%"};background:${accent}18;color:${accent};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:${isBold ? "18px" : "16px"};flex-shrink:0">${i + 1}</div>
         <div>
-          <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:6px">${s.title || ""}</div>
+          <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:6px;font-family:${headFont}">${s.title || ""}</div>
           <div style="color:${textSec};font-size:14px;line-height:1.7">${s.description || ""}</div>
         </div>
       </div>`).join("");
 
     // Helper: CTA block
     const ctaBlock = (data: any) => !data ? "" : `
-      <section class="section" style="text-align:center">
+      <section class="section" style="text-align:${isBold ? "center" : heroAlign}${isBold ? `;${heroGradient};border-radius:24px;margin:40px auto;max-width:1060px` : ""}">
         <h2 class="h2" style="margin-bottom:12px">${data.title || ""}</h2>
-        ${data.subtitle ? `<p class="lead" style="margin:0 auto 28px">${data.subtitle}</p>` : ""}
+        ${data.subtitle ? `<p class="lead" style="${isBold ? "margin:0 auto 28px" : "margin-bottom:28px"}">${data.subtitle}</p>` : ""}
         <span class="btn-primary" data-nav="contact" style="cursor:pointer">${data.cta?.text || "Get in touch"}</span>
       </section>`;
+
+    // Social links from survey (contact info, socials)
+    const socials = site.branding?.socialLinks || {};
+    const socialHtml = Object.entries(socials).filter(([,v]) => v).map(([k, v]) => `
+      <a href="${v}" target="_blank" rel="noopener" style="color:${textSec};font-size:13px;text-decoration:none;transition:color 0.15s"
+         onmouseover="this.style.color='${text}'" onmouseout="this.style.color='${textSec}'">${(k as string).charAt(0).toUpperCase() + (k as string).slice(1)}</a>`).join('<span style="color:' + border + '">·</span>');
 
     // ── HOME PAGE ──
     const homeVp = c.home?.valueProps?.items || [];
     const homeSteps = c.home?.howItWorks?.steps || [];
     const homePage = `
-      <section class="section" style="padding-top:100px;padding-bottom:80px">
+      <section class="section hero-section" style="padding-top:${isBold ? "120px" : "100px"};padding-bottom:80px;text-align:${heroAlign};${heroGradient}">
         <div class="eyebrow">${c.home?.valueProps?.eyebrow || name}</div>
-        <h1 class="h1" style="max-width:720px;margin-bottom:20px">${c.home?.hero?.headline || name}</h1>
-        <p class="lead" style="margin-bottom:36px">${c.home?.hero?.subheadline || ""}</p>
+        <h1 class="h1" style="max-width:${isBold ? "800px" : "720px"};margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.home?.hero?.headline || name}</h1>
+        <p class="lead" style="margin-bottom:36px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.home?.hero?.subheadline || ""}</p>
         <span class="btn-primary" data-nav="contact" style="cursor:pointer">${c.home?.primaryCta?.cta?.text || "Get started"}</span>
       </section>
       <div class="divider"></div>
-      <section class="section">
+      <section class="section" ${sectionAlt ? `style="${sectionAlt};padding:80px 24px"` : ""}>
         <div class="eyebrow">${c.home?.valueProps?.eyebrow || "What we do"}</div>
         <h2 class="h2" style="margin-bottom:8px">${c.home?.valueProps?.title || ""}</h2>
         <p class="lead" style="margin-bottom:36px">${c.home?.valueProps?.subtitle || ""}</p>
-        <div class="grid-${homeVp.length > 3 ? "3" : "2"}">${cards(homeVp, 2)}</div>
+        <div class="grid-${homeVp.length > 3 ? "3" : "2"}">${cards(homeVp)}</div>
       </section>
       <div class="divider"></div>
       <section class="section">
         <div class="eyebrow">${c.home?.howItWorks?.eyebrow || "How it works"}</div>
         <h2 class="h2" style="margin-bottom:8px">${c.home?.howItWorks?.title || ""}</h2>
         <p class="lead" style="margin-bottom:36px">${c.home?.howItWorks?.subtitle || ""}</p>
-        <div style="max-width:640px">${stepsList(homeSteps)}</div>
+        <div style="max-width:640px;${isBold ? "margin:0 auto" : ""}">${stepsList(homeSteps)}</div>
       </section>
       ${ctaBlock(c.home?.primaryCta)}`;
 
-    // ── SERVICES / OFFER PAGE ──
+    // ── SERVICES PAGE ──
     const offerItems = c.offer?.whatYouGet?.items || homeVp;
     const whoItems = c.offer?.whoItsFor?.items || [];
     const servicesPage = `
-      <section class="section" style="padding-top:100px;padding-bottom:80px">
+      <section class="section hero-section" style="padding-top:100px;padding-bottom:80px;text-align:${heroAlign};${heroGradient}">
         <div class="eyebrow">Services</div>
-        <h1 class="h1" style="max-width:720px;margin-bottom:20px">${c.offer?.hero?.headline || "What we offer"}</h1>
-        <p class="lead" style="margin-bottom:36px">${c.offer?.hero?.subheadline || ""}</p>
+        <h1 class="h1" style="max-width:720px;margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.offer?.hero?.headline || "What we offer"}</h1>
+        <p class="lead" style="margin-bottom:36px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.offer?.hero?.subheadline || ""}</p>
       </section>
       <div class="divider"></div>
-      <section class="section">
+      <section class="section" ${sectionAlt ? `style="${sectionAlt};padding:80px 24px"` : ""}>
         <div class="eyebrow">${c.offer?.whatYouGet?.eyebrow || "What you get"}</div>
         <h2 class="h2" style="margin-bottom:8px">${c.offer?.whatYouGet?.title || "What's included"}</h2>
         <p class="lead" style="margin-bottom:36px">${c.offer?.whatYouGet?.subtitle || ""}</p>
-        <div class="grid-2">${cards(offerItems, 2)}</div>
+        <div class="grid-2">${cards(offerItems)}</div>
       </section>
       ${whoItems.length ? `<div class="divider"></div>
       <section class="section">
         <div class="eyebrow">${c.offer?.whoItsFor?.eyebrow || "Who it's for"}</div>
         <h2 class="h2" style="margin-bottom:8px">${c.offer?.whoItsFor?.title || "Is this for you?"}</h2>
         <p class="lead" style="margin-bottom:36px">${c.offer?.whoItsFor?.subtitle || ""}</p>
-        <div class="grid-2">${cards(whoItems, 2)}</div>
+        <div class="grid-2">${cards(whoItems)}</div>
+      </section>` : ""}
+      ${sv.guarantee ? `<div class="divider"></div>
+      <section class="section" style="text-align:${isBold ? "center" : heroAlign}">
+        <div style="display:inline-flex;align-items:center;gap:12px;padding:20px 28px;border-radius:${cardRadius};background:${accent}08;border:1px solid ${accent}25">
+          <span style="font-size:24px">🛡️</span>
+          <div>
+            <div style="font-weight:700;font-size:15px;color:${text};margin-bottom:2px">Our Guarantee</div>
+            <div style="color:${textSec};font-size:14px">${sv.guarantee}</div>
+          </div>
+        </div>
+        ${sv.turnaround ? `<div style="margin-top:16px;color:${textSec};font-size:14px">⏱ Typical turnaround: <strong style="color:${text}">${sv.turnaround}</strong></div>` : ""}
       </section>` : ""}
       ${ctaBlock(c.offer?.cta)}`;
 
     // ── PRICING PAGE ──
     const tiers = c.pricing?.pricing?.tiers || [];
     const tiersHtml = tiers.map((tier: any) => `
-      <div style="background:${surface};border:1px solid ${tier.highlighted ? accent : border};border-radius:16px;padding:32px;${tier.highlighted ? `box-shadow:0 0 40px ${accent}15;` : ""}">
-        <div style="font-weight:700;font-size:18px;color:${text}">${tier.name || ""}</div>
+      <div style="background:${surface};border:1px solid ${tier.highlighted ? accent : border};border-radius:${cardRadius};padding:32px;${tier.highlighted ? `box-shadow:0 0 40px ${accent}15;` : ""}">
+        <div style="font-weight:700;font-size:18px;color:${text};font-family:${headFont}">${tier.name || ""}</div>
         <div style="font-weight:900;font-size:40px;color:${text};margin:16px 0 8px;letter-spacing:-0.03em">${tier.price || ""}</div>
         ${tier.note ? `<div style="color:${textSec};font-size:14px;line-height:1.5;margin-bottom:8px">${tier.note}</div>` : ""}
         <div style="margin-top:20px;border-top:1px solid ${border};padding-top:20px">
@@ -437,10 +528,10 @@ export default function ChatPage() {
       </div>`).join("");
 
     const pricingPage = `
-      <section class="section" style="padding-top:100px;padding-bottom:80px">
+      <section class="section hero-section" style="padding-top:100px;padding-bottom:80px;text-align:${heroAlign};${heroGradient}">
         <div class="eyebrow">${c.pricing?.pricing?.eyebrow || "Pricing"}</div>
-        <h1 class="h1" style="max-width:720px;margin-bottom:20px">${c.pricing?.hero?.headline || "Simple, transparent pricing"}</h1>
-        <p class="lead" style="margin-bottom:36px">${c.pricing?.hero?.subheadline || c.pricing?.pricing?.subtitle || ""}</p>
+        <h1 class="h1" style="max-width:720px;margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.pricing?.hero?.headline || "Simple, transparent pricing"}</h1>
+        <p class="lead" style="margin-bottom:36px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.pricing?.hero?.subheadline || c.pricing?.pricing?.subtitle || ""}</p>
       </section>
       <div class="divider"></div>
       <section class="section">
@@ -451,39 +542,50 @@ export default function ChatPage() {
     // ── ABOUT PAGE ──
     const values = c.about?.values?.items || [];
     const aboutPage = `
-      <section class="section" style="padding-top:100px;padding-bottom:80px">
+      <section class="section hero-section" style="padding-top:100px;padding-bottom:80px;text-align:${heroAlign};${heroGradient}">
         <div class="eyebrow">${c.about?.story?.eyebrow || "About"}</div>
-        <h1 class="h1" style="max-width:720px;margin-bottom:20px">${c.about?.hero?.headline || "About " + name}</h1>
-        <p class="lead" style="margin-bottom:36px">${c.about?.hero?.subheadline || ""}</p>
+        <h1 class="h1" style="max-width:720px;margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.about?.hero?.headline || "About " + name}</h1>
+        <p class="lead" style="margin-bottom:36px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.about?.hero?.subheadline || ""}</p>
       </section>
       <div class="divider"></div>
-      <section class="section">
+      <section class="section" ${sectionAlt ? `style="${sectionAlt};padding:80px 24px"` : ""}>
         <h2 class="h2" style="margin-bottom:16px">${c.about?.story?.title || "Our story"}</h2>
-        <div style="color:${textSec};font-size:16px;line-height:1.8;max-width:720px">${c.about?.story?.body || ""}</div>
+        <div style="color:${textSec};font-size:16px;line-height:1.8;max-width:720px">${c.about?.story?.body || sv.aboutStory || ""}</div>
       </section>
       ${values.length ? `<div class="divider"></div>
       <section class="section">
         <div class="eyebrow">${c.about?.values?.eyebrow || "Values"}</div>
         <h2 class="h2" style="margin-bottom:8px">${c.about?.values?.title || "What we believe"}</h2>
-        <div class="grid-2" style="margin-top:28px">${cards(values, 2)}</div>
+        <div class="grid-2" style="margin-top:28px">${cards(values)}</div>
       </section>` : ""}
       ${ctaBlock(c.about?.cta)}`;
 
     // ── CONTACT PAGE ──
     const methods = c.contact?.methods?.items || [];
     const nextSteps = c.contact?.nextSteps?.items || [];
+    // Build contact details from survey data as primary source
+    const contactDetails: Array<{label:string;value:string}> = [];
+    if (sv.email) contactDetails.push({ label: "Email", value: sv.email });
+    if (sv.phone) contactDetails.push({ label: "Phone", value: sv.phone });
+    if (sv.location) contactDetails.push({ label: "Location", value: sv.location });
+    if (sv.hours) contactDetails.push({ label: "Hours", value: sv.hours });
+    // Use AI-generated methods as fallback, but prefer survey data
+    const contactItems = contactDetails.length > 0 ? contactDetails : methods;
+    const bookingUrl = sv.calendlyUrl || "";
+
     const contactPage = `
-      <section class="section" style="padding-top:100px;padding-bottom:80px">
+      <section class="section hero-section" style="padding-top:100px;padding-bottom:80px;text-align:${heroAlign};${heroGradient}">
         <div class="eyebrow">${c.contact?.methods?.eyebrow || "Contact"}</div>
-        <h1 class="h1" style="max-width:720px;margin-bottom:20px">${c.contact?.hero?.headline || "Get in touch"}</h1>
-        <p class="lead" style="margin-bottom:36px">${c.contact?.hero?.subheadline || ""}</p>
+        <h1 class="h1" style="max-width:720px;margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.contact?.hero?.headline || "Get in touch"}</h1>
+        <p class="lead" style="margin-bottom:36px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.contact?.hero?.subheadline || ""}</p>
+        ${bookingUrl ? `<a href="${bookingUrl}" target="_blank" rel="noopener" class="btn-primary" style="text-decoration:none;margin-top:8px">Book a call</a>` : ""}
       </section>
       <div class="divider"></div>
       <section class="section">
         <h2 class="h2" style="margin-bottom:24px">${c.contact?.methods?.title || "Reach out"}</h2>
         <div class="grid-2" style="max-width:540px">
-          ${methods.map((m: any) => `
-            <div style="background:${surface};border:1px solid ${border};border-radius:12px;padding:24px">
+          ${contactItems.map((m: any) => `
+            <div style="background:${cardBg};${cardBorder};padding:24px">
               <div style="font-weight:600;font-size:14px;color:${text};margin-bottom:4px">${m.label || ""}</div>
               <div style="color:${accent};font-size:15px;font-weight:500">${m.value || ""}</div>
             </div>`).join("")}
@@ -493,7 +595,7 @@ export default function ChatPage() {
       <section class="section">
         <div class="eyebrow">${c.contact?.nextSteps?.eyebrow || "Next steps"}</div>
         <h2 class="h2" style="margin-bottom:8px">${c.contact?.nextSteps?.title || "What happens next"}</h2>
-        <div class="grid-2" style="margin-top:28px">${cards(nextSteps, 2)}</div>
+        <div class="grid-2" style="margin-top:28px">${cards(nextSteps)}</div>
       </section>` : ""}
       ${ctaBlock(c.contact?.cta)}`;
 
@@ -504,6 +606,7 @@ export default function ChatPage() {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${name}</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  ${isEditorial ? '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">' : ""}
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', -apple-system, sans-serif; background: ${bg}; color: ${text}; -webkit-font-smoothing: antialiased; }
@@ -511,10 +614,10 @@ export default function ChatPage() {
     .page.active { display: block; }
     .section { padding: 80px 24px; max-width: 1100px; margin: 0 auto; }
     .eyebrow { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${accent}; margin-bottom: 14px; }
-    .h1 { font-size: clamp(36px, 5vw, 56px); font-weight: 900; line-height: 1.08; letter-spacing: -0.03em; color: ${text}; }
-    .h2 { font-size: clamp(28px, 3.5vw, 40px); font-weight: 800; line-height: 1.12; letter-spacing: -0.025em; color: ${text}; }
-    .lead { font-size: 17px; line-height: 1.6; color: ${textSec}; max-width: 600px; }
-    .btn-primary { display: inline-flex; align-items: center; padding: 14px 32px; background: ${accent}; color: #fff; border-radius: 999px; font-weight: 700; font-size: 15px; text-decoration: none; transition: transform 0.15s, box-shadow 0.15s; cursor: pointer; }
+    .h1 { font-size: clamp(${isBold ? "40px" : "36px"}, 5vw, ${isBold ? "64px" : "56px"}); font-weight: 900; line-height: ${isBold ? "1.04" : "1.08"}; letter-spacing: -0.03em; color: ${text}; font-family: ${isEditorial ? "'Playfair Display', Georgia, serif" : headFont}; }
+    .h2 { font-size: clamp(${isBold ? "30px" : "28px"}, 3.5vw, ${isBold ? "44px" : "40px"}); font-weight: 800; line-height: 1.12; letter-spacing: -0.025em; color: ${text}; font-family: ${isEditorial ? "'Playfair Display', Georgia, serif" : headFont}; }
+    .lead { font-size: ${isBold ? "18px" : "17px"}; line-height: 1.6; color: ${textSec}; max-width: 600px; }
+    .btn-primary { display: inline-flex; align-items: center; padding: ${isBold ? "16px 36px" : "14px 32px"}; background: ${accent}; color: #fff; border-radius: ${btnRadius}; font-weight: 700; font-size: 15px; text-decoration: none; transition: transform 0.15s, box-shadow 0.15s; cursor: pointer; }
     .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px ${accent}44; }
     .nav { position: sticky; top: 0; z-index: 100; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); background: ${bg}dd; border-bottom: 1px solid ${border}; }
     .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
@@ -522,12 +625,13 @@ export default function ChatPage() {
     .nav-links a { font-size: 13px; font-weight: 500; color: ${textSec}; text-decoration: none; transition: color 0.15s; cursor: pointer; }
     .nav-links a:hover { color: ${text}; }
     .nav-links a.active { color: ${accent}; }
-    .grid-1 { display: grid; grid-template-columns: 1fr; gap: 16px; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .grid-1 { display: grid; grid-template-columns: 1fr; gap: ${isBold ? "20px" : "16px"}; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: ${isBold ? "20px" : "16px"}; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: ${isBold ? "20px" : "16px"}; }
     .divider { height: 1px; background: ${border}; max-width: 1100px; margin: 0 auto; }
     footer { border-top: 1px solid ${border}; padding: 32px 24px; text-align: center; }
     footer span { color: ${textSec}; font-size: 13px; }
+    .footer-socials { margin-top: 12px; display: flex; justify-content: center; gap: 16px; }
     @media (max-width: 768px) {
       .grid-2, .grid-3 { grid-template-columns: 1fr; }
       .nav-links { gap: 16px; }
@@ -535,7 +639,7 @@ export default function ChatPage() {
       .section { padding: 60px 20px; }
     }
     @media (max-width: 480px) {
-      .nav-links { gap: 12px; }
+      .nav-links { gap: 10px; }
       .nav-links a { font-size: 11px; }
     }
   </style>
@@ -544,7 +648,7 @@ export default function ChatPage() {
 
   <nav class="nav">
     <div class="nav-inner">
-      <a data-nav="home" style="font-weight:800;font-size:18px;letter-spacing:-0.02em;cursor:pointer;text-decoration:none;color:${text}">${name}</a>
+      <a data-nav="home" style="font-weight:800;font-size:18px;letter-spacing:-0.02em;cursor:pointer;text-decoration:none;color:${text};font-family:${headFont}">${name}</a>
       <div class="nav-links">
         <a data-nav="home" class="active">Home</a>
         <a data-nav="services">Services</a>
@@ -562,7 +666,10 @@ export default function ChatPage() {
   <div id="page-about" class="page">${aboutPage}</div>
   <div id="page-contact" class="page">${contactPage}</div>
 
-  <footer><span>&copy; ${new Date().getFullYear()} ${name}. All rights reserved.</span></footer>
+  <footer>
+    <span>&copy; ${new Date().getFullYear()} ${name}. All rights reserved.</span>
+    ${socialHtml ? `<div class="footer-socials">${socialHtml}</div>` : ""}
+  </footer>
 
   <script>
     function navigate(page) {
@@ -572,13 +679,13 @@ export default function ChatPage() {
       document.querySelectorAll('.nav-links a[data-nav]').forEach(function(a) {
         a.classList.toggle('active', a.getAttribute('data-nav') === page);
       });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo(0, 0);
     }
     document.addEventListener('click', function(e) {
       var el = e.target.closest('[data-nav]');
       if (el) { navigate(el.getAttribute('data-nav')); e.preventDefault(); return; }
       var link = e.target.closest('a');
-      if (link) { e.preventDefault(); }
+      if (link && !link.getAttribute('href')) { e.preventDefault(); }
     }, true);
   </script>
 
@@ -636,8 +743,7 @@ export default function ChatPage() {
       }
 
       const dd = { projectId: data.projectId, url: data.url, projectName: data.projectName || "" };
-      setDeployData(dd);
-      localStorage.setItem("zelrex_deploy_data", JSON.stringify(dd));
+      saveDeployData(dd);
 
       pushAssistantMsg(
         `**Your site is live!** 🚀\n\n` +
@@ -671,16 +777,14 @@ export default function ChatPage() {
 
       if (data.verified) {
         const dd = { ...deployData, customDomain: domain, domainVerified: true };
-        setDeployData(dd);
-        localStorage.setItem("zelrex_deploy_data", JSON.stringify(dd));
+        saveDeployData(dd);
         pushAssistantMsg(`**${domain}** is connected and live! Your site is ready at **https://${domain}**`);
         return;
       }
 
       // DNS setup needed
       const dd = { ...deployData, customDomain: domain, domainVerified: false };
-      setDeployData(dd);
-      localStorage.setItem("zelrex_deploy_data", JSON.stringify(dd));
+      saveDeployData(dd);
 
       const dnsInstructions = (data.dnsRecords || []).map((r: any) =>
         `- **Type:** ${r.type} | **Name:** ${r.name} | **Value:** ${r.value}`
@@ -718,8 +822,7 @@ export default function ChatPage() {
 
       if (data.verified) {
         const dd = { ...deployData, domainVerified: true };
-        setDeployData(dd);
-        localStorage.setItem("zelrex_deploy_data", JSON.stringify(dd));
+        saveDeployData(dd);
         pushAssistantMsg(`**${deployData.customDomain}** is verified and live! Your site is ready at **https://${deployData.customDomain}**`);
       } else {
         pushAssistantMsg(
@@ -770,8 +873,18 @@ export default function ChatPage() {
       try { result = JSON.parse(raw); } catch {}
       console.log("FULL API RESPONSE:", result);
       if (result.websiteData) {
-        setWebsiteData(result.websiteData);
-        localStorage.setItem("zelrex_website_data", JSON.stringify(result.websiteData));
+        // Merge raw survey data into websiteData so templates always have it
+        const enriched = {
+          ...result.websiteData,
+          survey: data,
+          branding: {
+            ...result.websiteData.branding,
+            name: result.websiteData.branding?.name || data.businessName,
+            primaryColor: result.websiteData.branding?.primaryColor || data.primaryColor,
+            socialLinks: Object.fromEntries((data.socialLinks || []).filter((s) => s.url).map((s) => [s.platform.toLowerCase().replace("/", ""), s.url])),
+          },
+        };
+        saveWebsiteData(enriched);
       }
       const reply = result.reply?.trim() || "Something went wrong. Please try again.";
       setChats((p) => p.map((c) => c.id === activeChat!.id ? {
@@ -855,8 +968,7 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify({ messages: [...activeChat.messages, userMsg] }) });
       const raw = await res.text(); let data: { reply?: string; previewUrl?: string; websiteData?: any } = {}; try { data = JSON.parse(raw); } catch {}
       if (data.websiteData) {
-        setWebsiteData(data.websiteData);
-        localStorage.setItem("zelrex_website_data", JSON.stringify(data.websiteData));
+        saveWebsiteData(data.websiteData);
       }
       const reply = data.reply?.trim() || "Something went wrong. Please try again.";
       setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, messages: [...c.messages, { id: uid("m"), role: "assistant" as const, content: reply, createdAt: Date.now(), previewUrl: data.previewUrl || undefined }], updatedAt: Date.now() } : c));
@@ -879,15 +991,18 @@ export default function ChatPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text }}>
+      {!appLoaded && <LoadingScreen onDone={() => setAppLoaded(true)} />}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif}
-        body{margin:0;background:${C.bg};color:${C.text}}
+        body{margin:0;background:${C.bg};color:${C.text};overflow-x:hidden}
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:3px}
         ::selection{background:${C.accent}40}
         textarea::placeholder{color:${C.textMuted}}
         @media(max-width:768px){
           .hide-mobile{display:none!important}
+          .welcome-h1{font-size:28px!important}
+          .welcome-grid{grid-template-columns:1fr!important;max-width:300px!important}
         }
       `}</style>
 
@@ -898,20 +1013,22 @@ export default function ChatPage() {
             <HBtn onClick={() => setSidebarOpen((v) => !v)} style={{ width: 34, height: 34, color: C.textSec }}><Ic n={sidebarOpen ? "close" : "menu"} className="h-4 w-4" /></HBtn>
             <ZelrexWordmark size={16} />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 8 }}>
             {websiteData && (
-              <HBtn onClick={() => setPreviewOpen(!previewOpen)} style={{ padding: "5px 12px", border: `1px solid ${previewOpen ? C.accent + "40" : C.border}`, background: previewOpen ? C.accentSoft : "transparent", color: previewOpen ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
-                <Ic n="preview" className="h-3.5 w-3.5" /> Preview
+              <HBtn onClick={() => setPreviewOpen(!previewOpen)} style={{ padding: isMobile ? "5px 8px" : "5px 12px", border: `1px solid ${previewOpen ? C.accent + "40" : C.border}`, background: previewOpen ? C.accentSoft : "transparent", color: previewOpen ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
+                <Ic n="preview" className="h-3.5 w-3.5" />{!isMobile && " Preview"}
               </HBtn>
             )}
             {websiteData && (
-              <HBtn onClick={handleDeploy} style={{ padding: "5px 12px", border: `1px solid ${deployData?.url ? "#10B98140" : C.border}`, background: deployData?.url ? "rgba(16,185,129,0.08)" : "transparent", color: deployData?.url ? "#10B981" : C.textSec, fontSize: 12, fontWeight: 500, gap: 5, opacity: isDeploying ? 0.5 : 1 }}>
-                <Ic n="send" className="h-3.5 w-3.5" /> {isDeploying ? "Deploying..." : deployData?.url ? "Redeploy" : "Deploy"}
+              <HBtn onClick={handleDeploy} style={{ padding: isMobile ? "5px 8px" : "5px 12px", border: `1px solid ${deployData?.url ? "#10B98140" : C.border}`, background: deployData?.url ? "rgba(16,185,129,0.08)" : "transparent", color: deployData?.url ? "#10B981" : C.textSec, fontSize: 12, fontWeight: 500, gap: 5, opacity: isDeploying ? 0.5 : 1 }}>
+                <Ic n="send" className="h-3.5 w-3.5" />{!isMobile && (isDeploying ? " Deploying..." : deployData?.url ? " Redeploy" : " Deploy")}
               </HBtn>
             )}
-            <HBtn onClick={() => alert("Sign in coming soon")} style={{ padding: "5px 12px", border: `1px solid ${C.border}`, color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
-              <Ic n="signin" className="h-3.5 w-3.5" /> Sign in
-            </HBtn>
+            {!isMobile && (
+              <HBtn onClick={() => alert("Sign in coming soon")} style={{ padding: "5px 12px", border: `1px solid ${C.border}`, color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
+                <Ic n="signin" className="h-3.5 w-3.5" /> Sign in
+              </HBtn>
+            )}
             {/* Settings dots */}
             <div style={{ position: "relative" }}>
               <HBtn onClick={() => setSettingsOpen((v) => !v)} style={{ width: 40, height: 40, color: C.text }}><Ic n="dots" style={{ width: 20, height: 20 }} /></HBtn>
