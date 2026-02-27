@@ -346,6 +346,10 @@ export default function ChatPage() {
   const [deployData, setDeployData] = useState<{ projectId: string; url: string; projectName: string; customDomain?: string; domainVerified?: boolean } | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
 
+  const [chats, setChats] = useState<Chat[]>([{ id: uid("chat"), title: "New chat", messages: [], updatedAt: Date.now() }]);
+  const [activeChatId, setActiveChatId] = useState(() => chats[0]?.id ?? "");
+  const activeChat = useMemo(() => chats.find((c) => c.id === activeChatId) ?? chats[0], [chats, activeChatId]);
+
   // Helper: save websiteData to both state and active chat
   function saveWebsiteData(data: any) {
     setWebsiteData(data);
@@ -375,11 +379,7 @@ export default function ChatPage() {
   }, []);
   useEffect(() => { localStorage.setItem(ANIMATED_KEY, JSON.stringify(animatedIds)); }, [animatedIds]);
 
-  const [chats, setChats] = useState<Chat[]>([{ id: uid("chat"), title: "New chat", messages: [], updatedAt: Date.now() }]);
   useEffect(() => { const s = safeJson<Chat[]>(localStorage.getItem(STORAGE_KEY), []); if (s.length) { setChats(s); setActiveChatId(s[0]?.id ?? ""); } }, []);
-
-  const [activeChatId, setActiveChatId] = useState(() => chats[0]?.id ?? "");
-  const activeChat = useMemo(() => chats.find((c) => c.id === activeChatId) ?? chats[0], [chats, activeChatId]);
 
   // Sync websiteData/deployData from active chat when switching chats
   useEffect(() => {
