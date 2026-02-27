@@ -369,7 +369,7 @@ function StepBusiness({ data, update }: { data: SurveyData; update: <K extends k
 
       <FieldGroup>
         <Label required>Who is your ideal client?</Label>
-        <Hint>Be specific.".</Hint>
+        <Hint>Be specific. "Everyone" means no one.</Hint>
         <Input value={data.targetAudience} onChange={(v) => update("targetAudience", v)} placeholder="e.g., SaaS startups with 10-50 employees who need a rebrand" />
       </FieldGroup>
 
@@ -393,13 +393,13 @@ function StepService({ data, update }: { data: SurveyData; update: <K extends ke
       </FieldGroup>
 
       <FieldGroup>
-        <Label required>Describe what the client gets.</Label>
+        <Label required>Describe what the client gets (2-3 sentences)</Label>
         <TextArea value={data.serviceDescription} onChange={(v) => update("serviceDescription", v)} placeholder="e.g., I design your complete brand identity from scratch — logo, colors, typography, and brand guidelines. You get 3 concepts, unlimited revisions on the chosen direction, and a brand book delivered in 2 weeks." />
       </FieldGroup>
 
       <FieldGroup>
         <Label>What's included? (one per line)</Label>
-        <Hint>List specific deliverables.</Hint>
+        <Hint>List specific deliverables. "And more" is not allowed.</Hint>
         {data.deliverables.map((d, i) => (
           <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
             <Input value={d} onChange={(v) => {
@@ -567,7 +567,7 @@ function StepBrand({ data, update }: { data: SurveyData; update: <K extends keyo
       </FieldGroup>
 
       <FieldGroup>
-        <Label>What makes you different from competitors?</Label>
+        <Label>What makes you different from competitors? (one sentence)</Label>
         <Hint>This becomes the core message on your site.</Hint>
         <Input value={data.uniqueSellingPoint} onChange={(v) => update("uniqueSellingPoint", v)} placeholder="e.g., I deliver in 48 hours, not 2 weeks. Same quality, 10x faster." />
       </FieldGroup>
@@ -578,7 +578,7 @@ function StepBrand({ data, update }: { data: SurveyData; update: <K extends keyo
 // ─── Step 4: Contact & Social ───────────────────────────────────────
 
 function StepContact({ data, update }: { data: SurveyData; update: <K extends keyof SurveyData>(k: K, v: SurveyData[K]) => void }) {
-  const socialPlatforms = ["Twitter/X", "LinkedIn", "Instagram", "YouTube", "TikTok", "Dribbble", "Behance", "GitHub"];
+  const socialPlatforms = ["Twitter/X", "LinkedIn", "Instagram", "YouTube", "TikTok", "Facebook", "Discord", "Dribbble", "Behance", "GitHub"];
   
   return (
     <div>
