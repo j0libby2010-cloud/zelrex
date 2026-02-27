@@ -139,7 +139,7 @@ function ZelrexThinking({ stage }: { stage?: string }) {
         @keyframes z-orb{0%,100%{opacity:0.4;transform:scale(0.85)}50%{opacity:1;transform:scale(1.1)}}
         .z-think-shimmer{width:40%;height:100%;border-radius:2px;background:linear-gradient(90deg,transparent,${C.accent}60,transparent);animation:z-shimmer 1.8s ease-in-out infinite}
         @keyframes z-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
-        .z-momentum-line{position:absolute;bottom:-3px;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,${C.accent},transparent);border-radius:2px;animation:zml 1.6s ease-in-out infinite}
+        .z-momentum-line{position:absolute;bottom:-3px;left:2px;width:22px;height:2px;background:linear-gradient(90deg,transparent,${C.accent},transparent);border-radius:2px;animation:zml 1.6s ease-in-out infinite;overflow:hidden}
         @keyframes zml{0%{opacity:0;transform:translateX(-100%)}40%{opacity:1}60%{opacity:1}100%{opacity:0;transform:translateX(100%)}}
       `}</style>
     </div>
@@ -298,52 +298,32 @@ function PreviewFrame({ html }: { html: string }) {
 // MAIN
 // ═══════════════════════════════════════════════════════════════════════
 
-// ─── LOADING SCREEN (Anthropic-style with Zelrex branding) ──────────
+// ─── LOADING SCREEN ──────────────────────────────────────────────
 function LoadingScreen({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState(0);
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 100),    // Z appears
-      setTimeout(() => setPhase(2), 500),    // Gradient line sweeps
-      setTimeout(() => setPhase(3), 1200),   // "ZELREX" fades up
-      setTimeout(() => setPhase(4), 1800),   // Tagline fades up
-      setTimeout(() => setPhase(5), 2600),   // Everything fades out
-      setTimeout(onDone, 3200),
+      setTimeout(() => setPhase(1), 200),    // ZELREX fades in
+      setTimeout(() => setPhase(2), 800),    // Momentum line sweeps
+      setTimeout(() => setPhase(3), 2200),   // Everything fades out
+      setTimeout(onDone, 2800),
     ];
     return () => timers.forEach(clearTimeout);
   }, [onDone]);
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#05070B", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", opacity: phase >= 5 ? 0 : 1, transition: "opacity 0.6s cubic-bezier(0.4,0,0.2,1)", pointerEvents: phase >= 5 ? "none" : "all" }}>
-      {/* Subtle radial glow behind logo */}
-      <div style={{ position: "absolute", width: 400, height: 400, borderRadius: "50%", background: `radial-gradient(circle, ${C.accent}08 0%, transparent 70%)`, opacity: phase >= 1 ? 1 : 0, transition: "opacity 1.2s ease", pointerEvents: "none" }} />
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#05070B", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", opacity: phase >= 3 ? 0 : 1, transition: "opacity 0.6s cubic-bezier(0.4,0,0.2,1)", pointerEvents: phase >= 3 ? "none" : "all" }}>
+      {/* Subtle radial glow */}
+      <div style={{ position: "absolute", width: 300, height: 300, borderRadius: "50%", background: `radial-gradient(circle, ${C.accent}06 0%, transparent 70%)`, opacity: phase >= 1 ? 1 : 0, transition: "opacity 1.2s ease", pointerEvents: "none" }} />
 
-      {/* Z Mark — scales in with spring easing */}
-      <div style={{ position: "relative", width: 64, height: 64, marginBottom: 20, opacity: phase >= 1 ? 1 : 0, transform: phase >= 1 ? "scale(1) translateY(0)" : "scale(0.7) translateY(8px)", transition: "all 0.7s cubic-bezier(0.16,1,0.3,1)" }}>
-        <svg viewBox="0 0 64 64" width="64" height="64" style={{ filter: `drop-shadow(0 0 20px ${C.accent}30)` }}>
-          <defs>
-            <linearGradient id="zGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#E1E6F0" />
-              <stop offset="100%" stopColor={C.accent} />
-            </linearGradient>
-          </defs>
-          <text x="50%" y="52%" textAnchor="middle" dominantBaseline="central" fill="url(#zGrad)" fontFamily="Inter, -apple-system, sans-serif" fontWeight="900" fontSize="40" letterSpacing="-0.03em">Z</text>
-        </svg>
+      {/* ZELREX wordmark — italic, weighted like the actual logo */}
+      <div style={{ opacity: phase >= 1 ? 1 : 0, transform: phase >= 1 ? "translateY(0)" : "translateY(6px)", transition: "all 0.7s cubic-bezier(0.16,1,0.3,1)", marginBottom: 10 }}>
+        <div style={{ fontSize: 18, fontWeight: 800, fontStyle: "italic", color: "rgba(225,230,240,0.95)", letterSpacing: phase >= 1 ? "0.16em" : "0.35em", transition: "letter-spacing 0.9s cubic-bezier(0.16,1,0.3,1)", fontFamily: "Inter, -apple-system, sans-serif" }}>ZELREX</div>
       </div>
 
-      {/* Momentum line — sweeps left to right with gradient */}
-      <div style={{ width: 140, height: 2, borderRadius: 2, overflow: "hidden", marginBottom: 28, position: "relative" }}>
-        <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.04)", borderRadius: 2 }} />
-        <div style={{ width: phase >= 2 ? "100%" : "0%", height: "100%", borderRadius: 2, background: `linear-gradient(90deg, transparent, ${C.accent}, rgba(126,180,226,0.6), transparent)`, transition: "width 1.0s cubic-bezier(0.22,1,0.36,1)", transformOrigin: "left" }} />
-      </div>
-
-      {/* ZELREX wordmark — fades up with tracking animation */}
-      <div style={{ opacity: phase >= 3 ? 1 : 0, transform: phase >= 3 ? "translateY(0)" : "translateY(12px)", transition: "all 0.6s cubic-bezier(0.16,1,0.3,1)", marginBottom: 8 }}>
-        <div style={{ fontSize: 16, fontWeight: 800, color: "rgba(225,230,240,0.92)", letterSpacing: phase >= 3 ? "0.18em" : "0.4em", transition: "letter-spacing 0.8s cubic-bezier(0.16,1,0.3,1)", fontFamily: "Inter, -apple-system, sans-serif" }}>ZELREX</div>
-      </div>
-
-      {/* Tagline — subtle fade */}
-      <div style={{ opacity: phase >= 4 ? 0.5 : 0, transform: phase >= 4 ? "translateY(0)" : "translateY(6px)", transition: "all 0.5s ease" }}>
-        <div style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.35)", letterSpacing: "0.06em" }}>AI Business Engine</div>
+      {/* Momentum line — matches actual logo gradient (blue center, transparent edges) */}
+      <div style={{ width: 120, height: 2.5, borderRadius: 2, overflow: "hidden", position: "relative" }}>
+        <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.03)", borderRadius: 2 }} />
+        <div style={{ width: phase >= 2 ? "100%" : "0%", height: "100%", borderRadius: 2, background: `linear-gradient(90deg, rgba(59,123,246,0.15), #3B7BF6, #4A90FF, #5BA0FF, rgba(91,160,255,0.15))`, transition: "width 0.9s cubic-bezier(0.22,1,0.36,1)", transformOrigin: "left" }} />
       </div>
     </div>
   );
@@ -356,6 +336,8 @@ export default function ChatPage() {
   useEffect(() => { const check = () => setIsMobile(window.innerWidth < 768); check(); window.addEventListener("resize", check); return () => window.removeEventListener("resize", check); }, []);
   const [buildStage, setBuildStage] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewWidth, setPreviewWidth] = useState(0); // 0 = auto (flex: 1)
+  const dragRef = useRef<{ startX: number; startW: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showSurvey, setShowSurvey] = useState(false);
   const [surveyData, setSurveyData] = useState<SurveyData | null>(null);
@@ -573,16 +555,9 @@ export default function ChatPage() {
     // Phone href-safe (strip non-digits)
     const fPhoneHref = fPhone ? fPhone.replace(/[^0-9+]/g, "") : "";
 
-    // Named text links for socials (editorial uses these)
-    const socialNameLinks = socialEntries.map(([k, v]) => {
-      const label = (k as string).charAt(0).toUpperCase() + (k as string).slice(1);
-      return `<a href="${v}" target="_blank" rel="noopener noreferrer" class="ft-link">${label}</a>`;
-    }).join("");
-
     const footerHtml = `
     <footer class="ft">
       <div class="ft-inner">
-        <!-- Top section: brand + columns -->
         <div class="ft-top">
           <div class="ft-brand">
             <div class="ft-logo" ${isEditorial ? `style="font-family:${headFont}"` : ""}>${name}</div>
@@ -606,18 +581,11 @@ export default function ChatPage() {
               ${fBook ? `<a href="${fBook}" target="_blank" rel="noopener noreferrer" class="ft-link ft-link-accent">${isEditorial ? "Schedule a call →" : "Book a call"}</a>` : ""}
               ${fLoc ? `<span class="ft-link ft-muted">${fLoc}</span>` : ""}
             </div>
-            ${socialEntries.length > 0 ? `<div class="ft-col">
-              <div class="ft-col-head">Follow</div>
-              ${socialNameLinks}
-            </div>` : ""}
           </div>
         </div>
-        <!-- Divider -->
         <div class="ft-div"></div>
-        <!-- Bottom bar -->
         <div class="ft-bottom">
           <span class="ft-copy">&copy; ${fYear} ${name}. All rights reserved.</span>
-          ${socialEntries.length > 0 ? `<div class="ft-icons ft-icons-sm">${socialIconsHtml}</div>` : ""}
         </div>
       </div>
     </footer>`;
@@ -1032,13 +1000,10 @@ export default function ChatPage() {
     .ft-logo { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: ${text}; }
     .ft-tagline { font-size: 14px; color: ${textSec}; line-height: 1.65; max-width: 300px; margin: 0; }
     .ft-icons { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
-    .ft-icons-sm { display: flex; gap: 6px; align-items: center; }
-    .ft-icons-sm .ft-icon { width: 30px; height: 30px; border-radius: 8px; }
-    .ft-icons-sm .ft-icon svg { width: 14px; height: 14px; }
     .ft-icon { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; background: ${isLight ? "rgba(0,0,0,0.05)" : "rgba(255,255,255,0.07)"}; color: ${textSec}; text-decoration: none; transition: all 0.2s ease; flex-shrink: 0; }
     .ft-icon:hover { color: ${accent}; background: ${isLight ? accent + "12" : accent + "20"}; transform: translateY(-2px); }
     .ft-icon svg { display: block; }
-    .ft-columns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .ft-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
     .ft-col { display: flex; flex-direction: column; gap: 10px; }
     .ft-col-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: ${isLight ? "#334155" : text}; margin-bottom: 6px; }
     .ft-link { font-size: 14px; color: ${textSec}; text-decoration: none; cursor: pointer; transition: color 0.15s; line-height: 1.5; }
@@ -1428,10 +1393,22 @@ export default function ChatPage() {
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:3px}
         ::selection{background:${C.accent}40}
         textarea::placeholder{color:${C.textMuted}}
+        .chat-row:hover .chat-dots{opacity:0.7!important}
+        .msg-actions{display:flex;align-items:center;gap:1px;margin-top:6px;opacity:0;transition:opacity 150ms}
+        .msg-row:hover .msg-actions{opacity:1}
+        .msg-act{display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:7px;border:none;background:none;color:${C.textMuted};cursor:pointer;transition:all 120ms;padding:0}
+        .msg-act:hover{background:rgba(255,255,255,0.06);color:${C.textSec}}
+        .msg-act:active{transform:scale(0.92)}
+        .msg-act svg{width:16px;height:16px}
+        .drag-handle{width:6px;cursor:col-resize;background:transparent;transition:background 150ms;flex-shrink:0;position:relative;z-index:10}
+        .drag-handle:hover,.drag-handle:active{background:${C.accent}30}
+        .drag-handle::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:2px;height:40px;border-radius:2px;background:rgba(255,255,255,0.1);transition:background 150ms}
+        .drag-handle:hover::after{background:${C.accent}80}
         @media(max-width:768px){
           .hide-mobile{display:none!important}
           .welcome-h1{font-size:28px!important}
           .welcome-grid{grid-template-columns:1fr!important;max-width:300px!important}
+          .msg-actions{opacity:1}
         }
       `}</style>
 
@@ -1439,7 +1416,7 @@ export default function ChatPage() {
       <div style={{ position: "sticky", top: 0, zIndex: 100, borderBottom: `1px solid ${C.border}`, background: "rgba(6,9,15,0.82)", backdropFilter: "blur(24px)" }}>
         <div style={{ maxWidth: 1800, margin: "0 auto", height: 52, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <HBtn onClick={() => setSidebarOpen((v) => !v)} style={{ width: 34, height: 34, color: C.textSec }}><Ic n={sidebarOpen ? "close" : "menu"} className="h-4 w-4" /></HBtn>
+            <HBtn onClick={() => setSidebarOpen((v) => !v)} style={{ width: 34, height: 34, color: C.textSec, border: `1px solid ${C.border}`, borderRadius: 8, background: "rgba(255,255,255,0.02)" }}><Ic n={sidebarOpen ? "close" : "menu"} className="h-4 w-4" /></HBtn>
             <ZelrexWordmark size={16} />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 8 }}>
@@ -1503,7 +1480,7 @@ export default function ChatPage() {
             {filteredChats.map((c) => {
               const isA = c.id === activeChatId; const isR = renamingChatId === c.id;
               return (
-                <div key={c.id} style={{ display: "flex", alignItems: "center", padding: "6px 8px", borderRadius: 8, marginBottom: 1, cursor: "pointer", background: isA ? "rgba(255,255,255,0.06)" : "transparent", transition: "background 150ms", position: "relative" }}
+                <div key={c.id} className="chat-row" style={{ display: "flex", alignItems: "center", padding: "6px 8px", borderRadius: 8, marginBottom: 1, cursor: "pointer", background: isA ? "rgba(255,255,255,0.06)" : "transparent", transition: "background 150ms", position: "relative" }}
                   onMouseEnter={(e) => { if (!isA) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
                   onMouseLeave={(e) => { if (!isA) e.currentTarget.style.background = isA ? "rgba(255,255,255,0.06)" : "transparent"; }}>
                   <button onClick={() => { setActiveChatId(c.id); if (isMobile) setSidebarOpen(false); }} type="button" style={{ flex: 1, textAlign: "left", background: "none", border: "none", cursor: "pointer", color: C.text, padding: 0, overflow: "hidden" }}>
@@ -1514,7 +1491,7 @@ export default function ChatPage() {
                     )}
                   </button>
                   {!isR && (
-                    <HBtn onMouseDown={(e: React.MouseEvent) => e.stopPropagation()} onClick={(e: React.MouseEvent) => { e.stopPropagation(); setOpenChatMenuId((v) => (v === c.id ? null : c.id)); }} style={{ width: 28, height: 28, color: C.text, opacity: isA || openChatMenuId === c.id ? 0.9 : 0, marginLeft: 2 }}>
+                    <HBtn onMouseDown={(e: React.MouseEvent) => e.stopPropagation()} onClick={(e: React.MouseEvent) => { e.stopPropagation(); setOpenChatMenuId((v) => (v === c.id ? null : c.id)); }} className="chat-dots" style={{ width: 28, height: 28, color: C.text, opacity: isA || openChatMenuId === c.id ? 0.9 : 0, marginLeft: 2 }}>
                       <Ic n="dots" style={{ width: 16, height: 16 }} />
                     </HBtn>
                   )}
@@ -1539,7 +1516,7 @@ export default function ChatPage() {
         </aside>
 
         {/* CHAT */}
-        <div style={{ flex: previewOpen ? "0 0 360px" : 1, display: "flex", flexDirection: "column", minWidth: 0, transition: "flex 300ms ease", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0, transitionProperty: "flex, margin-left", transitionDuration: "300ms", transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}>
+        <div style={{ flex: previewOpen ? "0 0 360px" : 1, display: "flex", flexDirection: "column", minWidth: 280, transition: dragRef.current ? "none" : "flex 300ms ease", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0, transitionProperty: dragRef.current ? "margin-left" : "flex, margin-left", transitionDuration: "300ms", transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}>
           <div style={{ flex: 1, overflowY: "auto", padding: previewOpen ? "16px 12px" : "16px 16px" }}>
             <div style={{ maxWidth: previewOpen ? "100%" : 820, margin: "0 auto" }}>
               {!hasMessages ? (
@@ -1549,7 +1526,7 @@ export default function ChatPage() {
                   {activeChat?.messages.map((m) => {
                     const isUser = m.role === "user";
                     return (
-                      <div key={m.id} style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 16, gap: 10 }}>
+                      <div key={m.id} className={!isUser ? "msg-row" : ""} style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 16, gap: 10 }}>
                         {!isUser && <div style={{ width: 26, height: 26, flexShrink: 0, marginTop: 2 }}><ZelrexZIcon size={26} /></div>}
                         <div style={{ maxWidth: previewOpen ? "100%" : 700 }}>
                           <div style={{
@@ -1561,25 +1538,19 @@ export default function ChatPage() {
                                   <Typewriter text={m.content} speed={6} onFinish={() => setAnimatedIds((p) => p.includes(m.id) ? p : [...p, m.id])} />
                                 ) : ( <div>{formatMessage(m.content)}</div> )}
                                 {m.previewUrl && <div style={{ marginTop: 14 }}><ActionPill label="Open website preview" onClick={() => setPreviewOpen(true)} /></div>}
-                                <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 6 }}>
-                                  <HBtn onMouseDown={(e: React.MouseEvent) => e.stopPropagation()} onClick={(e: React.MouseEvent) => { e.stopPropagation(); setOpenMsgMenuId((v) => (v === m.id ? null : m.id)); }} style={{ width: 30, height: 30, color: C.text, opacity: 0.7 }}>
-                                    <Ic n="dots" style={{ width: 16, height: 16 }} />
-                                  </HBtn>
-                                  {openMsgMenuId === m.id && (
-                                    <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "relative" }}>
-                                      <div style={{ position: "absolute", left: 0, top: 4, zIndex: 50, width: 140, borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 12px 36px rgba(0,0,0,0.5)", overflow: "hidden" }}>
-                                        <button type="button" onClick={() => { navigator.clipboard.writeText(m.content); setCopiedMsgId(m.id); setOpenMsgMenuId(null); setTimeout(() => setCopiedMsgId(null), 1200); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}>
-                                          <Ic n="copy" className="h-3 w-3" /> Copy
-                                        </button>
-                                        <button type="button" onClick={() => { setOpenMsgMenuId(null); retryLast(); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}>
-                                          ↻ Retry
-                                        </button>
-                                        <button type="button" onClick={() => { setOpenMsgMenuId(null); alert("Report saved."); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}>
-                                          <Ic n="flag" className="h-3 w-3" /> Report
-                                        </button>
-                                      </div>
-                                    </div>
-                                  )}
+                                <div className="msg-actions">
+                                  <button className="msg-act" title="Copy" onClick={() => { navigator.clipboard.writeText(m.content); setCopiedMsgId(m.id); setTimeout(() => setCopiedMsgId(null), 1200); }}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                                  </button>
+                                  <button className="msg-act" title="Good response" onClick={() => {}}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v12"/><path d="M15 5.88L14 10h5.83a2 2 0 011.92 2.56l-2.33 8A2 2 0 0117.5 22H4a2 2 0 01-2-2v-8a2 2 0 012-2h2.76a2 2 0 001.79-1.11L12 2a3.13 3.13 0 013 3.88z"/></svg>
+                                  </button>
+                                  <button className="msg-act" title="Bad response" onClick={() => {}}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 14V2"/><path d="M9 18.12L10 14H4.17a2 2 0 01-1.92-2.56l2.33-8A2 2 0 016.5 2H20a2 2 0 012 2v8a2 2 0 01-2 2h-2.76a2 2 0 00-1.79 1.11L12 22a3.13 3.13 0 01-3-3.88z"/></svg>
+                                  </button>
+                                  <button className="msg-act" title="Retry" onClick={() => retryLast()}>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+                                  </button>
                                 </div>
                                 {copiedMsgId === m.id && <div style={{ fontSize: 11, color: C.accent, marginTop: 2 }}>Copied</div>}
                               </>
@@ -1643,12 +1614,30 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* PREVIEW PANEL (Bolt-style, fullscreen on mobile) */}
+        {/* PREVIEW PANEL with draggable divider */}
+        {previewOpen && websiteData && !isMobile && (
+          <div className="drag-handle" onMouseDown={(e) => {
+            e.preventDefault();
+            const previewEl = (e.currentTarget.nextElementSibling as HTMLElement);
+            if (!previewEl) return;
+            const startX = e.clientX;
+            const startW = previewEl.offsetWidth;
+            dragRef.current = { startX, startW };
+            const onMove = (ev: MouseEvent) => {
+              const diff = dragRef.current!.startX - ev.clientX;
+              const newW = Math.max(320, Math.min(window.innerWidth * 0.8, dragRef.current!.startW + diff));
+              setPreviewWidth(newW);
+            };
+            const onUp = () => { dragRef.current = null; document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
+            document.addEventListener("mousemove", onMove);
+            document.addEventListener("mouseup", onUp);
+          }} />
+        )}
         {previewOpen && websiteData && (
-          <div style={{ flex: 1, borderLeft: isMobile ? "none" : `1px solid ${C.border}`, background: C.bg, display: "flex", flexDirection: "column", minWidth: 0, ...(isMobile ? { position: "fixed", inset: 0, zIndex: 50 } : {}) }}>
+          <div style={{ flex: previewWidth ? "none" : 1, width: previewWidth || undefined, borderLeft: isMobile ? "none" : "none", background: C.bg, display: "flex", flexDirection: "column", minWidth: 0, transition: dragRef.current ? "none" : "width 300ms ease", ...(isMobile ? { position: "fixed", inset: 0, zIndex: 50 } : {}) }}>
             <div style={{ height: 44, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", borderBottom: `1px solid ${C.border}`, fontSize: 12, fontWeight: 600, color: C.textSec }}>
               <span>Website Preview — {websiteData.branding?.name || "Preview"}</span>
-              <HBtn onClick={() => setPreviewOpen(false)} style={{ width: 28, height: 28, color: C.textMuted }}><Ic n="close" className="h-4 w-4" /></HBtn>
+              <HBtn onClick={() => { setPreviewOpen(false); setPreviewWidth(0); }} style={{ width: 28, height: 28, color: C.textMuted }}><Ic n="close" className="h-4 w-4" /></HBtn>
             </div>
             <PreviewFrame html={buildPreviewHtml(websiteData)} />
           </div>
