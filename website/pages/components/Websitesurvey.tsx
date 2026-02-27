@@ -88,6 +88,7 @@ export function WebsiteSurvey({
 }) {
   const [step, setStep] = useState(0);
   const totalSteps = 5;
+  const [zelrexTip, setZelrexTip] = useState<string | null>(null);
   
   const [data, setData] = useState<SurveyData>({
     businessName: initialData?.businessName ?? "",
@@ -203,10 +204,10 @@ export function WebsiteSurvey({
 
         {/* Content */}
         <div style={{ flex: 1, overflow: "auto", padding: "24px 24px 16px" }}>
-          {step === 0 && <StepBusiness data={data} update={update} />}
-          {step === 1 && <StepService data={data} update={update} />}
-          {step === 2 && <StepBrand data={data} update={update} />}
-          {step === 3 && <StepContact data={data} update={update} />}
+          {step === 0 && <StepBusiness data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} />}
+          {step === 1 && <StepService data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} />}
+          {step === 2 && <StepBrand data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} />}
+          {step === 3 && <StepContact data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} />}
           {step === 4 && <StepReview data={data} />}
         </div>
 
@@ -252,8 +253,28 @@ export function WebsiteSurvey({
 
 // ─── Shared Input Components ────────────────────────────────────────
 
-function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
-  return <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: S.text, marginBottom: 6 }}>{children}{required && <span style={{ color: S.danger, marginLeft: 4 }}>*</span>}</label>;
+function Label({ children, required, askKey, zelrexTip, setZelrexTip }: { children: React.ReactNode; required?: boolean; askKey?: string; zelrexTip?: string | null; setZelrexTip?: (k: string | null) => void }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+      <label style={{ fontSize: 13, fontWeight: 600, color: S.text }}>{children}{required && <span style={{ color: S.danger, marginLeft: 4 }}>*</span>}</label>
+      {askKey && setZelrexTip && (
+        <button type="button" onClick={() => setZelrexTip(zelrexTip === askKey ? null : askKey)} style={{
+          display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 6,
+          border: `1px solid ${zelrexTip === askKey ? S.accent + "40" : "transparent"}`,
+          background: zelrexTip === askKey ? S.accentGlow : "transparent",
+          color: zelrexTip === askKey ? S.accent : S.textMuted,
+          fontSize: 10, fontWeight: 600, cursor: "pointer", transition: "all 150ms", letterSpacing: "0.02em",
+          whiteSpace: "nowrap",
+        }}>
+          <svg width="12" height="12" viewBox="0 0 32 32" fill="none" style={{ flexShrink: 0 }}>
+            <text x="4" y="23" fill="currentColor" fontFamily="Inter, system-ui, sans-serif" fontWeight="800" fontSize="24" fontStyle="italic">Z</text>
+            <line x1="3" y1="28" x2="27" y2="28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity="0.5" />
+          </svg>
+          Ask Zelrex
+        </button>
+      )}
+    </div>
+  );
 }
 
 function Hint({ children }: { children: React.ReactNode }) {
@@ -333,24 +354,78 @@ function FieldGroup({ children, style }: { children: React.ReactNode; style?: Re
   return <div style={{ marginBottom: 20, ...style }}>{children}</div>;
 }
 
+// ─── Ask Zelrex Tips ──────────────────────────────────────────────
+
+const ZELREX_TIPS: Record<string, string> = {
+  businessName: "Your business name is your brand identity. For freelancers, using your real name + what you do works well (e.g., 'Sarah Chen Design'). Avoid generic names — specific beats clever. Make sure it's easy to spell and say out loud.",
+  tagline: "Your tagline should answer: 'What do you do and for whom?' in one line. Focus on the outcome you deliver, not the process. Example: 'Brand identity for startups that want to look like they've been around for years.'",
+  businessType: "Pick the category that best matches your primary revenue source. If you do multiple things, choose the one you want to be known for. Specialists earn 2-3x more than generalists in freelancing.",
+  targetAudience: "The more specific your audience, the higher your conversion rate. 'SaaS startups with 10-50 employees' converts 5x better than 'businesses.' Think: industry + size + specific problem they have.",
+  platformsLeaving: "If you're leaving a platform like Upwork or Fiverr, that's actually a strong selling point. It means you've already proven demand. Your website should position you as the premium, direct alternative.",
+  mainService: "Name your service like a product, not a skill. 'Complete Brand Identity Package' sounds more valuable than 'Logo Design.' Premium naming justifies premium pricing.",
+  serviceDescription: "Lead with the transformation, not the deliverable. Instead of 'I make logos,' try 'I build visual identities that make startups look established and trustworthy from day one.' Paint the before/after.",
+  deliverables: "List concrete, tangible things the client receives. Each deliverable should feel like it has standalone value. More items = higher perceived value. Include file formats and revision counts.",
+  turnaround: "Faster delivery commands higher prices (urgency premium). But be realistic — under-promising and over-delivering builds referrals. 2 weeks is the sweet spot for most creative services.",
+  pricingModel: "Package pricing converts best for freelancers — it anchors value to outcomes, not hours. Hourly punishes efficiency. If you're unsure, start with packages and offer hourly as an add-on only.",
+  price: "Price based on value delivered, not time spent. Research what your target clients currently pay for similar services. Then position yourself 20-30% below the top tier — premium but accessible.",
+  tiers: "Three tiers is the magic number. The middle tier should be your ideal offer — most people pick it. The top tier makes the middle look reasonable. The bottom tier captures budget clients who might upgrade later.",
+  guarantee: "A guarantee removes the buyer's risk and dramatically increases conversion. 'Full refund if you're not satisfied with the first concept' costs you almost nothing but closes deals.",
+  primaryColor: "Your brand color should match your industry's emotional tone. Blue = trust (consulting, tech). Green = growth (coaching). Black/dark = premium (design, creative). Avoid colors that blend in with competitors.",
+  stylePreference: "Dark premium themes convert best for creative services. Light clean works for consulting and coaching. Bold colorful suits agencies and marketing services. Match the vibe your ideal clients expect.",
+  fontPreference: "Modern fonts signal innovation. Classic fonts signal reliability. Editorial fonts signal authority. Tech fonts signal precision. Choose based on what your clients value most.",
+  email: "Use a professional email that matches your business name. yourname@yourbusiness.com looks 10x more credible than a Gmail address. You can set this up later with your custom domain.",
+  phone: "A business phone number increases trust significantly. If you don't have a separate line, use a Google Voice number. Including a phone number can increase contact form submissions by 40%.",
+  location: "Even remote businesses benefit from listing a general location. It helps with local SEO and gives clients context. You don't need a street address — city and state/country is enough.",
+  calendly: "A booking link is the single highest-converting CTA for service businesses. It removes friction — clients can book instantly instead of waiting for email replies. This alone can double your inquiry-to-call rate.",
+  socialPlatforms: "Only list platforms where you're actually active and posting relevant content. An empty social profile hurts more than no social presence. Focus on 2-3 platforms max where your clients actually spend time.",
+  hours: "Setting business hours creates boundaries and professionalism. It also creates subtle urgency — clients know you're not available 24/7. Even 'Mon-Fri 9-5' signals you run a real business.",
+};
+
+function ZelrexTipPopover({ tipKey }: { tipKey: string }) {
+  const tip = ZELREX_TIPS[tipKey];
+  if (!tip) return null;
+  return (
+    <div style={{
+      marginBottom: 12, padding: "12px 14px", borderRadius: 12,
+      background: "rgba(74,144,255,0.06)", border: `1px solid ${S.accent}20`,
+      display: "flex", gap: 10, alignItems: "flex-start",
+      animation: "zelrexTipIn 200ms ease",
+    }}>
+      <div style={{ flexShrink: 0, marginTop: 2 }}>
+        <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+          <text x="4" y="23" fill={S.accent} fontFamily="Inter, system-ui, sans-serif" fontWeight="800" fontSize="24" fontStyle="italic">Z</text>
+          <line x1="3" y1="28" x2="27" y2="28" stroke={S.accent} strokeWidth="2.5" strokeLinecap="round" opacity="0.5" />
+        </svg>
+      </div>
+      <div style={{ fontSize: 12.5, color: S.textSec, lineHeight: 1.65 }}>{tip}</div>
+      <style>{`@keyframes zelrexTipIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}`}</style>
+    </div>
+  );
+}
+
 // ─── Step 1: Business Basics ────────────────────────────────────────
 
-function StepBusiness({ data, update }: { data: SurveyData; update: <K extends keyof SurveyData>(k: K, v: SurveyData[K]) => void }) {
+type StepProps = { data: SurveyData; update: <K extends keyof SurveyData>(k: K, v: SurveyData[K]) => void; zelrexTip: string | null; setZelrexTip: (k: string | null) => void };
+
+function StepBusiness({ data, update, zelrexTip, setZelrexTip }: StepProps) {
   return (
     <div>
       <FieldGroup>
-        <Label required>Business name</Label>
+        <Label required askKey="businessName" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Business name</Label>
+        {zelrexTip === "businessName" && <ZelrexTipPopover tipKey="businessName" />}
         <Input value={data.businessName} onChange={(v) => update("businessName", v)} placeholder="e.g., Sarah Chen Design" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label>Tagline (one line that says what you do)</Label>
+        <Label askKey="tagline" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Tagline (one line that says what you do)</Label>
+        {zelrexTip === "tagline" && <ZelrexTipPopover tipKey="tagline" />}
         <Hint>This becomes your hero subtitle. Make it clear, not clever.</Hint>
         <Input value={data.tagline} onChange={(v) => update("tagline", v)} placeholder="e.g., Brand identity and web design for startups" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label required>What type of service do you offer?</Label>
+        <Label required askKey="businessType" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>What type of service do you offer?</Label>
+        {zelrexTip === "businessType" && <ZelrexTipPopover tipKey="businessType" />}
         <OptionGrid
           value={data.businessType}
           onChange={(v) => update("businessType", v)}
@@ -368,13 +443,15 @@ function StepBusiness({ data, update }: { data: SurveyData; update: <K extends k
       </FieldGroup>
 
       <FieldGroup>
-        <Label required>Who is your ideal client?</Label>
+        <Label required askKey="targetAudience" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Who is your ideal client?</Label>
+        {zelrexTip === "targetAudience" && <ZelrexTipPopover tipKey="targetAudience" />}
         <Hint>Be specific. "Everyone" means no one.</Hint>
         <Input value={data.targetAudience} onChange={(v) => update("targetAudience", v)} placeholder="e.g., SaaS startups with 10-50 employees who need a rebrand" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label>Are you leaving a platform? (optional)</Label>
+        <Label askKey="platformsLeaving" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Are you leaving a platform? (optional)</Label>
+        {zelrexTip === "platformsLeaving" && <ZelrexTipPopover tipKey="platformsLeaving" />}
         <Input value={data.platformsLeavingFrom} onChange={(v) => update("platformsLeavingFrom", v)} placeholder="e.g., Upwork, Fiverr" />
       </FieldGroup>
     </div>
@@ -383,22 +460,25 @@ function StepBusiness({ data, update }: { data: SurveyData; update: <K extends k
 
 // ─── Step 2: Service Details ────────────────────────────────────────
 
-function StepService({ data, update }: { data: SurveyData; update: <K extends keyof SurveyData>(k: K, v: SurveyData[K]) => void }) {
+function StepService({ data, update, zelrexTip, setZelrexTip }: StepProps) {
   return (
     <div>
       <FieldGroup>
-        <Label required>Main service name</Label>
+        <Label required askKey="mainService" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Main service name</Label>
+        {zelrexTip === "mainService" && <ZelrexTipPopover tipKey="mainService" />}
         <Hint>What would you call this offer on a menu?</Hint>
         <Input value={data.mainService} onChange={(v) => update("mainService", v)} placeholder="e.g., Complete Brand Identity Package" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label required>Describe what the client gets (2-3 sentences)</Label>
+        <Label required askKey="serviceDescription" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Describe what the client gets (2-3 sentences)</Label>
+        {zelrexTip === "serviceDescription" && <ZelrexTipPopover tipKey="serviceDescription" />}
         <TextArea value={data.serviceDescription} onChange={(v) => update("serviceDescription", v)} placeholder="e.g., I design your complete brand identity from scratch — logo, colors, typography, and brand guidelines. You get 3 concepts, unlimited revisions on the chosen direction, and a brand book delivered in 2 weeks." />
       </FieldGroup>
 
       <FieldGroup>
-        <Label>What's included? (one per line)</Label>
+        <Label askKey="deliverables" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>What's included? (one per line)</Label>
+        {zelrexTip === "deliverables" && <ZelrexTipPopover tipKey="deliverables" />}
         <Hint>List specific deliverables. "And more" is not allowed.</Hint>
         {data.deliverables.map((d, i) => (
           <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
@@ -422,12 +502,14 @@ function StepService({ data, update }: { data: SurveyData; update: <K extends ke
       </FieldGroup>
 
       <FieldGroup>
-        <Label>Turnaround time</Label>
+        <Label askKey="turnaround" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Turnaround time</Label>
+        {zelrexTip === "turnaround" && <ZelrexTipPopover tipKey="turnaround" />}
         <Input value={data.turnaround} onChange={(v) => update("turnaround", v)} placeholder="e.g., 2 weeks, 48 hours, same-day" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label>Pricing model</Label>
+        <Label askKey="pricingModel" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Pricing model</Label>
+        {zelrexTip === "pricingModel" && <ZelrexTipPopover tipKey="pricingModel" />}
         <OptionGrid
           value={data.pricingModel}
           onChange={(v) => update("pricingModel", v as SurveyData["pricingModel"])}
@@ -441,7 +523,8 @@ function StepService({ data, update }: { data: SurveyData; update: <K extends ke
       </FieldGroup>
 
       <FieldGroup>
-        <Label required>{data.hasMultipleTiers ? "See tiers below" : "Your price"}</Label>
+        <Label required askKey="price" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>{data.hasMultipleTiers ? "See tiers below" : "Your price"}</Label>
+        {zelrexTip === "price" && <ZelrexTipPopover tipKey="price" />}
         {!data.hasMultipleTiers && (
           <Input value={data.price} onChange={(v) => update("price", v)} placeholder="e.g., $1,500, $150/hr, $500/month" />
         )}
@@ -453,7 +536,8 @@ function StepService({ data, update }: { data: SurveyData; update: <K extends ke
 
       {data.hasMultipleTiers && (
         <FieldGroup>
-          <Label>Pricing tiers</Label>
+          <Label askKey="tiers" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Pricing tiers</Label>
+          {zelrexTip === "tiers" && <ZelrexTipPopover tipKey="tiers" />}
           {data.tiers.map((tier, i) => (
             <div key={i} style={{
               padding: 14, borderRadius: 12, border: `1px solid ${S.border}`,
@@ -492,7 +576,8 @@ function StepService({ data, update }: { data: SurveyData; update: <K extends ke
       )}
 
       <FieldGroup>
-        <Label>Guarantee or risk-reducer (optional)</Label>
+        <Label askKey="guarantee" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Guarantee or risk-reducer (optional)</Label>
+        {zelrexTip === "guarantee" && <ZelrexTipPopover tipKey="guarantee" />}
         <Hint>What makes it safe for the client to say yes?</Hint>
         <Input value={data.guarantee} onChange={(v) => update("guarantee", v)} placeholder="e.g., 100% refund if not satisfied within 7 days" />
       </FieldGroup>
@@ -502,7 +587,7 @@ function StepService({ data, update }: { data: SurveyData; update: <K extends ke
 
 // ─── Step 3: Brand & Visual ─────────────────────────────────────────
 
-function StepBrand({ data, update }: { data: SurveyData; update: <K extends keyof SurveyData>(k: K, v: SurveyData[K]) => void }) {
+function StepBrand({ data, update, zelrexTip, setZelrexTip }: StepProps) {
   const colors = [
     { hex: "#4A90FF", name: "Blue" },
     { hex: "#8B5CF6", name: "Purple" },
@@ -517,7 +602,8 @@ function StepBrand({ data, update }: { data: SurveyData; update: <K extends keyo
   return (
     <div>
       <FieldGroup>
-        <Label>Primary brand color</Label>
+        <Label askKey="primaryColor" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Primary brand color</Label>
+        {zelrexTip === "primaryColor" && <ZelrexTipPopover tipKey="primaryColor" />}
         <Hint>This will be your accent color for buttons and highlights.</Hint>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {colors.map((c) => (
@@ -539,7 +625,8 @@ function StepBrand({ data, update }: { data: SurveyData; update: <K extends keyo
       </FieldGroup>
 
       <FieldGroup>
-        <Label>Website style</Label>
+        <Label askKey="stylePreference" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Website style</Label>
+        {zelrexTip === "stylePreference" && <ZelrexTipPopover tipKey="stylePreference" />}
         <OptionGrid
           value={data.stylePreference}
           onChange={(v) => update("stylePreference", v as SurveyData["stylePreference"])}
@@ -553,7 +640,8 @@ function StepBrand({ data, update }: { data: SurveyData; update: <K extends keyo
       </FieldGroup>
 
       <FieldGroup>
-        <Label>Typography feel</Label>
+        <Label askKey="fontPreference" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Typography feel</Label>
+        {zelrexTip === "fontPreference" && <ZelrexTipPopover tipKey="fontPreference" />}
         <OptionGrid
           value={data.fontPreference}
           onChange={(v) => update("fontPreference", v as SurveyData["fontPreference"])}
@@ -577,39 +665,45 @@ function StepBrand({ data, update }: { data: SurveyData; update: <K extends keyo
 
 // ─── Step 4: Contact & Social ───────────────────────────────────────
 
-function StepContact({ data, update }: { data: SurveyData; update: <K extends keyof SurveyData>(k: K, v: SurveyData[K]) => void }) {
+function StepContact({ data, update, zelrexTip, setZelrexTip }: StepProps) {
   const socialPlatforms = ["Twitter/X", "LinkedIn", "Instagram", "YouTube", "TikTok", "Facebook", "Discord", "Dribbble", "Behance", "GitHub"];
   
   return (
     <div>
       <FieldGroup>
-        <Label required>Email address (shown on site)</Label>
+        <Label required askKey="email" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Email address (shown on site)</Label>
+        {zelrexTip === "email" && <ZelrexTipPopover tipKey="email" />}
         <Input value={data.email} onChange={(v) => update("email", v)} placeholder="hello@yourdomain.com" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label>Phone number (optional)</Label>
+        <Label askKey="phone" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Phone number (optional)</Label>
+        {zelrexTip === "phone" && <ZelrexTipPopover tipKey="phone" />}
         <Input value={data.phone} onChange={(v) => update("phone", v)} placeholder="+1 (555) 123-4567" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label>Location (optional)</Label>
+        <Label askKey="location" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Location (optional)</Label>
+        {zelrexTip === "location" && <ZelrexTipPopover tipKey="location" />}
         <Input value={data.location} onChange={(v) => update("location", v)} placeholder="e.g., Remote — based in Austin, TX" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label>Business hours (optional)</Label>
+        <Label askKey="hours" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Business hours (optional)</Label>
+        {zelrexTip === "hours" && <ZelrexTipPopover tipKey="hours" />}
         <Input value={data.hours} onChange={(v) => update("hours", v)} placeholder="e.g., Mon-Fri 9am-5pm EST" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label>Booking link (Calendly, Cal.com, etc.)</Label>
+        <Label askKey="calendly" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Booking link (Calendly, Cal.com, etc.)</Label>
+        {zelrexTip === "calendly" && <ZelrexTipPopover tipKey="calendly" />}
         <Hint>If you have one, Zelrex will embed it in your site.</Hint>
         <Input value={data.calendlyUrl} onChange={(v) => update("calendlyUrl", v)} placeholder="https://calendly.com/yourname" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label>Social media profiles</Label>
+        <Label askKey="socialPlatforms" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Social media profiles</Label>
+        {zelrexTip === "socialPlatforms" && <ZelrexTipPopover tipKey="socialPlatforms" />}
         <Hint>Add any that you want linked on your site.</Hint>
         {data.socialLinks.map((link, i) => (
           <div key={i} style={{ display: "grid", gridTemplateColumns: "120px 1fr 36px", gap: 8, marginBottom: 6 }}>
@@ -706,5 +800,3 @@ function StepReview({ data }: { data: SurveyData }) {
     </div>
   );
 }
-
-export default WebsiteSurvey;

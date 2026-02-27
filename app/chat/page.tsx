@@ -76,6 +76,8 @@ function Ic({ n, className, style }: { n: string; className?: string; style?: Re
     settings: <><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.4" /><path d="M12 1v2m0 18v2m-9-11h2m18 0h2m-3.3-6.7-1.4 1.4M4.7 19.3l-1.4-1.4m0-11.6 1.4 1.4m14.2 14.2-1.4-1.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></>,
     signin: <><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></>,
     bolt: <><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></>,
+    bell: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></>,
+    goal: <><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.4" /><circle cx="12" cy="12" r="6" stroke="currentColor" strokeWidth="1.4" /><circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="1.4" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.5" /></>,
   };
   return <svg className={cls} style={style} viewBox="0 0 24 24" fill="none">{d[n]}</svg>;
 }
@@ -125,6 +127,7 @@ function ZelrexThinking({ stage }: { stage?: string }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}>
       {/* Stage text with fade transition */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="z-think-orb" />
         <span style={{ color: C.textSec, fontSize: 14, fontWeight: 500, letterSpacing: "-0.01em" }}>{stage || "Thinking…"}</span>
       </div>
       {/* Shimmer bar */}
@@ -134,7 +137,8 @@ function ZelrexThinking({ stage }: { stage?: string }) {
         </div>
       )}
       <style>{`
-
+        .z-think-orb{width:8px;height:8px;border-radius:50%;background:${C.accent};box-shadow:0 0 12px ${C.accent}60,0 0 4px ${C.accent}90;animation:z-orb 2s ease-in-out infinite}
+        @keyframes z-orb{0%,100%{opacity:0.4;transform:scale(0.85)}50%{opacity:1;transform:scale(1.1)}}
         .z-think-shimmer{width:40%;height:100%;border-radius:2px;background:linear-gradient(90deg,transparent,${C.accent}60,transparent);animation:z-shimmer 1.8s ease-in-out infinite}
         @keyframes z-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
         .z-momentum-line{position:absolute;bottom:-3px;left:2px;width:22px;height:2px;background:linear-gradient(90deg,transparent,${C.accent},transparent);border-radius:2px;animation:zml 1.6s ease-in-out infinite;overflow:hidden}
@@ -152,7 +156,7 @@ function Typewriter({ text, speed = 8, onFinish }: { text: string; speed?: numbe
   return <div>{formatMessage(text.slice(0, n))}</div>;
 }
 
-function StatusBar({ phase, businessName, sidebarOpen, isMobile }: { phase: BusinessPhase; businessName: string | null; sidebarOpen: boolean; isMobile: boolean }) {
+function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal }: { phase: BusinessPhase; businessName: string | null; sidebarOpen: boolean; isMobile: boolean; userGoal?: { text: string; target: string; deadline: string } | null }) {
   const phases: { key: BusinessPhase; label: string }[] = [
     { key: "ready", label: "Start" },
     { key: "intake", label: "Discovery" },
@@ -166,7 +170,8 @@ function StatusBar({ phase, businessName, sidebarOpen, isMobile }: { phase: Busi
   const leftOffset = (!isMobile && sidebarOpen) ? 260 : 0;
 
   return (
-    <div style={{ height: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 0, borderBottom: `1px solid ${C.border}`, background: currentIdx > 0 ? `linear-gradient(90deg, transparent, ${accentColor}06, transparent)` : "transparent", padding: "0 20px", marginLeft: leftOffset, width: `calc(100% - ${leftOffset}px)`, transition: "margin-left 300ms cubic-bezier(0.2,0,0,1), width 300ms cubic-bezier(0.2,0,0,1)" }}>
+    <div style={{ height: userGoal ? 52 : 32, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 0, borderBottom: `1px solid ${C.border}`, background: currentIdx > 0 ? `linear-gradient(90deg, transparent, ${accentColor}06, transparent)` : "transparent", padding: "0 20px", marginLeft: leftOffset, width: `calc(100% - ${leftOffset}px)`, transition: "margin-left 300ms cubic-bezier(0.2,0,0,1), width 300ms cubic-bezier(0.2,0,0,1), height 300ms ease" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
       {phases.map((p, i) => {
         const isDone = i < currentIdx;
         const isCurrent = i === currentIdx;
@@ -181,6 +186,13 @@ function StatusBar({ phase, businessName, sidebarOpen, isMobile }: { phase: Busi
           </React.Fragment>
         );
       })}
+      </div>
+      {userGoal && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, opacity: 0.7 }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          <span style={{ fontSize: 10, color: C.textSec, fontWeight: 500 }}>Goal: {userGoal.text}{userGoal.target ? ` · ${userGoal.target}` : ""}{userGoal.deadline ? ` · by ${userGoal.deadline}` : ""}</span>
+        </div>
+      )}
       <style>{`@keyframes zp{0%,100%{opacity:1}50%{opacity:.35}}`}</style>
     </div>
   );
@@ -256,12 +268,12 @@ function ActionPill({ label, onClick }: { label: string; onClick: () => void }) 
 }
 
 // Button helper with hover
-function HBtn({ children, onClick, style, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { style?: React.CSSProperties }) {
+function HBtn({ children, onClick, style, className, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { style?: React.CSSProperties }) {
   return (
-    <button type="button" onClick={onClick} {...rest}
-      style={{ background: "none", border: "none", cursor: "pointer", borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "all 150ms", ...style }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = style?.background as string || "none"; }}>
+    <button type="button" onClick={onClick} className={cx("glass-btn", className)} {...rest}
+      style={{ background: "none", border: "none", cursor: "pointer", borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "all 180ms cubic-bezier(0.2,0,0,1)", ...style }}
+      onMouseEnter={(e) => { const t = e.currentTarget; t.style.background = "rgba(255,255,255,0.06)"; t.style.backdropFilter = "blur(20px) saturate(1.8)"; (t.style as any).webkitBackdropFilter = "blur(20px) saturate(1.8)"; t.style.boxShadow = "inset 0 0.5px 0 rgba(255,255,255,0.12), 0 2px 12px rgba(0,0,0,0.15)"; }}
+      onMouseLeave={(e) => { const t = e.currentTarget; t.style.background = style?.background as string || "none"; t.style.backdropFilter = "none"; (t.style as any).webkitBackdropFilter = "none"; t.style.boxShadow = style?.boxShadow as string || "none"; }}>
       {children}
     </button>
   );
@@ -343,10 +355,23 @@ export default function ChatPage() {
   const [websiteData, setWebsiteData] = useState<any>(null);
   const [deployData, setDeployData] = useState<{ projectId: string; url: string; projectName: string; customDomain?: string; domainVerified?: boolean } | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
+  
+  // Goals & Notifications
+  const [userGoal, setUserGoal] = useState<{ text: string; target: string; deadline: string } | null>(null);
+  const [goalModalOpen, setGoalModalOpen] = useState(false);
+  const [goalDraft, setGoalDraft] = useState({ text: "", target: "", deadline: "" });
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Array<{ id: string; text: string; time: number; read: boolean }>>([]);
 
   const [chats, setChats] = useState<Chat[]>([{ id: uid("chat"), title: "New chat", messages: [], updatedAt: Date.now() }]);
   const [activeChatId, setActiveChatId] = useState(() => chats[0]?.id ?? "");
   const activeChat = useMemo(() => chats.find((c) => c.id === activeChatId) ?? chats[0], [chats, activeChatId]);
+
+  // Sync websiteData/deployData from active chat when switching chats
+  useEffect(() => {
+    if (activeChat?.websiteData) { setWebsiteData(activeChat.websiteData); } else { setWebsiteData(null); setPreviewOpen(false); }
+    if (activeChat?.deployData) { setDeployData(activeChat.deployData); } else { setDeployData(null); }
+  }, [activeChatId]);
 
   // Helper: save websiteData to both state and active chat
   function saveWebsiteData(data: any) {
@@ -378,12 +403,6 @@ export default function ChatPage() {
   useEffect(() => { localStorage.setItem(ANIMATED_KEY, JSON.stringify(animatedIds)); }, [animatedIds]);
 
   useEffect(() => { const s = safeJson<Chat[]>(localStorage.getItem(STORAGE_KEY), []); if (s.length) { setChats(s); setActiveChatId(s[0]?.id ?? ""); } }, []);
-
-  // Sync websiteData/deployData from active chat when switching chats
-  useEffect(() => {
-    if (activeChat?.websiteData) { setWebsiteData(activeChat.websiteData); } else { setWebsiteData(null); setPreviewOpen(false); }
-    if (activeChat?.deployData) { setDeployData(activeChat.deployData); } else { setDeployData(null); }
-  }, [activeChatId, activeChat]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const filteredChats = useMemo(() => { const q = searchQuery.trim().toLowerCase(); if (!q) return chats; return chats.filter((c) => c.title?.toLowerCase().includes(q) || c.messages.some((m) => m.content.toLowerCase().includes(q))); }, [chats, searchQuery]);
@@ -1090,7 +1109,7 @@ export default function ChatPage() {
   useEffect(() => { if (!activeChatId && chats[0]?.id) setActiveChatId(chats[0].id); if (activeChatId && !chats.some((c) => c.id === activeChatId) && chats[0]?.id) setActiveChatId(chats[0].id); }, [activeChatId, chats]);
   useEffect(() => { listEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [activeChat?.messages.length, isSending]);
   useEffect(() => { const el = textareaRef.current; if (!el) return; el.style.height = "0px"; el.style.height = `${Math.min(180, el.scrollHeight)}px`; }, [input]);
-  useEffect(() => { const h = () => { setOpenChatMenuId(null); setOpenMsgMenuId(null); setAttachMenuOpen(false); setSettingsOpen(false); }; window.addEventListener("mousedown", h); return () => window.removeEventListener("mousedown", h); }, []);
+  useEffect(() => { const h = () => { setOpenChatMenuId(null); setOpenMsgMenuId(null); setAttachMenuOpen(false); setSettingsOpen(false); setNotifOpen(false); }; window.addEventListener("mousedown", h); return () => window.removeEventListener("mousedown", h); }, []);
   useEffect(() => { if (previewOpen) setSidebarOpen(false); }, [previewOpen]);
 
   // ─── Helper: push an assistant message into the active chat ────────
@@ -1391,29 +1410,24 @@ export default function ChatPage() {
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:3px}
         ::selection{background:${C.accent}40}
         textarea::placeholder{color:${C.textMuted}}
+        .glass-btn{position:relative;overflow:hidden}
+        .glass-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(135deg,rgba(255,255,255,0.08) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.04) 100%);transition:opacity 180ms}
+        .glass-btn:hover::before{opacity:1}
+        .chat-row{position:relative;overflow:hidden}
+        .chat-row::before{content:'';position:absolute;inset:0;border-radius:8px;opacity:0;background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.01) 100%);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:opacity 150ms;pointer-events:none}
+        .chat-row:hover::before{opacity:1}
         .chat-row:hover .chat-dots{opacity:0.7!important}
-        .msg-actions{display:flex;align-items:center;gap:1px;margin-top:6px;opacity:0.5;transition:opacity 150ms}
+        .msg-actions{display:flex;align-items:center;gap:1px;margin-top:6px;opacity:0;transition:opacity 150ms}
         .msg-row:hover .msg-actions{opacity:1}
-        .msg-act{display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:7px;border:none;background:none;color:${C.textMuted};cursor:pointer;transition:all 120ms;padding:0}
-        .msg-act:hover{background:rgba(255,255,255,0.06);color:${C.textSec}}
+        .msg-act{display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:7px;border:none;background:none;color:${C.textMuted};cursor:pointer;transition:all 180ms cubic-bezier(0.2,0,0,1);padding:0}
+        .msg-act:hover{background:rgba(255,255,255,0.06);backdrop-filter:blur(16px) saturate(1.6);-webkit-backdrop-filter:blur(16px) saturate(1.6);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.1),0 2px 8px rgba(0,0,0,0.12);color:${C.textSec}}
         .msg-act:active{transform:scale(0.92)}
         .msg-act svg{width:16px;height:16px}
-        .drag-handle{width:6px;cursor:col-resize;background:transparent;transition:background 150ms;flex-shrink:0;position:relative;z-index:10}
-        .drag-handle:hover,.drag-handle:active{background:${C.accent}30}
-        .drag-handle::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:2px;height:40px;border-radius:2px;background:rgba(255,255,255,0.1);transition:background 150ms}
-        .drag-handle:hover::after{background:${C.accent}80}
-        /* Burger button */
-        .burger-btn{width:34px;height:34px;position:relative;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);border:1px solid ${C.border};border-radius:8px;cursor:pointer;transition:background 200ms,border-color 200ms,box-shadow 200ms}
-        .burger-btn:hover{background:rgba(255,255,255,0.06);border-color:${C.borderHover};box-shadow:0 0 20px rgba(59,124,246,0.06)}
-        .burger-btn:active{transform:scale(0.94)}
-        .burger-line{position:absolute;width:16px;height:1.5px;border-radius:1px;background:${C.textSec};transition:transform 0.35s cubic-bezier(0.77,0,0.18,1),opacity 0.25s ease,width 0.35s cubic-bezier(0.77,0,0.18,1),background 0.3s ease}
-        .burger-btn:hover .burger-line{background:${C.text}}
-        .burger-top{transform:translateY(-5px)}
-        .burger-mid{}
-        .burger-bot{transform:translateY(5px)}
-        .burger-top.open{transform:rotate(45deg);width:18px}
-        .burger-mid.open{opacity:0;transform:scaleX(0)}
-        .burger-bot.open{transform:rotate(-45deg);width:18px}
+        .drag-handle{width:8px;cursor:col-resize;background:transparent;transition:background 200ms;flex-shrink:0;position:relative;z-index:10;border-left:1px solid ${C.border}}
+        .drag-handle:hover{background:rgba(74,144,255,0.06);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+        .drag-handle:active{background:rgba(74,144,255,0.1)}
+        .drag-handle::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:3px;height:48px;border-radius:3px;background:rgba(255,255,255,0.08);transition:all 200ms}
+        .drag-handle:hover::after{background:${C.accent};box-shadow:0 0 8px ${C.accent}40;height:64px}
         @media(max-width:768px){
           .hide-mobile{display:none!important}
           .welcome-h1{font-size:28px!important}
@@ -1426,11 +1440,7 @@ export default function ChatPage() {
       <div style={{ position: "sticky", top: 0, zIndex: 100, borderBottom: `1px solid ${C.border}`, background: "rgba(6,9,15,0.82)", backdropFilter: "blur(24px)" }}>
         <div style={{ maxWidth: 1800, margin: "0 auto", height: 52, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <button type="button" onClick={() => setSidebarOpen((v) => !v)} className="burger-btn" aria-label="Toggle sidebar">
-              <span className={`burger-line burger-top ${sidebarOpen ? "open" : ""}`} />
-              <span className={`burger-line burger-mid ${sidebarOpen ? "open" : ""}`} />
-              <span className={`burger-line burger-bot ${sidebarOpen ? "open" : ""}`} />
-            </button>
+            <HBtn onClick={() => setSidebarOpen((v) => !v)} style={{ width: 34, height: 34, color: C.textSec, border: `1px solid ${C.border}`, borderRadius: 8, background: "rgba(255,255,255,0.02)" }}><Ic n={sidebarOpen ? "close" : "menu"} className="h-4 w-4" /></HBtn>
             <ZelrexWordmark size={16} />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 8 }}>
@@ -1449,14 +1459,42 @@ export default function ChatPage() {
                 <Ic n="signin" className="h-3.5 w-3.5" /> Sign in
               </HBtn>
             )}
-            {/* Settings dots */}
+            {/* Goals button */}
             <div style={{ position: "relative" }}>
-              <HBtn onClick={() => setSettingsOpen((v) => !v)} style={{ width: 40, height: 40, color: C.text }}><Ic n="dots" style={{ width: 20, height: 20 }} /></HBtn>
-              {settingsOpen && (
-                <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 180, borderRadius: 12, border: `1px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 16px 48px rgba(0,0,0,0.5)", overflow: "hidden" }}>
-                  <button type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", background: "none", border: "none", color: C.textSec, fontSize: 13, cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}>
-                    <Ic n="settings" className="h-4 w-4" /> Settings
-                  </button>
+              <HBtn onClick={() => { if (userGoal) setGoalDraft({ text: userGoal.text, target: userGoal.target, deadline: userGoal.deadline }); else setGoalDraft({ text: "", target: "", deadline: "" }); setGoalModalOpen(true); }} style={{ padding: "5px 12px", border: `1px solid ${userGoal ? C.accent + "40" : C.border}`, background: userGoal ? C.accentSoft : "transparent", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, gap: 5, borderRadius: 10 }}>
+                <Ic n="goal" style={{ width: 14, height: 14 }} />{!isMobile && (userGoal ? " My Goal" : " Set Goal")}
+              </HBtn>
+            </div>
+            {/* Notifications bell */}
+            <div style={{ position: "relative" }} onMouseDown={(e) => e.stopPropagation()}>
+              <HBtn onClick={() => setNotifOpen((v) => !v)} style={{ width: 38, height: 38, color: C.text, position: "relative" }}>
+                <Ic n="bell" style={{ width: 18, height: 18 }} />
+                {notifications.filter(n => !n.read).length > 0 && (
+                  <span style={{ position: "absolute", top: 6, right: 6, width: 8, height: 8, borderRadius: 999, background: "#EF4444", border: "2px solid #06090F" }} />
+                )}
+              </HBtn>
+              {notifOpen && (
+                <div style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 300, borderRadius: 14, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.92)", backdropFilter: "blur(40px) saturate(1.6)", WebkitBackdropFilter: "blur(40px) saturate(1.6)", boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                  <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Notifications</span>
+                    {notifications.length > 0 && <button onClick={() => setNotifications(ns => ns.map(n => ({ ...n, read: true })))} style={{ background: "none", border: "none", color: C.accent, fontSize: 11, cursor: "pointer", fontWeight: 600 }}>Mark all read</button>}
+                  </div>
+                  <div style={{ maxHeight: 280, overflowY: "auto" }}>
+                    {notifications.length === 0 ? (
+                      <div style={{ padding: "32px 16px", textAlign: "center" }}>
+                        <Ic n="bell" style={{ width: 28, height: 28, color: C.textMuted, opacity: 0.4, margin: "0 auto 10px", display: "block" }} />
+                        <div style={{ fontSize: 13, color: C.textMuted }}>No notifications yet</div>
+                        <div style={{ fontSize: 11, color: C.textMuted, opacity: 0.6, marginTop: 4 }}>Zelrex will send updates about your business and goals here.</div>
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <div key={n.id} style={{ padding: "10px 16px", borderBottom: `1px solid ${C.border}`, background: n.read ? "transparent" : `${C.accent}08`, cursor: "pointer" }} onClick={() => setNotifications(ns => ns.map(x => x.id === n.id ? { ...x, read: true } : x))}>
+                          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{n.text}</div>
+                          <div style={{ fontSize: 10, color: C.textMuted, marginTop: 4 }}>{new Date(n.time).toLocaleString()}</div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -1464,10 +1502,10 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <StatusBar phase={phase} businessName={businessName} sidebarOpen={sidebarOpen} isMobile={isMobile} />
+      <StatusBar phase={phase} businessName={businessName} sidebarOpen={sidebarOpen} isMobile={isMobile} userGoal={userGoal} />
 
       {/* LAYOUT: sidebar + chat + preview */}
-      <div style={{ display: "flex", height: "calc(100vh - 81px)", position: "relative" }}>
+      <div style={{ display: "flex", height: `calc(100vh - ${userGoal ? 101 : 81}px)`, position: "relative", transition: "height 300ms ease" }}>
 
         {/* SIDEBAR BACKDROP (mobile only) */}
         {sidebarOpen && isMobile && (
@@ -1530,7 +1568,7 @@ export default function ChatPage() {
         </aside>
 
         {/* CHAT */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 280, marginLeft: (!isMobile && sidebarOpen) ? 260 : 0, transition: "margin-left 300ms cubic-bezier(0.2,0,0,1)" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 280, transition: dragRef.current ? "none" : "all 300ms ease", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0 }}>
           <div style={{ flex: 1, overflowY: "auto", padding: previewOpen ? "16px 12px" : "16px 16px" }}>
             <div style={{ maxWidth: previewOpen ? "100%" : 820, margin: "0 auto" }}>
               {!hasMessages ? (
@@ -1628,47 +1666,43 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* PREVIEW PANEL with draggable divider */}
-        {/* Drag handle — always in DOM when websiteData exists (desktop only) */}
-        {websiteData && !isMobile && (
-          <div className="drag-handle" style={{ opacity: previewOpen ? 1 : 0, width: previewOpen ? 6 : 0, transition: 'opacity 200ms, width 200ms' }} onMouseDown={(e) => {
-            if (!previewOpen) return;
+        {/* DRAG HANDLE + PREVIEW PANEL */}
+        {previewOpen && websiteData && !isMobile && (
+          <div className="drag-handle" onMouseDown={(e) => {
             e.preventDefault();
-            const previewEl = (e.currentTarget.nextElementSibling as HTMLElement);
-            if (!previewEl) return;
+            const container = e.currentTarget.parentElement;
+            if (!container) return;
             const startX = e.clientX;
-            const startW = previewEl.offsetWidth;
+            const previewEl = e.currentTarget.nextElementSibling as HTMLElement;
+            const startW = previewEl?.offsetWidth || container.offsetWidth * 0.6;
             dragRef.current = { startX, startW };
+            document.body.style.cursor = "col-resize";
+            document.body.style.userSelect = "none";
             const onMove = (ev: MouseEvent) => {
-              const diff = dragRef.current!.startX - ev.clientX;
-              const newW = Math.max(320, Math.min(window.innerWidth * 0.8, dragRef.current!.startW + diff));
+              if (!dragRef.current) return;
+              const diff = dragRef.current.startX - ev.clientX;
+              const containerW = container.offsetWidth;
+              const newW = Math.max(320, Math.min(containerW - 320, dragRef.current.startW + diff));
               setPreviewWidth(newW);
             };
-            const onUp = () => { dragRef.current = null; document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
+            const onUp = () => {
+              dragRef.current = null;
+              document.body.style.cursor = "";
+              document.body.style.userSelect = "";
+              document.removeEventListener("mousemove", onMove);
+              document.removeEventListener("mouseup", onUp);
+            };
             document.addEventListener("mousemove", onMove);
             document.addEventListener("mouseup", onUp);
           }} />
         )}
-        {/* Preview panel — always in DOM so it can animate in/out */}
-        {websiteData && (
-          <div style={{
-            width: isMobile
-              ? (previewOpen ? '100%' : 0)
-              : (previewOpen ? (previewWidth || '50%') : 0),
-            maxWidth: isMobile ? undefined : '80vw',
-            background: C.bg,
-            display: "flex",
-            flexDirection: "column",
-            minWidth: 0,
-            overflow: "hidden",
-            transition: dragRef.current ? "none" : "width 400ms cubic-bezier(0.4,0,0.2,1)",
-            ...(isMobile && previewOpen ? { position: "fixed", inset: 0, zIndex: 50 } : {})
-          }}>
-            <div style={{ height: 44, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", borderBottom: `1px solid ${C.border}`, fontSize: 12, fontWeight: 600, color: C.textSec, minWidth: 300 }}>
+        {previewOpen && websiteData && (
+          <div style={{ width: isMobile ? undefined : (previewWidth || "60%"), flexShrink: 0, background: C.bg, display: "flex", flexDirection: "column", minWidth: 0, transition: dragRef.current ? "none" : "width 300ms ease", ...(isMobile ? { position: "fixed", inset: 0, zIndex: 50 } : {}) }}>
+            <div style={{ height: 44, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", borderBottom: `1px solid ${C.border}`, fontSize: 12, fontWeight: 600, color: C.textSec }}>
               <span>Website Preview — {websiteData.branding?.name || "Preview"}</span>
               <HBtn onClick={() => { setPreviewOpen(false); setPreviewWidth(0); }} style={{ width: 28, height: 28, color: C.textMuted }}><Ic n="close" className="h-4 w-4" /></HBtn>
             </div>
-            {previewOpen && <PreviewFrame html={buildPreviewHtml(websiteData)} />}
+            <PreviewFrame html={buildPreviewHtml(websiteData)} />
           </div>
         )}
 
@@ -1677,6 +1711,50 @@ export default function ChatPage() {
             onComplete={handleSurveyComplete}
             onClose={() => { setShowSurvey(false); setSurveyDismissed(true); if (activeChat?.id) { setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, pendingSurvey: true } : c)); } }}
           />
+        )}
+
+        {/* GOAL MODAL */}
+        {goalModalOpen && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div onClick={() => setGoalModalOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} />
+            <div style={{ position: "relative", width: 420, maxWidth: "90vw", borderRadius: 20, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.88)", backdropFilter: "blur(40px) saturate(1.8)", WebkitBackdropFilter: "blur(40px) saturate(1.8)", boxShadow: "0 32px 80px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", padding: 0, overflow: "hidden" }}>
+              {/* Glass header */}
+              <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 10, background: `${C.accent}15`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Ic n="goal" style={{ width: 16, height: 16, color: C.accent }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{userGoal ? "Edit your goal" : "Set your goal"}</div>
+                    <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Zelrex keeps this in mind with every recommendation</div>
+                  </div>
+                </div>
+              </div>
+              {/* Body */}
+              <div style={{ padding: "20px 24px" }}>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>What's your main goal?</label>
+                  <input value={goalDraft.text} onChange={(e) => setGoalDraft(d => ({ ...d, text: e.target.value }))} placeholder="e.g., Build a sustainable freelance business, Replace my 9-5 income" style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.04)", color: C.text, fontSize: 14, outline: "none" }} />
+                </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>Revenue target (optional)</label>
+                  <input value={goalDraft.target} onChange={(e) => setGoalDraft(d => ({ ...d, target: e.target.value }))} placeholder="e.g., $5,000/month, $100K/year" style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.04)", color: C.text, fontSize: 14, outline: "none" }} />
+                </div>
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>Target date (optional)</label>
+                  <input value={goalDraft.deadline} onChange={(e) => setGoalDraft(d => ({ ...d, deadline: e.target.value }))} placeholder="e.g., June 2026, 6 months" style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.04)", color: C.text, fontSize: 14, outline: "none" }} />
+                </div>
+              </div>
+              {/* Footer */}
+              <div style={{ padding: "0 24px 20px", display: "flex", gap: 10 }}>
+                {userGoal && (
+                  <button onClick={() => { setUserGoal(null); setGoalDraft({ text: "", target: "", deadline: "" }); setGoalModalOpen(false); }} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Remove goal</button>
+                )}
+                <button onClick={() => setGoalModalOpen(false)} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                <button onClick={() => { if (goalDraft.text.trim()) { setUserGoal({ text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() }); setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${goalDraft.text.trim()}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]); } setGoalModalOpen(false); }} style={{ flex: 1.5, padding: "10px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 16px ${C.accent}40` }}>Save goal</button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
