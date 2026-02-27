@@ -1411,28 +1411,49 @@ export default function ChatPage() {
         ::selection{background:${C.accent}40}
         textarea::placeholder{color:${C.textMuted}}
         .glass-btn{position:relative;overflow:hidden}
-        .glass-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(135deg,rgba(255,255,255,0.08) 0%,rgba(255,255,255,0.02) 50%,rgba(255,255,255,0.04) 100%);transition:opacity 180ms}
+        .glass-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(135deg,rgba(255,255,255,0.1) 0%,rgba(255,255,255,0.03) 40%,rgba(255,255,255,0.06) 100%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.12);transition:opacity 200ms cubic-bezier(0.2,0,0,1)}
         .glass-btn:hover::before{opacity:1}
-        .chat-row{position:relative;overflow:hidden}
+        .chat-row{position:relative;overflow:visible}
         .chat-row::before{content:'';position:absolute;inset:0;border-radius:8px;opacity:0;background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.01) 100%);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:opacity 150ms;pointer-events:none}
         .chat-row:hover::before{opacity:1}
         .chat-row:hover .chat-dots{opacity:0.7!important}
-        .msg-actions{display:flex;align-items:center;gap:1px;margin-top:6px;opacity:0;transition:opacity 150ms}
+        .chat-row:hover .chat-title{color:${C.text}!important}
+        .msg-actions{display:flex;align-items:center;gap:2px;margin-top:6px;opacity:0.55;transition:opacity 180ms}
         .msg-row:hover .msg-actions{opacity:1}
-        .msg-act{display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:7px;border:none;background:none;color:${C.textMuted};cursor:pointer;transition:all 180ms cubic-bezier(0.2,0,0,1);padding:0}
-        .msg-act:hover{background:rgba(255,255,255,0.06);backdrop-filter:blur(16px) saturate(1.6);-webkit-backdrop-filter:blur(16px) saturate(1.6);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.1),0 2px 8px rgba(0,0,0,0.12);color:${C.textSec}}
-        .msg-act:active{transform:scale(0.92)}
-        .msg-act svg{width:16px;height:16px}
+        .msg-act{display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:8px;border:1px solid transparent;background:none;color:${C.textMuted};cursor:pointer;transition:all 180ms cubic-bezier(0.2,0,0,1);padding:0}
+        .msg-act:hover{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.08);backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.12),0 2px 12px rgba(0,0,0,0.15);color:${C.text}}
+        .msg-act:active{transform:scale(0.9)}
+        .msg-act svg{width:15px;height:15px}
+        .user-actions{display:flex;align-items:center;gap:6px;margin-top:4px;opacity:0;transition:opacity 180ms;justify-content:flex-end}
+        .user-row:hover .user-actions{opacity:1}
+        .user-act{display:flex;align-items:center;justify-content:center;width:26px;height:24px;border-radius:6px;border:none;background:none;color:${C.textMuted};cursor:pointer;transition:all 150ms;padding:0}
+        .user-act:hover{background:rgba(74,144,255,0.1);color:${C.accent}}
+        .user-act:active{transform:scale(0.9)}
+        .user-act svg{width:13px;height:13px}
+        .user-time{font-size:10px;color:${C.textMuted};opacity:0.7;font-weight:400;letter-spacing:0.01em}
         .drag-handle{width:8px;cursor:col-resize;background:transparent;transition:background 200ms;flex-shrink:0;position:relative;z-index:10;border-left:1px solid ${C.border}}
         .drag-handle:hover{background:rgba(74,144,255,0.06);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
         .drag-handle:active{background:rgba(74,144,255,0.1)}
         .drag-handle::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:3px;height:48px;border-radius:3px;background:rgba(255,255,255,0.08);transition:all 200ms}
         .drag-handle:hover::after{background:${C.accent};box-shadow:0 0 8px ${C.accent}40;height:64px}
+        /* Premium hamburger button */
+        .burger-btn{width:36px;height:36px;position:relative;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);border:1px solid ${C.border};border-radius:10px;cursor:pointer;transition:all 250ms cubic-bezier(0.2,0,0,1);flex-shrink:0}
+        .burger-btn:hover{background:rgba(255,255,255,0.06);border-color:${C.borderHover};box-shadow:0 0 24px rgba(74,144,255,0.06),inset 0 0.5px 0 rgba(255,255,255,0.1)}
+        .burger-btn:active{transform:scale(0.92);transition-duration:100ms}
+        .burger-line{position:absolute;height:1.5px;border-radius:1px;background:${C.textSec};transition:transform 0.4s cubic-bezier(0.77,0,0.18,1),opacity 0.3s ease,width 0.4s cubic-bezier(0.77,0,0.18,1),background 0.3s ease}
+        .burger-btn:hover .burger-line{background:${C.text}}
+        .burger-top{width:16px;transform:translateY(-5px)}
+        .burger-mid{width:12px}
+        .burger-bot{width:16px;transform:translateY(5px)}
+        .burger-top.open{width:18px;transform:rotate(45deg)}
+        .burger-mid.open{width:0;opacity:0}
+        .burger-bot.open{width:18px;transform:rotate(-45deg)}
         @media(max-width:768px){
           .hide-mobile{display:none!important}
           .welcome-h1{font-size:28px!important}
           .welcome-grid{grid-template-columns:1fr!important;max-width:300px!important}
           .msg-actions{opacity:1}
+          .user-actions{opacity:1}
         }
       `}</style>
 
@@ -1440,7 +1461,11 @@ export default function ChatPage() {
       <div style={{ position: "sticky", top: 0, zIndex: 100, borderBottom: `1px solid ${C.border}`, background: "rgba(6,9,15,0.82)", backdropFilter: "blur(24px)" }}>
         <div style={{ maxWidth: 1800, margin: "0 auto", height: 52, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <HBtn onClick={() => setSidebarOpen((v) => !v)} style={{ width: 34, height: 34, color: C.textSec, border: `1px solid ${C.border}`, borderRadius: 8, background: "rgba(255,255,255,0.02)" }}><Ic n={sidebarOpen ? "close" : "menu"} className="h-4 w-4" /></HBtn>
+            <button type="button" onClick={() => setSidebarOpen((v) => !v)} className="burger-btn" aria-label="Toggle sidebar">
+              <span className={`burger-line burger-top ${sidebarOpen ? "open" : ""}`} />
+              <span className={`burger-line burger-mid ${sidebarOpen ? "open" : ""}`} />
+              <span className={`burger-line burger-bot ${sidebarOpen ? "open" : ""}`} />
+            </button>
             <ZelrexWordmark size={16} />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 8 }}>
@@ -1539,7 +1564,7 @@ export default function ChatPage() {
                     {isR ? (
                       <input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") { setRenamingChatId(null); setRenameValue(""); } }} onBlur={commitRename} autoFocus style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", color: C.text, fontSize: 12, outline: "none" }} />
                     ) : (
-                      <div style={{ fontSize: 12, color: isA ? C.text : C.textSec, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180 }}>{c.title || "New chat"}</div>
+                      <div className="chat-title" style={{ fontSize: 12, color: isA ? C.text : C.textSec, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180, transition: "color 150ms", position: "relative", zIndex: 1 }}>{c.title || "New chat"}</div>
                     )}
                   </button>
                   {!isR && (
@@ -1578,7 +1603,7 @@ export default function ChatPage() {
                   {activeChat?.messages.map((m) => {
                     const isUser = m.role === "user";
                     return (
-                      <div key={m.id} className={!isUser ? "msg-row" : ""} style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 16, gap: 10 }}>
+                      <div key={m.id} className={isUser ? "user-row" : "msg-row"} style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 16, gap: 10 }}>
                         {!isUser && <div style={{ width: 26, height: 26, flexShrink: 0, marginTop: 2 }}><ZelrexZIcon size={26} /></div>}
                         <div style={{ maxWidth: previewOpen ? "100%" : 700 }}>
                           <div style={{
@@ -1606,8 +1631,22 @@ export default function ChatPage() {
                                 </div>
                                 {copiedMsgId === m.id && <div style={{ fontSize: 11, color: C.accent, marginTop: 2 }}>Copied</div>}
                               </>
-                            ) : ( <div style={{ fontSize: 15, lineHeight: 1.7 }}>{m.content}</div> )}
+                            ) : (
+                              <>
+                                <div style={{ fontSize: 15, lineHeight: 1.7 }}>{m.content}</div>
+                              </>
+                            )}
                           </div>
+                          {/* User message: copy button + timestamp on hover */}
+                          {isUser && (
+                            <div className="user-actions">
+                              <span className="user-time">{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                              <button className="user-act" title="Copy" onClick={() => { navigator.clipboard.writeText(m.content); setCopiedMsgId(m.id); setTimeout(() => setCopiedMsgId(null), 1200); }}>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                              </button>
+                              {copiedMsgId === m.id && <span style={{ fontSize: 10, color: C.accent, fontWeight: 500 }}>Copied</span>}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

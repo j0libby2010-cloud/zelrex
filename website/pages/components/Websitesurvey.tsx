@@ -259,18 +259,20 @@ function Label({ children, required, askKey, zelrexTip, setZelrexTip }: { childr
       <label style={{ fontSize: 13, fontWeight: 600, color: S.text }}>{children}{required && <span style={{ color: S.danger, marginLeft: 4 }}>*</span>}</label>
       {askKey && setZelrexTip && (
         <button type="button" onClick={() => setZelrexTip(zelrexTip === askKey ? null : askKey)} style={{
-          display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 6,
-          border: `1px solid ${zelrexTip === askKey ? S.accent + "40" : "transparent"}`,
-          background: zelrexTip === askKey ? S.accentGlow : "transparent",
-          color: zelrexTip === askKey ? S.accent : S.textMuted,
-          fontSize: 10, fontWeight: 600, cursor: "pointer", transition: "all 150ms", letterSpacing: "0.02em",
+          display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 8,
+          border: `1px solid ${zelrexTip === askKey ? S.accent + "50" : S.accent + "25"}`,
+          background: zelrexTip === askKey ? `linear-gradient(135deg, ${S.accent}20, ${S.accent}08)` : `linear-gradient(135deg, ${S.accent}10, transparent)`,
+          color: zelrexTip === askKey ? S.accent : S.accent + "AA",
+          fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 200ms cubic-bezier(0.2,0,0,1)", letterSpacing: "0.01em",
           whiteSpace: "nowrap",
-        }}>
-          <svg width="12" height="12" viewBox="0 0 32 32" fill="none" style={{ flexShrink: 0 }}>
-            <text x="4" y="23" fill="currentColor" fontFamily="Inter, system-ui, sans-serif" fontWeight="800" fontSize="24" fontStyle="italic">Z</text>
-            <line x1="3" y1="28" x2="27" y2="28" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" opacity="0.5" />
+          boxShadow: zelrexTip === askKey ? `0 0 16px ${S.accent}20, inset 0 0.5px 0 rgba(255,255,255,0.1)` : `inset 0 0.5px 0 rgba(255,255,255,0.06)`,
+        }}
+        onMouseEnter={(e) => { const t = e.currentTarget; t.style.borderColor = `${S.accent}60`; t.style.background = `linear-gradient(135deg, ${S.accent}25, ${S.accent}10)`; t.style.boxShadow = `0 0 20px ${S.accent}25, inset 0 0.5px 0 rgba(255,255,255,0.12)`; t.style.transform = "translateY(-0.5px)"; }}
+        onMouseLeave={(e) => { const t = e.currentTarget; const isActive = zelrexTip === askKey; t.style.borderColor = isActive ? `${S.accent}50` : `${S.accent}25`; t.style.background = isActive ? `linear-gradient(135deg, ${S.accent}20, ${S.accent}08)` : `linear-gradient(135deg, ${S.accent}10, transparent)`; t.style.boxShadow = isActive ? `0 0 16px ${S.accent}20, inset 0 0.5px 0 rgba(255,255,255,0.1)` : `inset 0 0.5px 0 rgba(255,255,255,0.06)`; t.style.transform = "none"; }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+            <path d="M12 2L13.5 8.5L20 7L15 12L20 17L13.5 15.5L12 22L10.5 15.5L4 17L9 12L4 7L10.5 8.5L12 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="currentColor" fillOpacity="0.15" />
           </svg>
-          Ask Zelrex
+          Ask AI
         </button>
       )}
     </div>
