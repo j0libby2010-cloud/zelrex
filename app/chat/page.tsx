@@ -125,7 +125,6 @@ function ZelrexThinking({ stage }: { stage?: string }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}>
       {/* Stage text with fade transition */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div className="z-think-orb" />
         <span style={{ color: C.textSec, fontSize: 14, fontWeight: 500, letterSpacing: "-0.01em" }}>{stage || "Thinking…"}</span>
       </div>
       {/* Shimmer bar */}
@@ -135,8 +134,7 @@ function ZelrexThinking({ stage }: { stage?: string }) {
         </div>
       )}
       <style>{`
-        .z-think-orb{width:8px;height:8px;border-radius:50%;background:${C.accent};box-shadow:0 0 12px ${C.accent}60,0 0 4px ${C.accent}90;animation:z-orb 2s ease-in-out infinite}
-        @keyframes z-orb{0%,100%{opacity:0.4;transform:scale(0.85)}50%{opacity:1;transform:scale(1.1)}}
+
         .z-think-shimmer{width:40%;height:100%;border-radius:2px;background:linear-gradient(90deg,transparent,${C.accent}60,transparent);animation:z-shimmer 1.8s ease-in-out infinite}
         @keyframes z-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
         .z-momentum-line{position:absolute;bottom:-3px;left:2px;width:22px;height:2px;background:linear-gradient(90deg,transparent,${C.accent},transparent);border-radius:2px;animation:zml 1.6s ease-in-out infinite;overflow:hidden}
@@ -1394,7 +1392,7 @@ export default function ChatPage() {
         ::selection{background:${C.accent}40}
         textarea::placeholder{color:${C.textMuted}}
         .chat-row:hover .chat-dots{opacity:0.7!important}
-        .msg-actions{display:flex;align-items:center;gap:1px;margin-top:6px;opacity:0;transition:opacity 150ms}
+        .msg-actions{display:flex;align-items:center;gap:1px;margin-top:6px;opacity:0.5;transition:opacity 150ms}
         .msg-row:hover .msg-actions{opacity:1}
         .msg-act{display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:7px;border:none;background:none;color:${C.textMuted};cursor:pointer;transition:all 120ms;padding:0}
         .msg-act:hover{background:rgba(255,255,255,0.06);color:${C.textSec}}
@@ -1404,6 +1402,18 @@ export default function ChatPage() {
         .drag-handle:hover,.drag-handle:active{background:${C.accent}30}
         .drag-handle::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:2px;height:40px;border-radius:2px;background:rgba(255,255,255,0.1);transition:background 150ms}
         .drag-handle:hover::after{background:${C.accent}80}
+        /* Burger button */
+        .burger-btn{width:34px;height:34px;position:relative;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);border:1px solid ${C.border};border-radius:8px;cursor:pointer;transition:background 200ms,border-color 200ms,box-shadow 200ms}
+        .burger-btn:hover{background:rgba(255,255,255,0.06);border-color:${C.borderHover};box-shadow:0 0 20px rgba(59,124,246,0.06)}
+        .burger-btn:active{transform:scale(0.94)}
+        .burger-line{position:absolute;width:16px;height:1.5px;border-radius:1px;background:${C.textSec};transition:transform 0.35s cubic-bezier(0.77,0,0.18,1),opacity 0.25s ease,width 0.35s cubic-bezier(0.77,0,0.18,1),background 0.3s ease}
+        .burger-btn:hover .burger-line{background:${C.text}}
+        .burger-top{transform:translateY(-5px)}
+        .burger-mid{}
+        .burger-bot{transform:translateY(5px)}
+        .burger-top.open{transform:rotate(45deg);width:18px}
+        .burger-mid.open{opacity:0;transform:scaleX(0)}
+        .burger-bot.open{transform:rotate(-45deg);width:18px}
         @media(max-width:768px){
           .hide-mobile{display:none!important}
           .welcome-h1{font-size:28px!important}
@@ -1416,7 +1426,11 @@ export default function ChatPage() {
       <div style={{ position: "sticky", top: 0, zIndex: 100, borderBottom: `1px solid ${C.border}`, background: "rgba(6,9,15,0.82)", backdropFilter: "blur(24px)" }}>
         <div style={{ maxWidth: 1800, margin: "0 auto", height: 52, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <HBtn onClick={() => setSidebarOpen((v) => !v)} style={{ width: 34, height: 34, color: C.textSec, border: `1px solid ${C.border}`, borderRadius: 8, background: "rgba(255,255,255,0.02)" }}><Ic n={sidebarOpen ? "close" : "menu"} className="h-4 w-4" /></HBtn>
+            <button type="button" onClick={() => setSidebarOpen((v) => !v)} className="burger-btn" aria-label="Toggle sidebar">
+              <span className={`burger-line burger-top ${sidebarOpen ? "open" : ""}`} />
+              <span className={`burger-line burger-mid ${sidebarOpen ? "open" : ""}`} />
+              <span className={`burger-line burger-bot ${sidebarOpen ? "open" : ""}`} />
+            </button>
             <ZelrexWordmark size={16} />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 8 }}>
@@ -1516,7 +1530,7 @@ export default function ChatPage() {
         </aside>
 
         {/* CHAT */}
-        <div style={{ flex: previewOpen ? "0 0 360px" : 1, display: "flex", flexDirection: "column", minWidth: 280, transition: dragRef.current ? "none" : "flex 300ms ease", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0, transitionProperty: dragRef.current ? "margin-left" : "flex, margin-left", transitionDuration: "300ms", transitionTimingFunction: "cubic-bezier(0.2,0,0,1)" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 280, marginLeft: (!isMobile && sidebarOpen) ? 260 : 0, transition: "margin-left 300ms cubic-bezier(0.2,0,0,1)" }}>
           <div style={{ flex: 1, overflowY: "auto", padding: previewOpen ? "16px 12px" : "16px 16px" }}>
             <div style={{ maxWidth: previewOpen ? "100%" : 820, margin: "0 auto" }}>
               {!hasMessages ? (
@@ -1615,8 +1629,10 @@ export default function ChatPage() {
         </div>
 
         {/* PREVIEW PANEL with draggable divider */}
-        {previewOpen && websiteData && !isMobile && (
-          <div className="drag-handle" onMouseDown={(e) => {
+        {/* Drag handle — always in DOM when websiteData exists (desktop only) */}
+        {websiteData && !isMobile && (
+          <div className="drag-handle" style={{ opacity: previewOpen ? 1 : 0, width: previewOpen ? 6 : 0, transition: 'opacity 200ms, width 200ms' }} onMouseDown={(e) => {
+            if (!previewOpen) return;
             e.preventDefault();
             const previewEl = (e.currentTarget.nextElementSibling as HTMLElement);
             if (!previewEl) return;
@@ -1633,13 +1649,26 @@ export default function ChatPage() {
             document.addEventListener("mouseup", onUp);
           }} />
         )}
-        {previewOpen && websiteData && (
-          <div style={{ flex: previewWidth ? "none" : 1, width: previewWidth || undefined, borderLeft: isMobile ? "none" : "none", background: C.bg, display: "flex", flexDirection: "column", minWidth: 0, transition: dragRef.current ? "none" : "width 300ms ease", ...(isMobile ? { position: "fixed", inset: 0, zIndex: 50 } : {}) }}>
-            <div style={{ height: 44, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", borderBottom: `1px solid ${C.border}`, fontSize: 12, fontWeight: 600, color: C.textSec }}>
+        {/* Preview panel — always in DOM so it can animate in/out */}
+        {websiteData && (
+          <div style={{
+            width: isMobile
+              ? (previewOpen ? '100%' : 0)
+              : (previewOpen ? (previewWidth || '50%') : 0),
+            maxWidth: isMobile ? undefined : '80vw',
+            background: C.bg,
+            display: "flex",
+            flexDirection: "column",
+            minWidth: 0,
+            overflow: "hidden",
+            transition: dragRef.current ? "none" : "width 400ms cubic-bezier(0.4,0,0.2,1)",
+            ...(isMobile && previewOpen ? { position: "fixed", inset: 0, zIndex: 50 } : {})
+          }}>
+            <div style={{ height: 44, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", borderBottom: `1px solid ${C.border}`, fontSize: 12, fontWeight: 600, color: C.textSec, minWidth: 300 }}>
               <span>Website Preview — {websiteData.branding?.name || "Preview"}</span>
               <HBtn onClick={() => { setPreviewOpen(false); setPreviewWidth(0); }} style={{ width: 28, height: 28, color: C.textMuted }}><Ic n="close" className="h-4 w-4" /></HBtn>
             </div>
-            <PreviewFrame html={buildPreviewHtml(websiteData)} />
+            {previewOpen && <PreviewFrame html={buildPreviewHtml(websiteData)} />}
           </div>
         )}
 
