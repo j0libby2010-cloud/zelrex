@@ -122,11 +122,25 @@ function ZelrexZIcon({ size = 24 }: { size?: number }) {
 
 function ZelrexThinking({ stage }: { stage?: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-      <span style={{ color: C.textSec, fontSize: 14 }}>{stage || "Thinking\u2026"}</span>
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}>
+      {/* Stage text with fade transition */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="z-think-orb" />
+        <span style={{ color: C.textSec, fontSize: 14, fontWeight: 500, letterSpacing: "-0.01em" }}>{stage || "Thinking…"}</span>
+      </div>
+      {/* Shimmer bar */}
+      {stage && (
+        <div style={{ width: 200, height: 2, borderRadius: 2, background: "rgba(255,255,255,0.04)", overflow: "hidden", marginLeft: 22 }}>
+          <div className="z-think-shimmer" />
+        </div>
+      )}
       <style>{`
-        .z-momentum-line{position:absolute;bottom:-2px;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,${C.accent},transparent);border-radius:2px;animation:zml 1.3s ease-in-out infinite}
-        @keyframes zml{0%{opacity:0;transform:translateX(-90%)}35%{opacity:1}65%{opacity:1}100%{opacity:0;transform:translateX(90%)}}
+        .z-think-orb{width:8px;height:8px;border-radius:50%;background:${C.accent};box-shadow:0 0 12px ${C.accent}60,0 0 4px ${C.accent}90;animation:z-orb 2s ease-in-out infinite}
+        @keyframes z-orb{0%,100%{opacity:0.4;transform:scale(0.85)}50%{opacity:1;transform:scale(1.1)}}
+        .z-think-shimmer{width:40%;height:100%;border-radius:2px;background:linear-gradient(90deg,transparent,${C.accent}60,transparent);animation:z-shimmer 1.8s ease-in-out infinite}
+        @keyframes z-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
+        .z-momentum-line{position:absolute;bottom:-3px;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,${C.accent},transparent);border-radius:2px;animation:zml 1.6s ease-in-out infinite}
+        @keyframes zml{0%{opacity:0;transform:translateX(-100%)}40%{opacity:1}60%{opacity:1}100%{opacity:0;transform:translateX(100%)}}
       `}</style>
     </div>
   );
@@ -286,31 +300,51 @@ function PreviewFrame({ html }: { html: string }) {
 
 // ─── LOADING SCREEN (Anthropic-style with Zelrex branding) ──────────
 function LoadingScreen({ onDone }: { onDone: () => void }) {
-  const [phase, setPhase] = useState(0); // 0=logo, 1=line, 2=text, 3=fade
+  const [phase, setPhase] = useState(0);
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase(1), 200);
-    const t2 = setTimeout(() => setPhase(2), 600);
-    const t3 = setTimeout(() => setPhase(3), 1600);
-    const t4 = setTimeout(onDone, 2100);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
+    const timers = [
+      setTimeout(() => setPhase(1), 100),    // Z appears
+      setTimeout(() => setPhase(2), 500),    // Gradient line sweeps
+      setTimeout(() => setPhase(3), 1200),   // "ZELREX" fades up
+      setTimeout(() => setPhase(4), 1800),   // Tagline fades up
+      setTimeout(() => setPhase(5), 2600),   // Everything fades out
+      setTimeout(onDone, 3200),
+    ];
+    return () => timers.forEach(clearTimeout);
   }, [onDone]);
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", transition: "opacity 0.5s ease", opacity: phase >= 3 ? 0 : 1, pointerEvents: phase >= 3 ? "none" : "all" }}>
-      {/* Z mark */}
-      <div style={{ position: "relative", width: 56, height: 56, marginBottom: 16, opacity: phase >= 0 ? 1 : 0, transform: phase >= 0 ? "scale(1)" : "scale(0.8)", transition: "all 0.4s cubic-bezier(0.16,1,0.3,1)" }}>
-        <svg viewBox="0 0 56 56" width="56" height="56">
-          <text x="50%" y="52%" textAnchor="middle" dominantBaseline="central" fill="rgba(225,230,240,0.95)" fontFamily="Inter, -apple-system, sans-serif" fontWeight="800" fontSize="34" letterSpacing="-0.02em">Z</text>
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#05070B", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", opacity: phase >= 5 ? 0 : 1, transition: "opacity 0.6s cubic-bezier(0.4,0,0.2,1)", pointerEvents: phase >= 5 ? "none" : "all" }}>
+      {/* Subtle radial glow behind logo */}
+      <div style={{ position: "absolute", width: 400, height: 400, borderRadius: "50%", background: `radial-gradient(circle, ${C.accent}08 0%, transparent 70%)`, opacity: phase >= 1 ? 1 : 0, transition: "opacity 1.2s ease", pointerEvents: "none" }} />
+
+      {/* Z Mark — scales in with spring easing */}
+      <div style={{ position: "relative", width: 64, height: 64, marginBottom: 20, opacity: phase >= 1 ? 1 : 0, transform: phase >= 1 ? "scale(1) translateY(0)" : "scale(0.7) translateY(8px)", transition: "all 0.7s cubic-bezier(0.16,1,0.3,1)" }}>
+        <svg viewBox="0 0 64 64" width="64" height="64" style={{ filter: `drop-shadow(0 0 20px ${C.accent}30)` }}>
+          <defs>
+            <linearGradient id="zGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#E1E6F0" />
+              <stop offset="100%" stopColor={C.accent} />
+            </linearGradient>
+          </defs>
+          <text x="50%" y="52%" textAnchor="middle" dominantBaseline="central" fill="url(#zGrad)" fontFamily="Inter, -apple-system, sans-serif" fontWeight="900" fontSize="40" letterSpacing="-0.03em">Z</text>
         </svg>
       </div>
-      {/* Momentum line */}
-      <div style={{ width: 120, height: 3, borderRadius: 2, overflow: "hidden", marginBottom: 24 }}>
-        <div style={{ width: phase >= 1 ? "100%" : "0%", height: "100%", borderRadius: 2, background: `linear-gradient(90deg, #7EB4E2, ${C.accent}, #121D39)`, transition: "width 0.8s cubic-bezier(0.16,1,0.3,1)" }} />
+
+      {/* Momentum line — sweeps left to right with gradient */}
+      <div style={{ width: 140, height: 2, borderRadius: 2, overflow: "hidden", marginBottom: 28, position: "relative" }}>
+        <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.04)", borderRadius: 2 }} />
+        <div style={{ width: phase >= 2 ? "100%" : "0%", height: "100%", borderRadius: 2, background: `linear-gradient(90deg, transparent, ${C.accent}, rgba(126,180,226,0.6), transparent)`, transition: "width 1.0s cubic-bezier(0.22,1,0.36,1)", transformOrigin: "left" }} />
       </div>
-      {/* Text */}
-      <div style={{ opacity: phase >= 2 ? 1 : 0, transform: phase >= 2 ? "translateY(0)" : "translateY(8px)", transition: "all 0.4s ease" }}>
-        <div style={{ fontSize: 13, fontWeight: 500, color: C.textSec, letterSpacing: "0.08em", textTransform: "uppercase" }}>Zelrex</div>
+
+      {/* ZELREX wordmark — fades up with tracking animation */}
+      <div style={{ opacity: phase >= 3 ? 1 : 0, transform: phase >= 3 ? "translateY(0)" : "translateY(12px)", transition: "all 0.6s cubic-bezier(0.16,1,0.3,1)", marginBottom: 8 }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: "rgba(225,230,240,0.92)", letterSpacing: phase >= 3 ? "0.18em" : "0.4em", transition: "letter-spacing 0.8s cubic-bezier(0.16,1,0.3,1)", fontFamily: "Inter, -apple-system, sans-serif" }}>ZELREX</div>
       </div>
-      <style>{`@keyframes z-pulse{0%,100%{opacity:0.5}50%{opacity:1}}`}</style>
+
+      {/* Tagline — subtle fade */}
+      <div style={{ opacity: phase >= 4 ? 0.5 : 0, transform: phase >= 4 ? "translateY(0)" : "translateY(6px)", transition: "all 0.5s ease" }}>
+        <div style={{ fontSize: 11, fontWeight: 500, color: "rgba(255,255,255,0.35)", letterSpacing: "0.06em" }}>AI Business Engine</div>
+      </div>
     </div>
   );
 }
@@ -363,13 +397,7 @@ export default function ChatPage() {
   const [activeChatId, setActiveChatId] = useState(() => chats[0]?.id ?? "");
   const activeChat = useMemo(() => chats.find((c) => c.id === activeChatId) ?? chats[0], [chats, activeChatId]);
 
-  useEffect(() => {
-    const s = safeJson<Chat[]>(localStorage.getItem(STORAGE_KEY), []);
-    if (s.length) {
-      setChats(s);
-      setActiveChatId(s[0]?.id ?? "");
-    }
-  }, []);
+  useEffect(() => { const s = safeJson<Chat[]>(localStorage.getItem(STORAGE_KEY), []); if (s.length) { setChats(s); setActiveChatId(s[0]?.id ?? ""); } }, []);
 
   // Sync websiteData/deployData from active chat when switching chats
   useEffect(() => {
@@ -393,18 +421,24 @@ export default function ChatPage() {
   const [inputFocused, setInputFocused] = useState(false);
 
   function buildPreviewHtml(site: any): string {
-    if (!site?.copy?.home?.hero) return "<html><body style='background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:system-ui'><p>No website data</p></body></html>";
+    if (!site?.copy?.home?.hero) {
+      const hasAnyCopy = site?.copy && Object.keys(site.copy).length > 0;
+      return `<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{margin:0;box-sizing:border-box}body{font-family:Inter,-apple-system,sans-serif;background:#05070B;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;text-align:center}.c{max-width:400px}.t{font-size:20px;font-weight:700;margin-bottom:12px}.s{font-size:14px;color:rgba(255,255,255,0.5);line-height:1.6}</style></head><body><div class="c"><div class="t">${hasAnyCopy ? "Website is loading…" : "No website data yet"}</div><div class="s">${hasAnyCopy ? "The website copy was generated but the structure needs a refresh. Try clicking Preview again." : "Complete the survey to build your website."}</div></div></body></html>`;
+    }
 
     const t = site.theme || {};
-    const bg = t.bg || "#0a0a0a";
-    const text = t.textPrimary || "#ffffff";
-    const textSec = t.textSecondary || "rgba(255,255,255,0.6)";
+    const sv = site.survey || {};
+
+    // ─── LIGHT/DARK MODE from survey preference ─────────
+    const isLight = sv.stylePreference === "light-clean" || sv.stylePreference === "minimal-elegant";
+    const bg = isLight ? (t.bg && !t.bg.startsWith("#0") && !t.bg.startsWith("#1") ? t.bg : "#FAFBFC") : (t.bg || "#0a0a0a");
+    const text = isLight ? "#0F172A" : (t.textPrimary || "#ffffff");
+    const textSec = isLight ? "#64748B" : (t.textSecondary || "rgba(255,255,255,0.6)");
     const accent = site.branding?.primaryColor || t.accent || "#4A90FF";
-    const surface = t.surface || "#111111";
-    const border = t.border || "rgba(255,255,255,0.08)";
+    const surface = isLight ? "#FFFFFF" : (t.surface || "#111111");
+    const border = isLight ? "#E2E8F0" : (t.border || "rgba(255,255,255,0.08)");
     const name = site.branding?.name || "My Business";
     const c = site.copy;
-    const sv = site.survey || {};
 
     // ─── TEMPLATE SELECTION ──────────────────────────────
     const fontPref = sv.fontPreference || "";
@@ -500,11 +534,143 @@ export default function ChatPage() {
         </section>`;
     };
 
-    // Socials
+    // ─── SVG Social Icons ─────────────────────────────────
+    const socialIcons: Record<string, string> = {
+      "twitterx": `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`,
+      "linkedin": `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>`,
+      "instagram": `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>`,
+      "youtube": `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`,
+      "tiktok": `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>`,
+      "dribbble": `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 24C5.385 24 0 18.615 0 12S5.385 0 12 0s12 5.385 12 12-5.385 12-12 12zm10.12-10.358c-.35-.11-3.17-.953-6.384-.438 1.34 3.684 1.887 6.684 1.992 7.308a10.174 10.174 0 004.392-6.87zm-6.115 7.808c-.153-.9-.75-4.032-2.19-7.77l-.066.02c-5.79 2.015-7.86 6.025-8.04 6.4a10.15 10.15 0 006.29 2.166c1.42 0 2.77-.29 4.006-.816zm-11.62-2.58c.232-.4 3.045-5.055 8.332-6.765.135-.045.27-.084.405-.12-.26-.585-.54-1.167-.832-1.74C7.17 11.775 2.206 11.71 1.756 11.7l-.004.312c0 2.633.998 5.037 2.634 6.855zm-2.42-8.955c.46.008 4.683.026 9.477-1.248-1.698-3.018-3.53-5.558-3.8-5.928-2.868 1.35-5.01 3.99-5.676 7.17zM9.6 2.052c.282.38 2.145 2.914 3.822 6 3.645-1.365 5.19-3.44 5.373-3.702A10.144 10.144 0 0012 1.842c-.83 0-1.634.1-2.4.21zm10.335 3.483c-.218.29-1.91 2.493-5.724 4.04.24.49.47.985.68 1.486.08.18.15.36.22.53 3.41-.43 6.8.26 7.14.33-.02-2.42-.88-4.64-2.31-6.38z"/></svg>`,
+      "behance": `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6.938 4.503c.702 0 1.34.06 1.92.188.577.13 1.07.33 1.485.61.41.28.733.65.96 1.12.225.47.34 1.05.34 1.73 0 .74-.17 1.36-.507 1.86-.338.5-.837.9-1.502 1.22.906.26 1.576.72 2.022 1.37.448.66.665 1.45.665 2.36 0 .75-.13 1.39-.41 1.93-.28.55-.67 1-1.16 1.35-.48.348-1.05.6-1.67.767-.62.16-1.26.25-1.92.25H0V4.51h6.938v-.007zM6.545 10.16c.56 0 1.01-.155 1.36-.465.348-.31.52-.733.52-1.27 0-.307-.06-.573-.174-.8a1.378 1.378 0 00-.47-.53 2.01 2.01 0 00-.72-.3 3.77 3.77 0 00-.88-.1H3.308v3.47h3.237v-.005zm.2 5.39c.346 0 .666-.04.96-.12.296-.08.556-.2.78-.36.22-.162.398-.38.52-.65.124-.27.186-.6.186-.99 0-.78-.247-1.348-.74-1.7-.492-.35-1.14-.53-1.94-.53H3.31v4.35h3.435zM21.568 11.78c.04.418.06.827.06 1.23h-8.18c.04.79.28 1.42.71 1.88.43.46 1.01.69 1.74.69.53 0 .97-.15 1.34-.45.37-.3.62-.63.76-1.01h2.6c-.42 1.3-1.09 2.25-2.01 2.85-.92.6-2.02.9-3.31.9-.87 0-1.67-.15-2.39-.44a5.22 5.22 0 01-1.85-1.23c-.51-.53-.9-1.15-1.18-1.87-.28-.72-.42-1.51-.42-2.37 0-.83.14-1.6.42-2.33.28-.73.67-1.35 1.18-1.88a5.52 5.52 0 011.85-1.27c.72-.31 1.52-.46 2.39-.46.95 0 1.78.18 2.49.55.71.37 1.3.86 1.76 1.48.46.62.8 1.33 1.01 2.14.08.28.14.57.17.87v-.01zm-2.73-1.02c-.07-.66-.31-1.19-.73-1.59-.42-.4-.96-.6-1.63-.6-.43 0-.79.07-1.09.22-.3.14-.55.33-.74.57-.2.24-.34.5-.44.79-.1.29-.16.56-.19.82h4.82zM15.116 4.14h5.42v1.44h-5.42V4.14z"/></svg>`,
+      "github": `<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>`,
+    };
+
+    // Build social links with icons
     const socials = site.branding?.socialLinks || {};
-    const socialHtml = Object.entries(socials).filter(([,v]) => v).map(([k, v]) => `
-      <a href="${v}" target="_blank" rel="noopener" style="color:${textSec};font-size:13px;text-decoration:none;transition:color 0.15s"
-         onmouseover="this.style.color='${text}'" onmouseout="this.style.color='${textSec}'">${(k as string).charAt(0).toUpperCase() + (k as string).slice(1)}</a>`).join('<span style="color:' + border + '">·</span>');
+    const socialEntries = Object.entries(socials).filter(([,v]) => v);
+    const socialIconsHtml = socialEntries.map(([k, v]) => {
+      const key = (k as string).toLowerCase().replace(/[\s\/]/g, "");
+      const icon = socialIcons[key] || "";
+      const label = (k as string).charAt(0).toUpperCase() + (k as string).slice(1);
+      return `<a href="${v}" target="_blank" rel="noopener" class="footer-social-link" title="${label}">${icon || `<span>${label}</span>`}</a>`;
+    }).join("");
+
+    // Build footer — multi-column, template-aware
+    const footerEmail = sv.email || "";
+    const footerPhone = sv.phone || "";
+    const footerLocation = sv.location || "";
+    const footerBooking = sv.calendlyUrl || "";
+    const footerTagline = site.branding?.tagline || sv.tagline || "";
+    const year = new Date().getFullYear();
+
+    const footerHtml = (() => {
+      if (isBold) return `
+      <footer class="site-footer">
+        <div class="footer-inner">
+          <div class="footer-top">
+            <div class="footer-brand">
+              <div class="footer-logo">${name}</div>
+              ${footerTagline ? `<div class="footer-tagline">${footerTagline}</div>` : ""}
+              ${socialIconsHtml ? `<div class="footer-social-row">${socialIconsHtml}</div>` : ""}
+            </div>
+            <div class="footer-cols">
+              <div class="footer-col">
+                <div class="footer-col-title">Navigate</div>
+                <a data-nav="home" class="footer-link">Home</a>
+                <a data-nav="services" class="footer-link">Services</a>
+                <a data-nav="pricing" class="footer-link">Pricing</a>
+                <a data-nav="about" class="footer-link">About</a>
+              </div>
+              <div class="footer-col">
+                <div class="footer-col-title">Get in touch</div>
+                ${footerEmail ? `<a href="mailto:${footerEmail}" class="footer-link">${footerEmail}</a>` : ""}
+                ${footerPhone ? `<a href="tel:${footerPhone.replace(/\\D/g, "")}" class="footer-link">${footerPhone}</a>` : ""}
+                ${footerBooking ? `<a href="${footerBooking}" target="_blank" rel="noopener" class="footer-link">Book a call</a>` : ""}
+                ${footerLocation ? `<span class="footer-link footer-link-muted">${footerLocation}</span>` : ""}
+              </div>
+            </div>
+          </div>
+          <div class="footer-bottom">
+            <span>&copy; ${year} ${name}. All rights reserved.</span>
+            <div class="footer-legal">
+              <a data-nav="contact" class="footer-legal-link">Contact</a>
+              <span class="footer-dot">·</span>
+              <a data-nav="about" class="footer-legal-link">About</a>
+            </div>
+          </div>
+        </div>
+      </footer>`;
+      if (isEditorial) return `
+      <footer class="site-footer">
+        <div class="footer-inner">
+          <div class="footer-top" style="border-top:2px solid ${accent}">
+            <div class="footer-brand">
+              <div class="footer-logo" style="font-family:${headFont}">${name}</div>
+              ${footerTagline ? `<div class="footer-tagline">${footerTagline}</div>` : ""}
+            </div>
+            <div class="footer-cols">
+              <div class="footer-col">
+                <div class="footer-col-title">Pages</div>
+                <a data-nav="home" class="footer-link">Home</a>
+                <a data-nav="services" class="footer-link">Services</a>
+                <a data-nav="pricing" class="footer-link">Pricing</a>
+                <a data-nav="about" class="footer-link">About</a>
+                <a data-nav="contact" class="footer-link">Contact</a>
+              </div>
+              <div class="footer-col">
+                <div class="footer-col-title">Contact</div>
+                ${footerEmail ? `<a href="mailto:${footerEmail}" class="footer-link">${footerEmail}</a>` : ""}
+                ${footerPhone ? `<a href="tel:${footerPhone.replace(/\\D/g, "")}" class="footer-link">${footerPhone}</a>` : ""}
+                ${footerBooking ? `<a href="${footerBooking}" target="_blank" rel="noopener" class="footer-link">Schedule a call →</a>` : ""}
+                ${footerLocation ? `<span class="footer-link footer-link-muted">${footerLocation}</span>` : ""}
+              </div>
+              ${socialEntries.length ? `<div class="footer-col">
+                <div class="footer-col-title">Follow</div>
+                ${socialEntries.map(([k, v]) => `<a href="${v}" target="_blank" rel="noopener" class="footer-link">${(k as string).charAt(0).toUpperCase() + (k as string).slice(1)}</a>`).join("")}
+              </div>` : ""}
+            </div>
+          </div>
+          <div class="footer-bottom">
+            <span>&copy; ${year} ${name}</span>
+            ${socialIconsHtml ? `<div class="footer-social-row">${socialIconsHtml}</div>` : ""}
+          </div>
+        </div>
+      </footer>`;
+      // Minimal
+      return `
+      <footer class="site-footer">
+        <div class="footer-inner">
+          <div class="footer-top">
+            <div class="footer-brand">
+              <div class="footer-logo">${name}</div>
+              ${footerTagline ? `<div class="footer-tagline">${footerTagline}</div>` : ""}
+            </div>
+            <div class="footer-cols">
+              <div class="footer-col">
+                <div class="footer-col-title">Sitemap</div>
+                <a data-nav="home" class="footer-link">Home</a>
+                <a data-nav="services" class="footer-link">Services</a>
+                <a data-nav="pricing" class="footer-link">Pricing</a>
+                <a data-nav="about" class="footer-link">About</a>
+                <a data-nav="contact" class="footer-link">Contact</a>
+              </div>
+              <div class="footer-col">
+                <div class="footer-col-title">Contact</div>
+                ${footerEmail ? `<a href="mailto:${footerEmail}" class="footer-link">${footerEmail}</a>` : ""}
+                ${footerPhone ? `<a href="tel:${footerPhone.replace(/\\D/g, "")}" class="footer-link">${footerPhone}</a>` : ""}
+                ${footerBooking ? `<a href="${footerBooking}" target="_blank" rel="noopener" class="footer-link">Book a call</a>` : ""}
+                ${footerLocation ? `<span class="footer-link footer-link-muted">${footerLocation}</span>` : ""}
+              </div>
+            </div>
+          </div>
+          <div class="footer-bottom">
+            <span>&copy; ${year} ${name}. All rights reserved.</span>
+            ${socialIconsHtml ? `<div class="footer-social-row">${socialIconsHtml}</div>` : ""}
+          </div>
+        </div>
+      </footer>`;
+    })();
 
     // Social proof — structurally different per template
     const proofItems = c.home?.socialProof?.items || [];
@@ -897,7 +1063,7 @@ export default function ChatPage() {
     .lead { font-size: 17px; line-height: 1.6; color: ${textSec}; max-width: 600px; }
     .btn-primary { display: inline-flex; align-items: center; background: ${accent}; color: #fff; font-weight: 700; font-size: 15px; text-decoration: none; transition: transform 0.15s, box-shadow 0.15s; cursor: pointer; border: none; }
     .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px ${accent}44; }
-    .nav { position: sticky; top: 0; z-index: 100; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); background: ${bg}dd; border-bottom: 1px solid ${border}; }
+    .nav { position: sticky; top: 0; z-index: 100; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); background: ${isLight ? bg + "ee" : bg + "dd"}; border-bottom: 1px solid ${border}; }
     .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; }
     .nav-links { display: flex; gap: 28px; align-items: center; }
     .nav-links a { font-size: 13px; font-weight: 500; color: ${textSec}; text-decoration: none; transition: color 0.15s; cursor: pointer; }
@@ -910,16 +1076,45 @@ export default function ChatPage() {
     footer { border-top: 1px solid ${border}; padding: 32px 24px; text-align: center; }
     footer span { color: ${textSec}; font-size: 13px; }
     .footer-socials { margin-top: 12px; display: flex; justify-content: center; gap: 16px; }
+
+    /* ── FULL FOOTER SYSTEM ────────────────────── */
+    .site-footer { border-top: 1px solid ${border}; background: ${isLight ? "#F8FAFC" : surface}; }
+    .footer-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    .footer-top { display: grid; grid-template-columns: 1.4fr 1fr; gap: 48px; padding: 56px 0 40px; }
+    .footer-brand { display: flex; flex-direction: column; gap: 12px; }
+    .footer-logo { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: ${text}; }
+    .footer-tagline { font-size: 14px; color: ${textSec}; line-height: 1.6; max-width: 320px; }
+    .footer-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 32px; }
+    .footer-col { display: flex; flex-direction: column; gap: 10px; }
+    .footer-col-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${text}; margin-bottom: 4px; }
+    .footer-link { font-size: 14px; color: ${textSec}; text-decoration: none; cursor: pointer; transition: color 0.15s; line-height: 1.5; }
+    .footer-link:hover { color: ${accent}; }
+    .footer-link-muted { cursor: default; }
+    .footer-link-muted:hover { color: ${textSec}; }
+    .footer-social-row { display: flex; gap: 12px; align-items: center; margin-top: 4px; }
+    .footer-social-link { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; background: ${isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.06)"}; color: ${textSec}; text-decoration: none; transition: all 0.2s; }
+    .footer-social-link:hover { color: ${accent}; background: ${isLight ? accent + "10" : accent + "18"}; transform: translateY(-1px); }
+    .footer-social-link svg { display: block; }
+    .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding: 20px 0; border-top: 1px solid ${border}; }
+    .footer-bottom span { font-size: 13px; color: ${textSec}; }
+    .footer-legal { display: flex; gap: 8px; align-items: center; }
+    .footer-legal-link { font-size: 13px; color: ${textSec}; text-decoration: none; cursor: pointer; transition: color 0.15s; }
+    .footer-legal-link:hover { color: ${text}; }
+    .footer-dot { color: ${border}; font-size: 10px; }
     ${templateCSS}
     @media (max-width: 768px) {
       .grid-2, .grid-3 { grid-template-columns: 1fr; }
       .nav-links { gap: 16px; }
       .nav-links .btn-primary { display: none; }
       .section { padding: 60px 20px; }
+      .footer-top { grid-template-columns: 1fr; gap: 32px; }
+      .footer-cols { grid-template-columns: 1fr 1fr; }
+      .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
     }
     @media (max-width: 480px) {
       .nav-links { gap: 10px; }
       .nav-links a { font-size: 11px; }
+      .footer-cols { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -945,10 +1140,7 @@ export default function ChatPage() {
   <div id="page-about" class="page">${aboutPage}</div>
   <div id="page-contact" class="page">${contactPage}</div>
 
-  <footer>
-    <span>&copy; ${new Date().getFullYear()} ${name}. All rights reserved.</span>
-    ${socialHtml ? `<div class="footer-socials">${socialHtml}</div>` : ""}
-  </footer>
+  ${footerHtml}
 
   <script>
     function navigate(page) {
@@ -1244,10 +1436,19 @@ export default function ChatPage() {
     else if (isEval) { setBuildStage("Running market evaluation\u2026"); setTimeout(() => setBuildStage("Searching market data\u2026"), 3e3); setTimeout(() => setBuildStage("Analyzing competition\u2026"), 8e3); setTimeout(() => setBuildStage("Projecting revenue\u2026"), 14e3); }
     try {
       const ctrl = new AbortController(); abortRef.current = ctrl;
-      const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify({ messages: [...activeChat.messages, userMsg] }) });
+      // If this is a website rebuild, include existing survey data so the API has full context
+      const requestBody: any = { messages: [...activeChat.messages, userMsg] };
+      if (isBuild && surveyData) { requestBody.surveyData = surveyData; requestBody.action = "buildWebsite"; }
+      const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(requestBody) });
       const raw = await res.text(); let data: { reply?: string; previewUrl?: string; websiteData?: any } = {}; try { data = JSON.parse(raw); } catch {}
       if (data.websiteData) {
-        saveWebsiteData(data.websiteData);
+        // Enrich with survey data if available
+        const enriched = surveyData ? {
+          ...data.websiteData,
+          survey: surveyData,
+          branding: { ...data.websiteData.branding, socialLinks: Object.fromEntries((surveyData.socialLinks || []).filter((s: any) => s.url).map((s: any) => [s.platform.toLowerCase().replace("/", ""), s.url])) },
+        } : data.websiteData;
+        saveWebsiteData(enriched);
       }
       const reply = data.reply?.trim() || "Something went wrong. Please try again.";
       setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, messages: [...c.messages, { id: uid("m"), role: "assistant" as const, content: reply, createdAt: Date.now(), previewUrl: data.previewUrl || undefined }], updatedAt: Date.now() } : c));

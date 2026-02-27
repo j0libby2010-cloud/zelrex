@@ -108,7 +108,16 @@ export async function buildWebsite(input: {
 
   // ── Build theme object for frontend ───────────────────────────
   // The frontend buildPreviewHtml uses these flat theme properties
-  const themeObj = {
+  const isLight = input.surveyData?.stylePreference === "light-clean" || input.surveyData?.stylePreference === "minimal-elegant";
+  const themeObj = isLight ? {
+    name: "light",
+    bg: "#FAFBFC",
+    textPrimary: "#0F172A",
+    textSecondary: "#64748B",
+    accent: branding.primaryColor || "#4A90FF",
+    surface: "#FFFFFF",
+    border: "#E2E8F0",
+  } : {
     name: typeof theme === "string" ? theme : (theme as any)?.name || "custom",
     bg: (theme as any)?.background || "#0a0a0a",
     textPrimary: (theme as any)?.textPrimary || "#ffffff",
@@ -144,63 +153,3 @@ export async function buildWebsite(input: {
 
   return website;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
