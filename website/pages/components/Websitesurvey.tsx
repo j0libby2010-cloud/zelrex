@@ -270,9 +270,11 @@ function Label({ children, required, askKey, zelrexTip, setZelrexTip }: { childr
         onMouseEnter={(e) => { const t = e.currentTarget; t.style.borderColor = `${S.accent}60`; t.style.background = `linear-gradient(135deg, ${S.accent}25, ${S.accent}10)`; t.style.boxShadow = `0 0 20px ${S.accent}25, inset 0 0.5px 0 rgba(255,255,255,0.12)`; t.style.transform = "translateY(-0.5px)"; }}
         onMouseLeave={(e) => { const t = e.currentTarget; const isActive = zelrexTip === askKey; t.style.borderColor = isActive ? `${S.accent}50` : `${S.accent}25`; t.style.background = isActive ? `linear-gradient(135deg, ${S.accent}20, ${S.accent}08)` : `linear-gradient(135deg, ${S.accent}10, transparent)`; t.style.boxShadow = isActive ? `0 0 16px ${S.accent}20, inset 0 0.5px 0 rgba(255,255,255,0.1)` : `inset 0 0.5px 0 rgba(255,255,255,0.06)`; t.style.transform = "none"; }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-            <path d="M12 2L13.5 8.5L20 7L15 12L20 17L13.5 15.5L12 22L10.5 15.5L4 17L9 12L4 7L10.5 8.5L12 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="currentColor" fillOpacity="0.15" />
+            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.6" />
           </svg>
-          Ask AI
+          Ask Zelrex
         </button>
       )}
     </div>

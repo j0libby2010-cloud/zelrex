@@ -267,13 +267,13 @@ function ActionPill({ label, onClick }: { label: string; onClick: () => void }) 
   );
 }
 
-// Button helper with hover
+// Button helper with hover — iPhone liquid glass
 function HBtn({ children, onClick, style, className, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { style?: React.CSSProperties }) {
   return (
     <button type="button" onClick={onClick} className={cx("glass-btn", className)} {...rest}
-      style={{ background: "none", border: "none", cursor: "pointer", borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "all 180ms cubic-bezier(0.2,0,0,1)", ...style }}
-      onMouseEnter={(e) => { const t = e.currentTarget; t.style.background = "rgba(255,255,255,0.06)"; t.style.backdropFilter = "blur(20px) saturate(1.8)"; (t.style as any).webkitBackdropFilter = "blur(20px) saturate(1.8)"; t.style.boxShadow = "inset 0 0.5px 0 rgba(255,255,255,0.12), 0 2px 12px rgba(0,0,0,0.15)"; }}
-      onMouseLeave={(e) => { const t = e.currentTarget; t.style.background = style?.background as string || "none"; t.style.backdropFilter = "none"; (t.style as any).webkitBackdropFilter = "none"; t.style.boxShadow = style?.boxShadow as string || "none"; }}>
+      style={{ background: "rgba(255,255,255,0.03)", border: "none", cursor: "pointer", borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "all 220ms cubic-bezier(0.2,0,0,1)", backdropFilter: "blur(12px) saturate(1.4)", WebkitBackdropFilter: "blur(12px) saturate(1.4)", boxShadow: "inset 0 0.5px 0 rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.08)", ...style }}
+      onMouseEnter={(e) => { const t = e.currentTarget; t.style.background = "rgba(255,255,255,0.09)"; t.style.backdropFilter = "blur(40px) saturate(2)"; (t.style as any).webkitBackdropFilter = "blur(40px) saturate(2)"; t.style.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; t.style.transform = "translateY(-0.5px)"; }}
+      onMouseLeave={(e) => { const t = e.currentTarget; t.style.background = style?.background as string || "rgba(255,255,255,0.03)"; t.style.backdropFilter = "blur(12px) saturate(1.4)"; (t.style as any).webkitBackdropFilter = "blur(12px) saturate(1.4)"; t.style.boxShadow = style?.boxShadow as string || "inset 0 0.5px 0 rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.08)"; t.style.transform = "none"; }}>
       {children}
     </button>
   );
@@ -1410,18 +1410,20 @@ export default function ChatPage() {
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:3px}
         ::selection{background:${C.accent}40}
         textarea::placeholder{color:${C.textMuted}}
-        .glass-btn{position:relative;overflow:hidden}
-        .glass-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(135deg,rgba(255,255,255,0.1) 0%,rgba(255,255,255,0.03) 40%,rgba(255,255,255,0.06) 100%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.12);transition:opacity 200ms cubic-bezier(0.2,0,0,1)}
+        .glass-btn{position:relative;overflow:hidden;backdrop-filter:blur(12px) saturate(1.4);-webkit-backdrop-filter:blur(12px) saturate(1.4)}
+        .glass-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(165deg,rgba(255,255,255,0.15) 0%,rgba(255,255,255,0.04) 30%,rgba(255,255,255,0.02) 60%,rgba(255,255,255,0.08) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.2),inset 0 -0.5px 0 rgba(255,255,255,0.05);transition:opacity 220ms cubic-bezier(0.2,0,0,1)}
         .glass-btn:hover::before{opacity:1}
+        .glass-btn::after{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;border-radius:inherit;background:radial-gradient(ellipse at 30% 20%,rgba(255,255,255,0.06) 0%,transparent 60%);opacity:0;transition:opacity 220ms;pointer-events:none}
+        .glass-btn:hover::after{opacity:1}
         .chat-row{position:relative;overflow:visible}
-        .chat-row::before{content:'';position:absolute;inset:0;border-radius:8px;opacity:0;background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.01) 100%);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:opacity 150ms;pointer-events:none}
+        .chat-row::before{content:'';position:absolute;inset:0;border-radius:8px;opacity:0;background:linear-gradient(165deg,rgba(255,255,255,0.08) 0%,rgba(255,255,255,0.02) 40%,rgba(255,255,255,0.04) 100%);backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.1),0 2px 8px rgba(0,0,0,0.1);transition:opacity 180ms;pointer-events:none}
         .chat-row:hover::before{opacity:1}
         .chat-row:hover .chat-dots{opacity:0.7!important}
         .chat-row:hover .chat-title{color:${C.text}!important}
         .msg-actions{display:flex;align-items:center;gap:2px;margin-top:6px;opacity:0.55;transition:opacity 180ms}
         .msg-row:hover .msg-actions{opacity:1}
-        .msg-act{display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:8px;border:1px solid transparent;background:none;color:${C.textMuted};cursor:pointer;transition:all 180ms cubic-bezier(0.2,0,0,1);padding:0}
-        .msg-act:hover{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.08);backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.12),0 2px 12px rgba(0,0,0,0.15);color:${C.text}}
+        .msg-act{display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.02);color:${C.textMuted};cursor:pointer;transition:all 200ms cubic-bezier(0.2,0,0,1);padding:0;backdrop-filter:blur(8px) saturate(1.2);-webkit-backdrop-filter:blur(8px) saturate(1.2)}
+        .msg-act:hover{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.1);backdrop-filter:blur(40px) saturate(2);-webkit-backdrop-filter:blur(40px) saturate(2);box-shadow:inset 0 1px 0 rgba(255,255,255,0.18),inset 0 -0.5px 0 rgba(255,255,255,0.04),0 4px 16px rgba(0,0,0,0.2),0 0 0 0.5px rgba(255,255,255,0.06);color:${C.text};transform:translateY(-0.5px)}
         .msg-act:active{transform:scale(0.9)}
         .msg-act svg{width:15px;height:15px}
         .user-actions{display:flex;align-items:center;gap:6px;margin-top:4px;opacity:0;transition:opacity 180ms;justify-content:flex-end}
@@ -1437,8 +1439,8 @@ export default function ChatPage() {
         .drag-handle::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:3px;height:48px;border-radius:3px;background:rgba(255,255,255,0.08);transition:all 200ms}
         .drag-handle:hover::after{background:${C.accent};box-shadow:0 0 8px ${C.accent}40;height:64px}
         /* Premium hamburger button */
-        .burger-btn{width:36px;height:36px;position:relative;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.02);border:1px solid ${C.border};border-radius:10px;cursor:pointer;transition:all 250ms cubic-bezier(0.2,0,0,1);flex-shrink:0}
-        .burger-btn:hover{background:rgba(255,255,255,0.06);border-color:${C.borderHover};box-shadow:0 0 24px rgba(74,144,255,0.06),inset 0 0.5px 0 rgba(255,255,255,0.1)}
+        .burger-btn{width:36px;height:36px;position:relative;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;cursor:pointer;transition:all 250ms cubic-bezier(0.2,0,0,1);flex-shrink:0;backdrop-filter:blur(16px) saturate(1.5);-webkit-backdrop-filter:blur(16px) saturate(1.5);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.08),0 1px 4px rgba(0,0,0,0.1)}
+        .burger-btn:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.14);box-shadow:inset 0 1px 0 rgba(255,255,255,0.2),inset 0 -0.5px 0 rgba(255,255,255,0.04),0 4px 20px rgba(0,0,0,0.2),0 0 0 0.5px rgba(255,255,255,0.06),0 0 30px rgba(74,144,255,0.04);backdrop-filter:blur(40px) saturate(2);-webkit-backdrop-filter:blur(40px) saturate(2)}
         .burger-btn:active{transform:scale(0.92);transition-duration:100ms}
         .burger-line{position:absolute;height:1.5px;border-radius:1px;background:${C.textSec};transition:transform 0.4s cubic-bezier(0.77,0,0.18,1),opacity 0.3s ease,width 0.4s cubic-bezier(0.77,0,0.18,1),background 0.3s ease}
         .burger-btn:hover .burger-line{background:${C.text}}
