@@ -244,8 +244,8 @@ function WelcomeScreen({ onAction }: { onAction: (t: string) => void }) {
         {cards.map((c) => (
           <button key={c.title} type="button" onClick={() => onAction(c.action)}
             style={{ textAlign: "left", padding: "20px 16px", borderRadius: 14, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)", cursor: "pointer", transition: "all 200ms ease", color: C.text }}
-            onMouseEnter={(e) => { const s = e.currentTarget.style; s.borderColor = C.borderHover; s.background = "rgba(255,255,255,0.05)"; s.transform = "translateY(-1px)"; }}
-            onMouseLeave={(e) => { const s = e.currentTarget.style; s.borderColor = C.border; s.background = "rgba(255,255,255,0.02)"; s.transform = "none"; }}>
+            onMouseEnter={(e) => { const s = e.currentTarget.style; s.borderColor = C.borderHover; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-1px)"; }}
+            onMouseLeave={(e) => { const s = e.currentTarget.style; s.borderColor = C.border; s.background = "rgba(255,255,255,0.02)"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
             <Ic n={c.icon} className="h-5 w-5" style={{ color: C.accent }} />
             <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>{c.title}</div>
             <div style={{ marginTop: 4, fontSize: 12, color: C.textMuted, lineHeight: 1.4 }}>{c.sub}</div>
@@ -271,9 +271,9 @@ function ActionPill({ label, onClick }: { label: string; onClick: () => void }) 
 function HBtn({ children, onClick, style, className, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { style?: React.CSSProperties }) {
   return (
     <button type="button" onClick={onClick} className={cx("glass-btn", className)} {...rest}
-      style={{ background: "rgba(255,255,255,0.03)", border: "none", cursor: "pointer", borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "all 220ms cubic-bezier(0.2,0,0,1)", backdropFilter: "blur(12px) saturate(1.4)", WebkitBackdropFilter: "blur(12px) saturate(1.4)", boxShadow: "inset 0 0.5px 0 rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.08)", ...style }}
+      style={{ background: "none", border: "none", cursor: "pointer", borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "all 220ms cubic-bezier(0.2,0,0,1)", ...style }}
       onMouseEnter={(e) => { const t = e.currentTarget; t.style.background = "rgba(255,255,255,0.09)"; t.style.backdropFilter = "blur(40px) saturate(2)"; (t.style as any).webkitBackdropFilter = "blur(40px) saturate(2)"; t.style.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; t.style.transform = "translateY(-0.5px)"; }}
-      onMouseLeave={(e) => { const t = e.currentTarget; t.style.background = style?.background as string || "rgba(255,255,255,0.03)"; t.style.backdropFilter = "blur(12px) saturate(1.4)"; (t.style as any).webkitBackdropFilter = "blur(12px) saturate(1.4)"; t.style.boxShadow = style?.boxShadow as string || "inset 0 0.5px 0 rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.08)"; t.style.transform = "none"; }}>
+      onMouseLeave={(e) => { const t = e.currentTarget; t.style.background = style?.background as string || "none"; t.style.backdropFilter = "none"; (t.style as any).webkitBackdropFilter = "none"; t.style.boxShadow = style?.boxShadow as string || "none"; t.style.transform = "none"; }}>
       {children}
     </button>
   );
@@ -1410,7 +1410,7 @@ export default function ChatPage() {
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:3px}
         ::selection{background:${C.accent}40}
         textarea::placeholder{color:${C.textMuted}}
-        .glass-btn{position:relative;overflow:hidden;backdrop-filter:blur(12px) saturate(1.4);-webkit-backdrop-filter:blur(12px) saturate(1.4)}
+        .glass-btn{position:relative;overflow:hidden}
         .glass-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(165deg,rgba(255,255,255,0.15) 0%,rgba(255,255,255,0.04) 30%,rgba(255,255,255,0.02) 60%,rgba(255,255,255,0.08) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.2),inset 0 -0.5px 0 rgba(255,255,255,0.05);transition:opacity 220ms cubic-bezier(0.2,0,0,1)}
         .glass-btn:hover::before{opacity:1}
         .glass-btn::after{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;border-radius:inherit;background:radial-gradient(ellipse at 30% 20%,rgba(255,255,255,0.06) 0%,transparent 60%);opacity:0;transition:opacity 220ms;pointer-events:none}
@@ -1422,7 +1422,7 @@ export default function ChatPage() {
         .chat-row:hover .chat-title{color:${C.text}!important}
         .msg-actions{display:flex;align-items:center;gap:2px;margin-top:6px;opacity:0.55;transition:opacity 180ms}
         .msg-row:hover .msg-actions{opacity:1}
-        .msg-act{display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.02);color:${C.textMuted};cursor:pointer;transition:all 200ms cubic-bezier(0.2,0,0,1);padding:0;backdrop-filter:blur(8px) saturate(1.2);-webkit-backdrop-filter:blur(8px) saturate(1.2)}
+        .msg-act{display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:8px;border:1px solid transparent;background:none;color:${C.textMuted};cursor:pointer;transition:all 200ms cubic-bezier(0.2,0,0,1);padding:0}
         .msg-act:hover{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.1);backdrop-filter:blur(40px) saturate(2);-webkit-backdrop-filter:blur(40px) saturate(2);box-shadow:inset 0 1px 0 rgba(255,255,255,0.18),inset 0 -0.5px 0 rgba(255,255,255,0.04),0 4px 16px rgba(0,0,0,0.2),0 0 0 0.5px rgba(255,255,255,0.06);color:${C.text};transform:translateY(-0.5px)}
         .msg-act:active{transform:scale(0.9)}
         .msg-act svg{width:15px;height:15px}
@@ -1439,7 +1439,7 @@ export default function ChatPage() {
         .drag-handle::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:3px;height:48px;border-radius:3px;background:rgba(255,255,255,0.08);transition:all 200ms}
         .drag-handle:hover::after{background:${C.accent};box-shadow:0 0 8px ${C.accent}40;height:64px}
         /* Premium hamburger button */
-        .burger-btn{width:36px;height:36px;position:relative;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;cursor:pointer;transition:all 250ms cubic-bezier(0.2,0,0,1);flex-shrink:0;backdrop-filter:blur(16px) saturate(1.5);-webkit-backdrop-filter:blur(16px) saturate(1.5);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.08),0 1px 4px rgba(0,0,0,0.1)}
+        .burger-btn{width:36px;height:36px;position:relative;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:10px;cursor:pointer;transition:all 250ms cubic-bezier(0.2,0,0,1);flex-shrink:0}
         .burger-btn:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.14);box-shadow:inset 0 1px 0 rgba(255,255,255,0.2),inset 0 -0.5px 0 rgba(255,255,255,0.04),0 4px 20px rgba(0,0,0,0.2),0 0 0 0.5px rgba(255,255,255,0.06),0 0 30px rgba(74,144,255,0.04);backdrop-filter:blur(40px) saturate(2);-webkit-backdrop-filter:blur(40px) saturate(2)}
         .burger-btn:active{transform:scale(0.92);transition-duration:100ms}
         .burger-line{position:absolute;height:1.5px;border-radius:1px;background:${C.textSec};transition:transform 0.4s cubic-bezier(0.77,0,0.18,1),opacity 0.3s ease,width 0.4s cubic-bezier(0.77,0,0.18,1),background 0.3s ease}
@@ -1543,8 +1543,8 @@ export default function ChatPage() {
         <aside style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, borderRight: sidebarOpen ? `1px solid ${C.border}` : "none", background: C.bg, transition: "all 300ms cubic-bezier(0.2,0,0,1)", overflow: "hidden", display: "flex", flexDirection: "column", position: isMobile ? "fixed" : "absolute", top: isMobile ? 0 : -81, bottom: 0, left: 0, paddingTop: isMobile ? 60 : 81, zIndex: 20 }}>
           <div style={{ padding: 10, opacity: sidebarOpen ? 1 : 0, transition: "opacity 200ms" }}>
             <button onClick={createNewChat} type="button" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 0", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer", transition: "all 150ms" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}>
+              onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
+              onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
               <Ic n="compose" className="h-4 w-4" /> New chat
             </button>
             <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
@@ -1576,8 +1576,8 @@ export default function ChatPage() {
                   )}
                   {openChatMenuId === c.id && (
                     <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "absolute", right: 4, top: 32, zIndex: 100, width: 140, borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 12px 36px rgba(0,0,0,0.5)", overflow: "hidden" }}>
-                      <button onClick={() => startRename(c.id)} type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}><Ic n="pencil" className="h-3 w-3" /> Rename</button>
-                      <button onClick={() => deleteChat(c.id)} type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}><Ic n="trash" className="h-3 w-3" /> Delete</button>
+                      <button onClick={() => startRename(c.id)} type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", transition: "all 180ms" }} onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), 0 4px 16px rgba(0,0,0,0.15)"; }} onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}><Ic n="pencil" className="h-3 w-3" /> Rename</button>
+                      <button onClick={() => deleteChat(c.id)} type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", transition: "all 180ms" }} onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), 0 4px 16px rgba(0,0,0,0.15)"; }} onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}><Ic n="trash" className="h-3 w-3" /> Delete</button>
                     </div>
                   )}
                 </div>
@@ -1586,8 +1586,8 @@ export default function ChatPage() {
           </div>
           <div style={{ borderTop: `1px solid ${C.border}`, padding: 8 }}>
             <button type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", transition: "all 150ms" }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
+              onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
+              onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}
               onClick={() => alert("Sign in coming soon")}>
               <Ic n="signin" className="h-4 w-4" /> Sign in
             </button>
@@ -1687,8 +1687,8 @@ export default function ChatPage() {
                   <HBtn onClick={() => setAttachMenuOpen((v) => !v)} style={{ width: 38, height: 38, color: C.textMuted }}><Ic n="plus" style={{ width: 20, height: 20 }} /></HBtn>
                   {attachMenuOpen && (
                     <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "absolute", left: 0, bottom: 42, zIndex: 50, width: 140, borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 12px 36px rgba(0,0,0,0.5)", overflow: "hidden" }}>
-                      <button type="button" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} style={{ width: "100%", padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", textAlign: "left" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}>Add images</button>
-                      <button type="button" onClick={() => { setAttachMenuOpen(false); fileInputRef.current?.click(); }} style={{ width: "100%", padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", textAlign: "left" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}>Add files</button>
+                      <button type="button" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} style={{ width: "100%", padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", textAlign: "left", transition: "all 180ms" }} onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), 0 4px 16px rgba(0,0,0,0.15)"; }} onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}>Add images</button>
+                      <button type="button" onClick={() => { setAttachMenuOpen(false); fileInputRef.current?.click(); }} style={{ width: "100%", padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", textAlign: "left", transition: "all 180ms" }} onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), 0 4px 16px rgba(0,0,0,0.15)"; }} onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}>Add files</button>
                     </div>
                   )}
                 </div>
