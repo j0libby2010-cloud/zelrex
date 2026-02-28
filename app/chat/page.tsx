@@ -124,25 +124,17 @@ function ZelrexZIcon({ size = 24 }: { size?: number }) {
 
 function ZelrexThinking({ stage }: { stage?: string }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "8px 0" }}>
-      {/* Stage text with fade transition */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div className="z-think-orb" />
-        <span style={{ color: C.textSec, fontSize: 14, fontWeight: 500, letterSpacing: "-0.01em" }}>{stage || "Thinking…"}</span>
-      </div>
-      {/* Shimmer bar */}
-      {stage && (
-        <div style={{ width: 200, height: 2, borderRadius: 2, background: "rgba(255,255,255,0.04)", overflow: "hidden", marginLeft: 22 }}>
-          <div className="z-think-shimmer" />
-        </div>
-      )}
+    <div style={{ display: "flex", alignItems: "center", gap: 0, padding: "6px 0", minHeight: 32 }}>
+      {/* Breathing accent line — single elegant indicator */}
+      <div className="z-pulse-line" />
+      <span className="z-think-label">{stage || "Thinking"}</span>
       <style>{`
-        .z-think-orb{width:8px;height:8px;border-radius:50%;background:${C.accent};box-shadow:0 0 12px ${C.accent}60,0 0 4px ${C.accent}90;animation:z-orb 2s ease-in-out infinite}
-        @keyframes z-orb{0%,100%{opacity:0.4;transform:scale(0.85)}50%{opacity:1;transform:scale(1.1)}}
-        .z-think-shimmer{width:40%;height:100%;border-radius:2px;background:linear-gradient(90deg,transparent,${C.accent}60,transparent);animation:z-shimmer 1.8s ease-in-out infinite}
-        @keyframes z-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
-        .z-momentum-line{position:absolute;bottom:-3px;left:2px;width:22px;height:2px;background:linear-gradient(90deg,transparent,${C.accent},transparent);border-radius:2px;animation:zml 1.6s ease-in-out infinite;overflow:hidden}
-        @keyframes zml{0%{opacity:0;transform:translateX(-100%)}40%{opacity:1}60%{opacity:1}100%{opacity:0;transform:translateX(100%)}}
+        .z-pulse-line{width:2px;height:18px;border-radius:1px;background:${C.accent};opacity:0.7;animation:z-pulse 2.4s cubic-bezier(0.4,0,0.2,1) infinite;flex-shrink:0;box-shadow:0 0 10px ${C.accent}50,0 0 3px ${C.accent}80;margin-right:10px}
+        @keyframes z-pulse{0%,100%{opacity:0.25;height:10px;box-shadow:0 0 6px ${C.accent}20}35%{opacity:0.9;height:20px;box-shadow:0 0 14px ${C.accent}60,0 0 4px ${C.accent}90}65%{opacity:0.5;height:14px;box-shadow:0 0 8px ${C.accent}35}}
+        .z-think-label{font-size:13px;font-weight:500;letter-spacing:0.01em;color:${C.textMuted};animation:z-label-fade 2.4s cubic-bezier(0.4,0,0.2,1) infinite}
+        @keyframes z-label-fade{0%,100%{opacity:0.4;color:${C.textMuted}}35%{opacity:1;color:${C.textSec}}}
+        .z-momentum-line{position:absolute;bottom:-3px;left:50%;width:14px;height:1.5px;transform:translateX(-50%);background:linear-gradient(90deg,transparent,${C.accent}80,transparent);border-radius:2px;animation:zml 2.8s ease-in-out infinite;overflow:hidden}
+        @keyframes zml{0%,100%{opacity:0;width:6px}50%{opacity:0.6;width:18px}}
       `}</style>
     </div>
   );
