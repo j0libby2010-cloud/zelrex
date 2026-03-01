@@ -30,7 +30,7 @@ function cx(...xs: Array<string | false | undefined | null>) { return xs.filter(
 function makeTitle(text: string) {
   const w = text.trim().replace(/\s+/g, " ").replace(/[^\w\s'-]/g, "").split(" ").filter(Boolean).slice(0, 5);
   const t = w.map((s) => (s.length <= 2 ? s.toLowerCase() : s[0].toUpperCase() + s.slice(1))).join(" ");
-  return t.length > 30 ? t.slice(0, 30).trim() + "\u2026" : t || "New chat";
+  return t.length > 30 ? t.slice(0, 30).trim() + "\u2026" : t || "New business";
 }
 
 function detectPhase(msgs: Msg[]): BusinessPhase {
@@ -165,7 +165,7 @@ function Typewriter({ text, speed = 8, onFinish }: { text: string; speed?: numbe
 
 function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal, onAddGoal }: { phase: BusinessPhase; businessName: string | null; sidebarOpen: boolean; isMobile: boolean; userGoal?: { text: string; target: string; deadline: string } | null; onAddGoal?: () => void }) {
   const phases: { key: string; label: string }[] = [
-    { key: "ready", label: "First $" },
+    { key: "ready", label: "Start" },
     { key: "intake", label: "Discovery" },
     { key: "evaluating", label: "Evaluation" },
     { key: "building", label: "Website" },
@@ -353,7 +353,7 @@ export default function ChatPage() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Array<{ id: string; text: string; time: number; read: boolean }>>([]);
 
-  const [chats, setChats] = useState<Chat[]>([{ id: uid("chat"), title: "New chat", messages: [], updatedAt: Date.now() }]);
+  const [chats, setChats] = useState<Chat[]>([{ id: uid("chat"), title: "New business", messages: [], updatedAt: Date.now() }]);
   const [activeChatId, setActiveChatId] = useState(() => chats[0]?.id ?? "");
   const activeChat = useMemo(() => chats.find((c) => c.id === activeChatId) ?? chats[0], [chats, activeChatId]);
 
@@ -388,7 +388,7 @@ export default function ChatPage() {
       if (data.chats?.length > 0) {
         const mapped = data.chats.map((c: any) => ({
           id: c.id,
-          title: c.title || "New chat",
+          title: c.title || "New business",
           messages: c.messages || [],
           updatedAt: new Date(c.updated_at).getTime(),
           pendingSurvey: c.pending_survey,
@@ -1122,7 +1122,7 @@ export default function ChatPage() {
   }, [chats, dataLoaded, dbUserId]);
   useEffect(() => { if (!activeChatId && chats[0]?.id) setActiveChatId(chats[0].id); if (activeChatId && !chats.some((c) => c.id === activeChatId) && chats[0]?.id) setActiveChatId(chats[0].id); }, [activeChatId, chats]);
   useEffect(() => { listEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [activeChat?.messages.length, isSending]);
-  useEffect(() => { const el = textareaRef.current; if (!el) return; el.style.height = "0px"; el.style.height = `${Math.min(180, el.scrollHeight)}px`; }, [input]);
+  useEffect(() => { const el = textareaRef.current; if (!el) return; el.style.height = "auto"; el.style.height = `${Math.max(42, Math.min(180, el.scrollHeight))}px`; }, [input]);
   useEffect(() => { const h = () => { setOpenChatMenuId(null); setOpenMsgMenuId(null); setAttachMenuOpen(false); setSettingsOpen(false); setNotifOpen(false); }; window.addEventListener("mousedown", h); return () => window.removeEventListener("mousedown", h); }, []);
   useEffect(() => { if (previewOpen) setSidebarOpen(false); }, [previewOpen]);
 
@@ -1253,14 +1253,14 @@ export default function ChatPage() {
   }
 
   async function createNewChat() {
-    const dbChat = await db.createChat("New chat");
+    const dbChat = await db.createChat("New business");
     const chatId = dbChat?.id || uid("chat");
-    const c: Chat = { id: chatId, title: "New chat", messages: [], updatedAt: Date.now(), pendingSurvey: false };
+    const c: Chat = { id: chatId, title: "New business", messages: [], updatedAt: Date.now(), pendingSurvey: false };
     setChats((p) => [c, ...p]); setActiveChatId(c.id); setOpenChatMenuId(null); setRenamingChatId(null); setInput(""); setDraftAttachments((p) => { for (const a of p) if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); return []; }); if (isMobile) setSidebarOpen(false);
   }
   async function deleteChat(id: string) { db.deleteChat(id); setChats((p) => p.filter((c) => c.id !== id)); setOpenChatMenuId(null); if (id === activeChatId) { const r = chats.filter((c) => c.id !== id); setActiveChatId(r[0]?.id ?? ""); } }
   function startRename(id: string) { setRenamingChatId(id); setRenameValue(chats.find((x) => x.id === id)?.title ?? ""); setOpenChatMenuId(null); }
-  function commitRename() { if (!renamingChatId) return; setChats((p) => p.map((c) => (c.id === renamingChatId ? { ...c, title: renameValue.trim() || "New chat" } : c))); setRenamingChatId(null); setRenameValue(""); }
+  function commitRename() { if (!renamingChatId) return; setChats((p) => p.map((c) => (c.id === renamingChatId ? { ...c, title: renameValue.trim() || "New business" } : c))); setRenamingChatId(null); setRenameValue(""); }
   function sendViaCard(text: string) { setInput(text); setTimeout(() => sendMessage(text), 50); }
 
   async function handleSurveyComplete(data: SurveyData) {
@@ -1445,11 +1445,14 @@ export default function ChatPage() {
         .chat-row:hover .chat-title{color:${C.text}!important}
         .msg-actions{display:flex;align-items:center;gap:2px;margin-top:6px;opacity:0.55;transition:opacity 180ms}
         .msg-row:hover .msg-actions{opacity:1}
+        .user-row .msg-actions{opacity:0}
+        .user-row:hover .msg-actions{opacity:1}
+        .user-row .msg-act{color:rgba(255,255,255,0.55)}
         .msg-act{display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:8px;border:1px solid transparent;background:none;color:${C.textMuted};cursor:pointer;transition:all 200ms cubic-bezier(0.2,0,0,1);padding:0}
         .msg-act:hover{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.1);backdrop-filter:blur(40px) saturate(2);-webkit-backdrop-filter:blur(40px) saturate(2);box-shadow:inset 0 1px 0 rgba(255,255,255,0.18),inset 0 -0.5px 0 rgba(255,255,255,0.04),0 4px 16px rgba(0,0,0,0.2),0 0 0 0.5px rgba(255,255,255,0.06);color:${C.text};transform:translateY(-0.5px)}
         .msg-act:active{transform:scale(0.9)}
         .msg-act svg{width:15px;height:15px}
-        .user-time{font-size:10px;color:${C.textMuted};opacity:0.7;font-weight:400;letter-spacing:0.01em}
+        .user-time{font-size:11px;color:rgba(255,255,255,0.7);font-weight:500;letter-spacing:0.01em}
         .collapsed-avatar:hover .collapsed-reveal,.collapsed-reveal:hover{opacity:1!important;transform:translateX(0)!important;pointer-events:auto!important}
         .drag-handle{width:8px;cursor:col-resize;background:transparent;transition:background 200ms;flex-shrink:0;position:relative;z-index:10;border-left:1px solid ${C.border}}
         .drag-handle:hover{background:rgba(74,144,255,0.06);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
@@ -1563,17 +1566,17 @@ export default function ChatPage() {
             <button onClick={createNewChat} type="button" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 0", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer", transition: "all 150ms" }}
               onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
               onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
-              <Ic n="compose" className="h-4 w-4" /> New chat
+              <Ic n="compose" className="h-4 w-4" /> New business
             </button>
             <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
               <Ic n="search" className="h-3.5 w-3.5" style={{ color: C.textMuted }} />
-              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search chats..." style={{ flex: 1, background: "none", border: "none", outline: "none", color: C.text, fontSize: 12 }} />
+              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search businesses..." style={{ flex: 1, background: "none", border: "none", outline: "none", color: C.text, fontSize: 12 }} />
               {searchQuery && <HBtn onClick={() => setSearchQuery("")} style={{ width: 20, height: 20, color: C.textMuted }}><Ic n="close" className="h-3 w-3" /></HBtn>}
             </div>
           </div>
           <div style={{ height: 1, margin: "0 10px", background: C.border }} />
           <div style={{ flex: 1, overflowY: "auto", padding: "6px 6px" }}>
-            <div style={{ padding: "4px 8px 6px", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.textMuted }}>Chats</div>
+            <div style={{ padding: "4px 8px 6px", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.textMuted }}>Businesses</div>
             {filteredChats.map((c) => {
               const isA = c.id === activeChatId; const isR = renamingChatId === c.id;
               return (
@@ -1584,7 +1587,7 @@ export default function ChatPage() {
                     {isR ? (
                       <input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") { setRenamingChatId(null); setRenameValue(""); } }} onBlur={commitRename} autoFocus style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", color: C.text, fontSize: 12, outline: "none" }} />
                     ) : (
-                      <div className="chat-title" style={{ fontSize: 12, color: isA ? C.text : C.textSec, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180, transition: "color 150ms", position: "relative", zIndex: 1 }}>{c.title || "New chat"}</div>
+                      <div className="chat-title" style={{ fontSize: 12, color: isA ? C.text : C.textSec, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180, transition: "color 150ms", position: "relative", zIndex: 1 }}>{c.title || "New business"}</div>
                     )}
                   </button>
                   {!isR && (
@@ -1610,10 +1613,10 @@ export default function ChatPage() {
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, letterSpacing: "0.03em", marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" onClick={() => setSettingsOpen(true)} title="Settings" style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 220ms cubic-bezier(0.2,0,0,1)", opacity: sidebarOpen ? 1 : 0 }}
+                <button type="button" onClick={() => setSettingsOpen(true)} title="Settings" style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 220ms cubic-bezier(0.2,0,0,1)", opacity: sidebarOpen ? 1 : 0 }}
                   onMouseEnter={(e) => { const s = e.currentTarget.style; s.color = C.text; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
                   onMouseLeave={(e) => { const s = e.currentTarget.style; s.color = C.textMuted; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
-                  <Ic n="settings" className="h-3.5 w-3.5" />
+                  <Ic n="settings" style={{ width: 20, height: 20 }} />
                 </button>
               </div>
             ) : (
@@ -1637,10 +1640,10 @@ export default function ChatPage() {
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" onClick={() => setSettingsOpen(true)} title="Settings" style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 220ms cubic-bezier(0.2,0,0,1)" }}
+                <button type="button" onClick={() => setSettingsOpen(true)} title="Settings" style={{ width: 30, height: 30, borderRadius: 7, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 220ms cubic-bezier(0.2,0,0,1)" }}
                   onMouseEnter={(e) => { const s = e.currentTarget.style; s.color = C.text; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
                   onMouseLeave={(e) => { const s = e.currentTarget.style; s.color = C.textMuted; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
-                  <Ic n="settings" className="h-3.5 w-3.5" />
+                  <Ic n="settings" style={{ width: 18, height: 18 }} />
                 </button>
               </div>
             </div>
