@@ -1122,7 +1122,7 @@ export default function ChatPage() {
   }, [chats, dataLoaded, dbUserId]);
   useEffect(() => { if (!activeChatId && chats[0]?.id) setActiveChatId(chats[0].id); if (activeChatId && !chats.some((c) => c.id === activeChatId) && chats[0]?.id) setActiveChatId(chats[0].id); }, [activeChatId, chats]);
   useEffect(() => { listEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [activeChat?.messages.length, isSending]);
-  useEffect(() => { const el = textareaRef.current; if (!el) return; el.style.height = "auto"; el.style.height = `${Math.max(42, Math.min(180, el.scrollHeight))}px`; }, [input]);
+  useEffect(() => { const el = textareaRef.current; if (!el) return; if (!input) { el.style.height = "42px"; return; } el.style.height = "42px"; el.style.height = `${Math.max(42, Math.min(180, el.scrollHeight))}px`; }, [input]);
   useEffect(() => { const h = () => { setOpenChatMenuId(null); setOpenMsgMenuId(null); setAttachMenuOpen(false); setSettingsOpen(false); setNotifOpen(false); }; window.addEventListener("mousedown", h); return () => window.removeEventListener("mousedown", h); }, []);
   useEffect(() => { if (previewOpen) setSidebarOpen(false); }, [previewOpen]);
 
