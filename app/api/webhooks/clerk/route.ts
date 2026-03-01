@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   }
 
   // Verify the webhook signature
-  const headerPayload = headers();
+  const headerPayload = await headers();
   const svixId = headerPayload.get("svix-id");
   const svixTimestamp = headerPayload.get("svix-timestamp");
   const svixSignature = headerPayload.get("svix-signature");
@@ -51,8 +51,8 @@ export async function POST(req: Request) {
   switch (eventType) {
     case "user.created": {
       const email = data.email_addresses?.[0]?.email_address;
-      const name = [data.first_name, data.last_name].filter(Boolean).join(" ") || null;
-      const avatar = data.image_url || null;
+      const name = [data.first_name, data.last_name].filter(Boolean).join(" ") || undefined;
+      const avatar = data.image_url || undefined;
       await createUser(data.id, email, name, avatar);
       console.log(`[Clerk Webhook] User created: ${data.id} (${email})`);
       break;

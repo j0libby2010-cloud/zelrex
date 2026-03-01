@@ -30,7 +30,7 @@ import {
 // ─── GET: Load all user data ────────────────────────────────────────
 
 export async function GET() {
-  const { userId: clerkId } = auth();
+  const { userId: clerkId } = await auth();
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   // Ensure user exists in Supabase (fallback if webhook hasn't fired yet)
@@ -47,7 +47,7 @@ export async function GET() {
 // ─── POST: Save/update user data ────────────────────────────────────
 
 export async function POST(req: Request) {
-  const { userId: clerkId } = auth();
+  const { userId: clerkId } = await auth();
   if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const user = await getUserByClerkId(clerkId);
