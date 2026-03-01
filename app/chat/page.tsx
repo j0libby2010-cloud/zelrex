@@ -75,7 +75,7 @@ function Ic({ n, className, style }: { n: string; className?: string; style?: Re
     target: <><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.4" /><circle cx="12" cy="12" r="6" stroke="currentColor" strokeWidth="1.4" /><circle cx="12" cy="12" r="2" fill="currentColor" /></>,
     preview: <><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.4" /><path d="M8 21h8M12 17v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></>,
     flag: <><path d="M6 3v18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><path d="M6 5c2-1 4-1 6 0s4 1 6 0v8c-2 1-4 1-6 0s-4-1-6 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></>,
-    settings: <><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.4" /><path d="M12 1v2m0 18v2m-9-11h2m18 0h2m-3.3-6.7-1.4 1.4M4.7 19.3l-1.4-1.4m0-11.6 1.4 1.4m14.2 14.2-1.4-1.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></>,
+    settings: <><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.4" /></>,
     signin: <><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></>,
     bolt: <><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></>,
     bell: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></>,
@@ -165,12 +165,11 @@ function Typewriter({ text, speed = 8, onFinish }: { text: string; speed?: numbe
 
 function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal, onAddGoal }: { phase: BusinessPhase; businessName: string | null; sidebarOpen: boolean; isMobile: boolean; userGoal?: { text: string; target: string; deadline: string } | null; onAddGoal?: () => void }) {
   const phases: { key: string; label: string }[] = [
-    { key: "ready", label: "Start" },
+    { key: "ready", label: "First $" },
     { key: "intake", label: "Discovery" },
     { key: "evaluating", label: "Evaluation" },
     { key: "building", label: "Website" },
     { key: "live", label: businessName || "Live" },
-    { key: "firstdollar", label: "First $" },
   ];
   const phaseKeys = ["ready", "intake", "evaluating", "building", "live"];
   const currentIdx = phaseKeys.indexOf(phase);
@@ -181,16 +180,15 @@ function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal, onAdd
     <div style={{ height: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 0, borderBottom: `1px solid ${C.border}`, background: currentIdx > 0 ? `linear-gradient(90deg, transparent, ${accentColor}06, transparent)` : "transparent", padding: "0 20px", marginLeft: leftOffset, width: `calc(100% - ${leftOffset}px)`, transition: "margin-left 300ms cubic-bezier(0.2,0,0,1), width 300ms cubic-bezier(0.2,0,0,1)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
       {phases.map((p, i) => {
-        const isFirstDollar = p.key === "firstdollar";
-        const isDone = !isFirstDollar && i < currentIdx;
-        const isCurrent = !isFirstDollar && phaseKeys[currentIdx] === p.key;
-        const color = isDone ? "#10B981" : isCurrent ? accentColor : isFirstDollar ? "#F59E0B" : C.textMuted;
+        const isDone = i < currentIdx;
+        const isCurrent = phaseKeys[currentIdx] === p.key;
+        const color = isDone ? "#10B981" : isCurrent ? accentColor : C.textMuted;
         return (
           <React.Fragment key={p.key}>
             {i > 0 && <div style={{ width: isMobile ? 16 : 32, height: 1, background: isDone ? "#10B981" : C.border, margin: "0 2px", transition: "background 500ms" }} />}
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 6, height: 6, borderRadius: 999, background: color, boxShadow: isCurrent ? `0 0 8px ${color}` : isFirstDollar ? `0 0 6px ${color}40` : "none", transition: "all 500ms", animation: isCurrent && (phase === "evaluating" || phase === "building") ? "zp 2s ease infinite" : "none" }} />
-              <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: isCurrent ? 700 : isFirstDollar ? 600 : 500, color, letterSpacing: "0.04em", textTransform: "uppercase", transition: "all 300ms" }}>{p.label}</span>
+              <span style={{ width: 6, height: 6, borderRadius: 999, background: color, boxShadow: isCurrent ? `0 0 8px ${color}` : "none", transition: "all 500ms", animation: isCurrent && (phase === "evaluating" || phase === "building") ? "zp 2s ease infinite" : "none" }} />
+              <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: isCurrent ? 700 : 500, color, letterSpacing: "0.04em", textTransform: "uppercase", transition: "all 300ms" }}>{p.label}</span>
             </div>
           </React.Fragment>
         );
@@ -203,9 +201,9 @@ function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal, onAdd
           <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 600, color: C.accent, letterSpacing: "0.04em", textTransform: "uppercase", maxWidth: 160, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userGoal.text}</span>
         </div>
       ) : (
-        <button type="button" onClick={onAddGoal} style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: isMobile ? 9 : 10, fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", textTransform: "uppercase", transition: "all 200ms" }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.accent + "60"; e.currentTarget.style.color = C.accent; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textMuted; }}>
+        <button type="button" onClick={onAddGoal} style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: isMobile ? 9 : 10, fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", textTransform: "uppercase", transition: "all 220ms cubic-bezier(0.2,0,0,1)" }}
+          onMouseEnter={(e) => { const s = e.currentTarget.style; s.borderColor = C.accent + "60"; s.color = C.accent; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
+          onMouseLeave={(e) => { const s = e.currentTarget.style; s.borderColor = C.border; s.color = C.textMuted; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
           <span style={{ fontSize: 11, lineHeight: 1 }}>+</span> Goal
         </button>
       )}
@@ -1451,13 +1449,8 @@ export default function ChatPage() {
         .msg-act:hover{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.1);backdrop-filter:blur(40px) saturate(2);-webkit-backdrop-filter:blur(40px) saturate(2);box-shadow:inset 0 1px 0 rgba(255,255,255,0.18),inset 0 -0.5px 0 rgba(255,255,255,0.04),0 4px 16px rgba(0,0,0,0.2),0 0 0 0.5px rgba(255,255,255,0.06);color:${C.text};transform:translateY(-0.5px)}
         .msg-act:active{transform:scale(0.9)}
         .msg-act svg{width:15px;height:15px}
-        .user-actions{display:flex;align-items:center;gap:6px;margin-top:4px;opacity:0;transition:opacity 180ms;justify-content:flex-end}
-        .user-row:hover .user-actions{opacity:1}
-        .user-act{display:flex;align-items:center;justify-content:center;width:26px;height:24px;border-radius:6px;border:none;background:none;color:${C.textMuted};cursor:pointer;transition:all 150ms;padding:0}
-        .user-act:hover{background:rgba(74,144,255,0.1);color:${C.accent}}
-        .user-act:active{transform:scale(0.9)}
-        .user-act svg{width:13px;height:13px}
         .user-time{font-size:10px;color:${C.textMuted};opacity:0.7;font-weight:400;letter-spacing:0.01em}
+        .collapsed-avatar:hover .collapsed-reveal,.collapsed-reveal:hover{opacity:1!important;transform:translateX(0)!important;pointer-events:auto!important}
         .drag-handle{width:8px;cursor:col-resize;background:transparent;transition:background 200ms;flex-shrink:0;position:relative;z-index:10;border-left:1px solid ${C.border}}
         .drag-handle:hover{background:rgba(74,144,255,0.06);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
         .drag-handle:active{background:rgba(74,144,255,0.1)}
@@ -1506,16 +1499,10 @@ export default function ChatPage() {
                 <Ic n="send" className="h-3.5 w-3.5" />{!isMobile && (isDeploying ? " Deploying..." : deployData?.url ? " Redeploy" : " Deploy")}
               </HBtn>
             )}
-            {!isMobile && (
-              isSignedIn ? (
-                <HBtn onClick={() => signOut()} style={{ padding: "5px 12px", border: `1px solid ${C.border}`, color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
-                  <Ic n="signin" className="h-3.5 w-3.5" /> Sign out
-                </HBtn>
-              ) : (
-                <HBtn onClick={() => { window.location.href = "/sign-in"; }} style={{ padding: "5px 12px", border: `1px solid ${C.border}`, color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
-                  <Ic n="signin" className="h-3.5 w-3.5" /> Sign in
-                </HBtn>
-              )
+            {!isMobile && !isSignedIn && (
+              <HBtn onClick={() => { window.location.href = "/sign-in"; }} style={{ padding: "5px 12px", border: `1px solid ${C.border}`, color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
+                <Ic n="signin" className="h-3.5 w-3.5" /> Sign in
+              </HBtn>
             )}
             {/* Goals button */}
             <div style={{ position: "relative" }}>
@@ -1623,9 +1610,9 @@ export default function ChatPage() {
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, letterSpacing: "0.03em", marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" onClick={() => signOut()} title="Sign out" style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 200ms", opacity: sidebarOpen ? 1 : 0 }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = C.text; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = C.textMuted; e.currentTarget.style.background = "none"; }}>
+                <button type="button" onClick={() => setSettingsOpen(true)} title="Settings" style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 220ms cubic-bezier(0.2,0,0,1)", opacity: sidebarOpen ? 1 : 0 }}
+                  onMouseEnter={(e) => { const s = e.currentTarget.style; s.color = C.text; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
+                  onMouseLeave={(e) => { const s = e.currentTarget.style; s.color = C.textMuted; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
                   <Ic n="settings" className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -1642,19 +1629,17 @@ export default function ChatPage() {
 
         {/* Collapsed profile avatar (visible when sidebar is closed) */}
         {!sidebarOpen && !isMobile && isSignedIn && clerkUser && (
-          <div className="collapsed-avatar-wrap" style={{ position: "fixed", bottom: 14, left: 10, zIndex: 21 }}>
-            <div className="collapsed-avatar" style={{ position: "relative", cursor: "pointer" }}
-              onMouseEnter={(e) => { const reveal = e.currentTarget.querySelector('.collapsed-reveal') as HTMLElement; if (reveal) { reveal.style.opacity = "1"; reveal.style.transform = "translateX(0)"; reveal.style.pointerEvents = "auto"; } }}
-              onMouseLeave={(e) => { const reveal = e.currentTarget.querySelector('.collapsed-reveal') as HTMLElement; if (reveal) { reveal.style.opacity = "0"; reveal.style.transform = "translateX(-6px)"; reveal.style.pointerEvents = "none"; } }}>
+          <div className="collapsed-avatar-wrap" style={{ position: "fixed", bottom: 20, left: 10, zIndex: 21 }}>
+            <div className="collapsed-avatar" style={{ position: "relative", cursor: "pointer" }}>
               <img src={clerkUser.imageUrl} alt="" style={{ width: 32, height: 32, borderRadius: 999, border: `1.5px solid ${C.border}`, display: "block" }} />
-              <div className="collapsed-reveal" style={{ position: "absolute", left: 38, top: -4, display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "rgba(10,15,26,0.92)", border: `1px solid ${C.border}`, backdropFilter: "blur(32px) saturate(1.6)", WebkitBackdropFilter: "blur(32px) saturate(1.6)", boxShadow: "0 8px 32px rgba(0,0,0,0.4)", whiteSpace: "nowrap", opacity: 0, transform: "translateX(-6px)", transition: "all 200ms cubic-bezier(0.2,0,0,1)", pointerEvents: "none" }}>
+              <div className="collapsed-reveal" style={{ position: "absolute", left: 38, top: -4, display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "rgba(10,15,26,0.92)", border: `1px solid ${C.border}`, backdropFilter: "blur(32px) saturate(1.6)", WebkitBackdropFilter: "blur(32px) saturate(1.6)", boxShadow: "0 8px 32px rgba(0,0,0,0.4)", whiteSpace: "nowrap", opacity: 0, transform: "translateX(-6px)", transition: "all 220ms cubic-bezier(0.2,0,0,1)", pointerEvents: "none" }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" onClick={() => signOut()} title="Sign out" style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 200ms" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.color = C.text; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.color = C.textMuted; e.currentTarget.style.background = "none"; }}>
+                <button type="button" onClick={() => setSettingsOpen(true)} title="Settings" style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 220ms cubic-bezier(0.2,0,0,1)" }}
+                  onMouseEnter={(e) => { const s = e.currentTarget.style; s.color = C.text; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
+                  onMouseLeave={(e) => { const s = e.currentTarget.style; s.color = C.textMuted; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
                   <Ic n="settings" className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -1709,12 +1694,12 @@ export default function ChatPage() {
                           </div>
                           {/* User message: copy button + timestamp on hover */}
                           {isUser && (
-                            <div className="user-actions">
-                              <span className="user-time">{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
-                              <button className="user-act" title="Copy" onClick={() => { navigator.clipboard.writeText(m.content); setCopiedMsgId(m.id); setTimeout(() => setCopiedMsgId(null), 1200); }}>
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                            <div className="msg-actions" style={{ justifyContent: "flex-end" }}>
+                              <span className="user-time" style={{ marginRight: 4 }}>{new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                              <button className="msg-act" title="Copy" onClick={() => { navigator.clipboard.writeText(m.content); setCopiedMsgId(m.id); setTimeout(() => setCopiedMsgId(null), 1200); }}>
+                                <Ic n="copy" />
                               </button>
-                              {copiedMsgId === m.id && <span style={{ fontSize: 10, color: C.accent, fontWeight: 500 }}>Copied</span>}
+                              {copiedMsgId === m.id && <span style={{ fontSize: 10, color: C.accent, fontWeight: 500, marginLeft: 4 }}>Copied</span>}
                             </div>
                           )}
                         </div>
@@ -1740,14 +1725,16 @@ export default function ChatPage() {
             <div className={inputFocused ? "input-box input-focus-glow" : "input-box"} style={{ position: "relative", zIndex: 1, maxWidth: previewOpen ? "100%" : 820, margin: "0 auto", borderRadius: draftAttachments.length ? 18 : 999, border: `1px solid ${inputFocused ? C.borderHover : C.border}`, background: C.bgInput, boxShadow: `0 4px 24px rgba(0,0,0,0.3)`, transition: "border-color 200ms, box-shadow 200ms" }}>
               <style>{`
                 .input-focus-glow {
-                  border-color: ${C.accent} !important;
-                  box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 2px rgba(74,144,255,0.15), 0 0 20px rgba(74,144,255,0.08) !important;
-                  animation: inputGlowPulse 500ms cubic-bezier(0.2,0,0,1) forwards;
+                  animation: inputRingIn 400ms cubic-bezier(0.16,1,0.3,1) forwards, inputRingOut 400ms cubic-bezier(0.4,0,0.2,1) 350ms forwards;
                 }
-                @keyframes inputGlowPulse {
-                  0% { box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 3px rgba(74,144,255,0.35), 0 0 30px rgba(74,144,255,0.15); border-color: #5BA0FF; }
-                  50% { box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 2.5px rgba(74,144,255,0.25), 0 0 24px rgba(74,144,255,0.1); }
-                  100% { box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 1.5px rgba(74,144,255,0.1), 0 0 12px rgba(74,144,255,0.04); border-color: rgba(255,255,255,0.14); }
+                @keyframes inputRingIn {
+                  0% { border-color: rgba(255,255,255,0.07); box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 0px rgba(74,144,255,0), 0 0 0px rgba(74,144,255,0); }
+                  60% { border-color: #5BA0FF; box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 3px rgba(74,144,255,0.4), 0 0 32px rgba(74,144,255,0.18); }
+                  100% { border-color: #4A90FF; box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 2.5px rgba(74,144,255,0.3), 0 0 24px rgba(74,144,255,0.12); }
+                }
+                @keyframes inputRingOut {
+                  0% { border-color: #4A90FF; box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 2.5px rgba(74,144,255,0.3), 0 0 24px rgba(74,144,255,0.12); }
+                  100% { border-color: rgba(255,255,255,0.14); box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 0px rgba(74,144,255,0), 0 0 0px rgba(74,144,255,0); }
                 }
               `}</style>
               {draftAttachments.length > 0 && (
@@ -1772,8 +1759,8 @@ export default function ChatPage() {
                     </div>
                   )}
                 </div>
-                <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} onPaste={onPaste} placeholder="Message Zelrex..."
-                  style={{ flex: 1, maxHeight: 200, minHeight: 36, resize: "none", background: "none", border: "none", outline: "none", padding: "8px 8px", fontSize: 14, lineHeight: 1.5, color: C.text }} />
+                <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} onPaste={onPaste} placeholder="Ask anything"
+                  style={{ flex: 1, maxHeight: 200, minHeight: 42, resize: "none", background: "none", border: "none", outline: "none", padding: "10px 8px", fontSize: 14, lineHeight: 1.5, color: C.text }} />
                 <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <HBtn onClick={startSpeech} style={{ width: 38, height: 38, color: listening ? C.accent : C.textMuted }}><Ic n="mic" style={{ width: 20, height: 20 }} /></HBtn>
                   <HBtn onClick={isSending ? stopResponse : () => sendMessage()}
