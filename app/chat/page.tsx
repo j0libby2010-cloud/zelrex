@@ -6,6 +6,7 @@ import { formatMessage } from "./formatMessage";
 import { WebsiteSurvey, SurveyData } from "@/website/pages/components/Websitesurvey";
 import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
+
 type Role = "user" | "assistant";
 type Msg = { id: string; role: Role; content: string; createdAt: number; previewUrl?: string };
 type Chat = { id: string; title: string; messages: Msg[]; updatedAt: number; pendingSurvey?: boolean; websiteData?: any; deployData?: any };
@@ -13,7 +14,6 @@ type DraftAttachment = { id: string; file: File; kind: "image" | "file"; preview
 type BusinessPhase = "ready" | "intake" | "evaluating" | "building" | "live";
 
 // Chat IDs now come from Supabase UUIDs
-const ANIMATED_KEY = "zelrex_animated_ids"; // local-only, cosmetic
 
 const C = {
   bg: "#06090F", bgSurface: "#0A0F1A", bgElevated: "#0D1320", bgInput: "#080D17",
@@ -386,8 +386,8 @@ export default function ChatPage() {
 
   // Persist animated IDs across reloads so typewriter never replays (local-only, cosmetic)
   const [animatedIds, setAnimatedIds] = useState<string[]>([]);
-  useEffect(() => { const s = localStorage.getItem(ANIMATED_KEY); if (s) try { setAnimatedIds(JSON.parse(s)); } catch {} }, []);
-  useEffect(() => { localStorage.setItem(ANIMATED_KEY, JSON.stringify(animatedIds)); }, [animatedIds]);
+  useEffect(() => { const s = localStorage.getItem("zelrex_animated_ids"); if (s) try { setAnimatedIds(JSON.parse(s)); } catch {} }, []);
+  useEffect(() => { localStorage.setItem("zelrex_animated_ids", JSON.stringify(animatedIds)); }, [animatedIds]);
 
   // ─── Load user data from Supabase ────────────────────────────────
   useEffect(() => {
