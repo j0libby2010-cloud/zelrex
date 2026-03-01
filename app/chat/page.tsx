@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useUser, useClerk, RedirectToSignIn } from "@clerk/nextjs";
 import { formatMessage } from "./formatMessage";
 import { WebsiteSurvey, SurveyData } from "@/website/pages/components/Websitesurvey";
+import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
 type Role = "user" | "assistant";
 type Msg = { id: string; role: Role; content: string; createdAt: number; previewUrl?: string };
@@ -10,8 +12,8 @@ type Chat = { id: string; title: string; messages: Msg[]; updatedAt: number; pen
 type DraftAttachment = { id: string; file: File; kind: "image" | "file"; previewUrl?: string };
 type BusinessPhase = "ready" | "intake" | "evaluating" | "building" | "live";
 
-const STORAGE_KEY = "zelrex_chats_v1";
-const ANIMATED_KEY = "zelrex_animated_ids"; // persist animated IDs so typewriter never replays
+// Chat IDs now come from Supabase UUIDs
+const ANIMATED_KEY = "zelrex_animated_ids"; // local-only, cosmetic
 
 const C = {
   bg: "#06090F", bgSurface: "#0A0F1A", bgElevated: "#0D1320", bgInput: "#080D17",
@@ -332,6 +334,13 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
 }
 
 export default function ChatPage() {
+  // ─── Auth ──────────────────────────────────────────────────────────
+  const { user: clerkUser, isLoaded: authLoaded, isSignedIn } = useUser();
+  const { signOut } = useClerk();
+  const [dbUserId, setDbUserId] = useState<string | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const debouncedSave = useDebouncedSave(800);
+
   const [appLoaded, setAppLoaded] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -375,26 +384,42 @@ export default function ChatPage() {
     if (activeChat?.id) setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, deployData: data } : c));
   }
 
-  // Persist animated IDs across reloads so typewriter never replays
+  // Persist animated IDs across reloads so typewriter never replays (local-only, cosmetic)
   const [animatedIds, setAnimatedIds] = useState<string[]>([]);
   useEffect(() => { const s = localStorage.getItem(ANIMATED_KEY); if (s) try { setAnimatedIds(JSON.parse(s)); } catch {} }, []);
-  useEffect(() => {
-    // Migrate old global websiteData to first chat if exists
-    const saved = localStorage.getItem("zelrex_website_data");
-    if (saved) {
-      try {
-        const wd = JSON.parse(saved);
-        if (wd && chats[0] && !chats[0].websiteData) {
-          setChats((p) => p.map((c, i) => i === 0 ? { ...c, websiteData: wd } : c));
-        }
-      } catch {}
-      localStorage.removeItem("zelrex_website_data");
-      localStorage.removeItem("zelrex_deploy_data");
-    }
-  }, []);
   useEffect(() => { localStorage.setItem(ANIMATED_KEY, JSON.stringify(animatedIds)); }, [animatedIds]);
 
-  useEffect(() => { const s = safeJson<Chat[]>(localStorage.getItem(STORAGE_KEY), []); if (s.length) { setChats(s); setActiveChatId(s[0]?.id ?? ""); } }, []);
+  // ─── Load user data from Supabase ────────────────────────────────
+  useEffect(() => {
+    if (!isSignedIn || !clerkUser?.id) return;
+    db.loadAll().then((data) => {
+      if (!data) { setDataLoaded(true); return; }
+      setDbUserId(data.user.id);
+      // Load chats
+      if (data.chats?.length > 0) {
+        const mapped = data.chats.map((c: any) => ({
+          id: c.id,
+          title: c.title || "New chat",
+          messages: c.messages || [],
+          updatedAt: new Date(c.updated_at).getTime(),
+          pendingSurvey: c.pending_survey,
+        }));
+        setChats(mapped);
+        setActiveChatId(mapped[0]?.id ?? "");
+      }
+      // Load goal
+      if (data.goal) {
+        setUserGoal({ text: data.goal.text, target: data.goal.target || "", deadline: data.goal.deadline || "" });
+      }
+      // Load notifications
+      if (data.notifications?.length > 0) {
+        setNotifications(data.notifications.map((n: any) => ({
+          id: n.id, text: n.text, time: new Date(n.created_at).getTime(), read: n.read,
+        })));
+      }
+      setDataLoaded(true);
+    });
+  }, [isSignedIn, clerkUser?.id]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const filteredChats = useMemo(() => { const q = searchQuery.trim().toLowerCase(); if (!q) return chats; return chats.filter((c) => c.title?.toLowerCase().includes(q) || c.messages.some((m) => m.content.toLowerCase().includes(q))); }, [chats, searchQuery]);
@@ -1097,7 +1122,15 @@ export default function ChatPage() {
   const businessName = useMemo(() => getBusinessName(activeChat?.messages ?? []), [activeChat?.messages]);
   const hasMessages = (activeChat?.messages?.length ?? 0) > 0;
 
-  useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(chats)); }, [chats]);
+  // ─── Persist chats to Supabase (debounced) ────────────────────────
+  useEffect(() => {
+    if (!dataLoaded || !dbUserId) return;
+    chats.forEach((chat) => {
+      debouncedSave(`chat-${chat.id}`, () =>
+        db.updateChat(chat.id, { title: chat.title, messages: chat.messages, pendingSurvey: chat.pendingSurvey })
+      );
+    });
+  }, [chats, dataLoaded, dbUserId]);
   useEffect(() => { if (!activeChatId && chats[0]?.id) setActiveChatId(chats[0].id); if (activeChatId && !chats.some((c) => c.id === activeChatId) && chats[0]?.id) setActiveChatId(chats[0].id); }, [activeChatId, chats]);
   useEffect(() => { listEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [activeChat?.messages.length, isSending]);
   useEffect(() => { const el = textareaRef.current; if (!el) return; el.style.height = "0px"; el.style.height = `${Math.min(180, el.scrollHeight)}px`; }, [input]);
@@ -1230,8 +1263,13 @@ export default function ChatPage() {
     }
   }
 
-  function createNewChat() { const c: Chat = { id: uid("chat"), title: "New chat", messages: [], updatedAt: Date.now(), pendingSurvey: false }; setChats((p) => [c, ...p]); setActiveChatId(c.id); setOpenChatMenuId(null); setRenamingChatId(null); setInput(""); setDraftAttachments((p) => { for (const a of p) if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); return []; }); if (isMobile) setSidebarOpen(false); }
-  function deleteChat(id: string) { setChats((p) => p.filter((c) => c.id !== id)); setOpenChatMenuId(null); if (id === activeChatId) { const r = chats.filter((c) => c.id !== id); setActiveChatId(r[0]?.id ?? ""); } }
+  async function createNewChat() {
+    const dbChat = await db.createChat("New chat");
+    const chatId = dbChat?.id || uid("chat");
+    const c: Chat = { id: chatId, title: "New chat", messages: [], updatedAt: Date.now(), pendingSurvey: false };
+    setChats((p) => [c, ...p]); setActiveChatId(c.id); setOpenChatMenuId(null); setRenamingChatId(null); setInput(""); setDraftAttachments((p) => { for (const a of p) if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); return []; }); if (isMobile) setSidebarOpen(false);
+  }
+  async function deleteChat(id: string) { db.deleteChat(id); setChats((p) => p.filter((c) => c.id !== id)); setOpenChatMenuId(null); if (id === activeChatId) { const r = chats.filter((c) => c.id !== id); setActiveChatId(r[0]?.id ?? ""); } }
   function startRename(id: string) { setRenamingChatId(id); setRenameValue(chats.find((x) => x.id === id)?.title ?? ""); setOpenChatMenuId(null); }
   function commitRename() { if (!renamingChatId) return; setChats((p) => p.map((c) => (c.id === renamingChatId ? { ...c, title: renameValue.trim() || "New chat" } : c))); setRenamingChatId(null); setRenameValue(""); }
   function sendViaCard(text: string) { setInput(text); setTimeout(() => sendMessage(text), 50); }
@@ -1392,6 +1430,11 @@ export default function ChatPage() {
   // RENDER
   // ═══════════════════════════════════════════════════════════════════
 
+  // Wait for Clerk to initialize
+  if (!authLoaded) return <div style={{ minHeight: "100vh", background: C.bg }} />;
+  // Redirect to sign-in if not authenticated
+  if (!isSignedIn) return <RedirectToSignIn />;
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text }}>
       {!appLoaded && <LoadingScreen onDone={() => setAppLoaded(true)} />}
@@ -1474,9 +1517,15 @@ export default function ChatPage() {
               </HBtn>
             )}
             {!isMobile && (
-              <HBtn onClick={() => alert("Sign in coming soon")} style={{ padding: "5px 12px", border: `1px solid ${C.border}`, color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
-                <Ic n="signin" className="h-3.5 w-3.5" /> Sign in
-              </HBtn>
+              isSignedIn ? (
+                <HBtn onClick={() => signOut()} style={{ padding: "5px 12px", border: `1px solid ${C.border}`, color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
+                  <Ic n="signin" className="h-3.5 w-3.5" /> Sign out
+                </HBtn>
+              ) : (
+                <HBtn onClick={() => { window.location.href = "/sign-in"; }} style={{ padding: "5px 12px", border: `1px solid ${C.border}`, color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
+                  <Ic n="signin" className="h-3.5 w-3.5" /> Sign in
+                </HBtn>
+              )
             )}
             {/* Goals button */}
             <div style={{ position: "relative" }}>
@@ -1496,7 +1545,7 @@ export default function ChatPage() {
                 <div style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 300, borderRadius: 14, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.92)", backdropFilter: "blur(40px) saturate(1.6)", WebkitBackdropFilter: "blur(40px) saturate(1.6)", boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", overflow: "hidden" }}>
                   <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Notifications</span>
-                    {notifications.length > 0 && <button onClick={() => setNotifications(ns => ns.map(n => ({ ...n, read: true })))} style={{ background: "none", border: "none", color: C.accent, fontSize: 11, cursor: "pointer", fontWeight: 600 }}>Mark all read</button>}
+                    {notifications.length > 0 && <button onClick={() => { setNotifications(ns => ns.map(n => ({ ...n, read: true }))); db.markNotificationsRead(); }} style={{ background: "none", border: "none", color: C.accent, fontSize: 11, cursor: "pointer", fontWeight: 600 }}>Mark all read</button>}
                   </div>
                   <div style={{ maxHeight: 280, overflowY: "auto" }}>
                     {notifications.length === 0 ? (
@@ -1580,8 +1629,8 @@ export default function ChatPage() {
             <button type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", transition: "all 150ms" }}
               onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
               onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}
-              onClick={() => alert("Sign in coming soon")}>
-              <Ic n="signin" className="h-4 w-4" /> Sign in
+              onClick={() => { isSignedIn ? signOut() : window.location.href = "/sign-in"; }}>
+              <Ic n="signin" className="h-4 w-4" /> {isSignedIn ? "Sign out" : "Sign in"}
             </button>
           </div>
         </aside>
@@ -1781,10 +1830,10 @@ export default function ChatPage() {
               {/* Footer */}
               <div style={{ padding: "0 24px 20px", display: "flex", gap: 10 }}>
                 {userGoal && (
-                  <button onClick={() => { setUserGoal(null); setGoalDraft({ text: "", target: "", deadline: "" }); setGoalModalOpen(false); }} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Remove goal</button>
+                  <button onClick={async () => { setUserGoal(null); setGoalDraft({ text: "", target: "", deadline: "" }); await db.deleteGoal(); setGoalModalOpen(false); }} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Remove goal</button>
                 )}
                 <button onClick={() => setGoalModalOpen(false)} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-                <button onClick={() => { if (goalDraft.text.trim()) { setUserGoal({ text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() }); setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${goalDraft.text.trim()}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]); } setGoalModalOpen(false); }} style={{ flex: 1.5, padding: "10px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 16px ${C.accent}40` }}>Save goal</button>
+                <button onClick={async () => { if (goalDraft.text.trim()) { const g = { text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() }; setUserGoal(g); await db.saveGoal(g); setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]); } setGoalModalOpen(false); }} style={{ flex: 1.5, padding: "10px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 16px ${C.accent}40` }}>Save goal</button>
               </div>
             </div>
           </div>
