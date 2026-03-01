@@ -1123,7 +1123,7 @@ export default function ChatPage() {
   useEffect(() => { if (!activeChatId && chats[0]?.id) setActiveChatId(chats[0].id); if (activeChatId && !chats.some((c) => c.id === activeChatId) && chats[0]?.id) setActiveChatId(chats[0].id); }, [activeChatId, chats]);
   useEffect(() => { listEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [activeChat?.messages.length, isSending]);
   useEffect(() => { const el = textareaRef.current; if (!el) return; if (!input) { el.style.height = "42px"; return; } el.style.height = "42px"; el.style.height = `${Math.max(42, Math.min(180, el.scrollHeight))}px`; }, [input]);
-  useEffect(() => { const h = () => { setOpenChatMenuId(null); setOpenMsgMenuId(null); setAttachMenuOpen(false); setSettingsOpen(false); setNotifOpen(false); }; window.addEventListener("mousedown", h); return () => window.removeEventListener("mousedown", h); }, []);
+  useEffect(() => { const h = () => { setOpenChatMenuId(null); setOpenMsgMenuId(null); setAttachMenuOpen(false); setNotifOpen(false); }; window.addEventListener("mousedown", h); return () => window.removeEventListener("mousedown", h); }, []);
   useEffect(() => { if (previewOpen) setSidebarOpen(false); }, [previewOpen]);
 
   // ─── Helper: push an assistant message into the active chat ────────
@@ -1825,6 +1825,218 @@ export default function ChatPage() {
         )}
 
         {/* GOAL MODAL */}
+        {/* ─── SETTINGS PANEL ─────────────────────────────────── */}
+        {settingsOpen && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div onClick={() => setSettingsOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }} />
+            <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "relative", width: 560, maxWidth: "92vw", maxHeight: "85vh", borderRadius: 20, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(10,14,22,0.92)", backdropFilter: "blur(48px) saturate(1.8)", WebkitBackdropFilter: "blur(48px) saturate(1.8)", boxShadow: "0 40px 100px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.05)", overflow: "hidden", display: "flex", flexDirection: "column", animation: "settingsFadeIn 300ms cubic-bezier(0.16,1,0.3,1)" }}>
+              <style>{`
+                @keyframes settingsFadeIn { from { opacity: 0; transform: scale(0.97) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+                .stg-btn { padding: 9px 14px; border-radius: 10px; border: none; background: none; color: ${C.textSec}; font-size: 13px; font-weight: 500; cursor: pointer; text-align: left; width: 100%; transition: all 220ms cubic-bezier(0.2,0,0,1); position: relative; overflow: hidden; }
+                .stg-btn:hover { background: rgba(255,255,255,0.05); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.1), 0 4px 12px rgba(0,0,0,0.15); color: ${C.text}; }
+                .stg-btn.stg-active { background: rgba(74,144,255,0.08); color: ${C.accent}; font-weight: 600; box-shadow: inset 0 0.5px 0 rgba(74,144,255,0.15); }
+                .stg-input { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.025); color: ${C.text}; font-size: 14px; font-family: inherit; outline: none; transition: all 250ms cubic-bezier(0.2,0,0,1); }
+                .stg-input:focus { border-color: rgba(74,144,255,0.4); box-shadow: 0 0 0 3px rgba(74,144,255,0.08), 0 0 16px rgba(74,144,255,0.05); background: rgba(255,255,255,0.035); }
+                .stg-input::placeholder { color: rgba(255,255,255,0.18); }
+                .stg-toggle { position: relative; width: 40px; height: 22px; border-radius: 11px; border: none; cursor: pointer; transition: all 200ms; flex-shrink: 0; }
+                .stg-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 9px; background: white; transition: all 200ms cubic-bezier(0.2,0,0,1); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+                .stg-toggle.stg-on { background: ${C.accent}; }
+                .stg-toggle.stg-on::after { transform: translateX(18px); }
+                .stg-toggle.stg-off { background: rgba(255,255,255,0.1); }
+                .stg-section { margin-bottom: 28px; }
+                .stg-section-title { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 14px; }
+                .stg-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+                .stg-row:last-child { border-bottom: none; }
+                .stg-label { font-size: 13px; font-weight: 500; color: ${C.text}; }
+                .stg-sublabel { font-size: 11.5px; color: rgba(255,255,255,0.35); margin-top: 2px; line-height: 1.4; }
+                .stg-danger { color: #EF4444; }
+                .stg-danger:hover { background: rgba(239,68,68,0.08) !important; color: #EF4444 !important; }
+              `}</style>
+
+              {/* Header */}
+              <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid rgba(255,255,255,0.05)`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${C.accent}12`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Ic n="settings" style={{ width: 18, height: 18, color: C.accent }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 17, fontWeight: 700, color: C.text, letterSpacing: "-0.01em" }}>Settings</div>
+                    <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1 }}>Customize your Zelrex experience</div>
+                  </div>
+                </div>
+                <button onClick={() => setSettingsOpen(false)} style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "rgba(255,255,255,0.04)", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 200ms" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = C.text; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = C.textMuted; }}>
+                  <Ic n="close" style={{ width: 14, height: 14 }} />
+                </button>
+              </div>
+
+              {/* Content (scrollable) */}
+              <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px 24px" }}>
+
+                {/* Profile */}
+                <div className="stg-section">
+                  <div className="stg-section-title">Profile</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                    <img src={clerkUser?.imageUrl} alt="" style={{ width: 52, height: 52, borderRadius: 14, border: `2px solid rgba(255,255,255,0.06)` }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{clerkUser?.fullName || clerkUser?.firstName || "User"}</div>
+                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{clerkUser?.primaryEmailAddress?.emailAddress || ""}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subscription */}
+                <div className="stg-section">
+                  <div className="stg-section-title">Subscription</div>
+                  <div style={{ padding: "16px", borderRadius: 14, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.02)" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Free Plan</div>
+                        <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Basic access to Zelrex features</div>
+                      </div>
+                      <div style={{ padding: "4px 10px", borderRadius: 999, background: `${C.accent}15`, fontSize: 11, fontWeight: 700, color: C.accent, letterSpacing: "0.04em", textTransform: "uppercase" }}>Current</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 16px ${C.accent}30`, transition: "all 220ms cubic-bezier(0.2,0,0,1)" }}
+                        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 6px 24px ${C.accent}40`; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = `0 4px 16px ${C.accent}30`; e.currentTarget.style.transform = "none"; }}>
+                        Upgrade to Pro — $26/mo
+                      </button>
+                    </div>
+                    <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                      {["Unlimited websites", "Priority AI responses", "Custom domains", "Weekly business reports"].map(f => (
+                        <div key={f} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: C.textSec }}>
+                          <span style={{ color: "#10B981", fontSize: 13 }}>✓</span> {f}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Preferences */}
+                <div className="stg-section">
+                  <div className="stg-section-title">Preferences</div>
+                  <div className="stg-row">
+                    <div>
+                      <div className="stg-label">AI Response Style</div>
+                      <div className="stg-sublabel">How Zelrex communicates with you</div>
+                    </div>
+                    <select style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.03)", color: C.text, fontSize: 12, fontWeight: 500, cursor: "pointer", outline: "none" }}>
+                      <option value="direct">Direct & concise</option>
+                      <option value="detailed">Detailed explanations</option>
+                      <option value="coaching">Coaching style</option>
+                    </select>
+                  </div>
+                  <div className="stg-row">
+                    <div>
+                      <div className="stg-label">Sound Effects</div>
+                      <div className="stg-sublabel">Play sounds for notifications and actions</div>
+                    </div>
+                    <button className="stg-toggle stg-off" onClick={(e) => e.currentTarget.classList.toggle("stg-on") || e.currentTarget.classList.toggle("stg-off")} />
+                  </div>
+                  <div className="stg-row">
+                    <div>
+                      <div className="stg-label">Weekly Business Digest</div>
+                      <div className="stg-sublabel">Email summary of your business progress</div>
+                    </div>
+                    <button className="stg-toggle stg-on" onClick={(e) => e.currentTarget.classList.toggle("stg-on") || e.currentTarget.classList.toggle("stg-off")} />
+                  </div>
+                  <div className="stg-row">
+                    <div>
+                      <div className="stg-label">Proactive Suggestions</div>
+                      <div className="stg-sublabel">Let Zelrex suggest improvements between chats</div>
+                    </div>
+                    <button className="stg-toggle stg-on" onClick={(e) => e.currentTarget.classList.toggle("stg-on") || e.currentTarget.classList.toggle("stg-off")} />
+                  </div>
+                </div>
+
+                {/* Connected Accounts */}
+                <div className="stg-section">
+                  <div className="stg-section-title">Connected Accounts</div>
+                  <div className="stg-row">
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 7, background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24"><path d="M7.5 4.5C9.433 4.5 11 6.067 11 8s-1.567 3.5-3.5 3.5S4 9.933 4 8s1.567-3.5 3.5-3.5zM22 7h-2V5h-2v2h-2v2h2v2h2V9h2V7z" fill="rgba(255,255,255,0.5)" /></svg>
+                      </div>
+                      <div>
+                        <div className="stg-label">Stripe</div>
+                        <div className="stg-sublabel">Accept payments on your website</div>
+                      </div>
+                    </div>
+                    <button style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.03)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; }}>
+                      Connect
+                    </button>
+                  </div>
+                  <div className="stg-row">
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 7, background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" fill="rgba(255,255,255,0.5)" /></svg>
+                      </div>
+                      <div>
+                        <div className="stg-label">Google Analytics</div>
+                        <div className="stg-sublabel">Track your website visitors</div>
+                      </div>
+                    </div>
+                    <button style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.03)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; }}>
+                      Connect
+                    </button>
+                  </div>
+                </div>
+
+                {/* Keyboard Shortcuts */}
+                <div className="stg-section">
+                  <div className="stg-section-title">Keyboard Shortcuts</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                    {[["New chat", "Ctrl+N"], ["Send message", "Enter"], ["New line", "Shift+Enter"], ["Toggle sidebar", "Ctrl+B"], ["Focus input", "Ctrl+K"], ["Close modal", "Esc"]].map(([action, key]) => (
+                      <div key={action} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", fontSize: 12 }}>
+                        <span style={{ color: C.textSec }}>{action}</span>
+                        <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", fontSize: 11, fontWeight: 600, color: C.textMuted, fontFamily: "monospace" }}>{key}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Danger Zone */}
+                <div className="stg-section">
+                  <div className="stg-section-title stg-danger">Account</div>
+                  <div className="stg-row">
+                    <div>
+                      <div className="stg-label">Sign out</div>
+                      <div className="stg-sublabel">Sign out of your Zelrex account</div>
+                    </div>
+                    <button onClick={() => { setSettingsOpen(false); signOut(); }} style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.03)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}>
+                      Sign out
+                    </button>
+                  </div>
+                  <div className="stg-row" style={{ borderBottom: "none" }}>
+                    <div>
+                      <div className="stg-label stg-danger" style={{ color: "#EF4444" }}>Delete account</div>
+                      <div className="stg-sublabel">Permanently delete your account and all data</div>
+                    </div>
+                    <button style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.3)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.06)"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.2)"; }}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+
+                {/* Version info */}
+                <div style={{ textAlign: "center", padding: "8px 0 0", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.15)", fontWeight: 500 }}>Zelrex v1.0 · Powered by Claude Opus 4.6</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {goalModalOpen && (
           <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div onClick={() => setGoalModalOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} />
