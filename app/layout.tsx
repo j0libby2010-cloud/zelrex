@@ -16,185 +16,240 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         variables: {
           colorPrimary: "#4A90FF",
           colorBackground: "#0A0F1A",
-          colorInputBackground: "#080D17",
-          colorInputText: "rgba(255,255,255,0.88)",
-          colorText: "rgba(255,255,255,0.88)",
-          colorTextSecondary: "rgba(255,255,255,0.45)",
-          colorNeutral: "rgba(255,255,255,0.50)",
+          colorInputBackground: "#070B14",
+          colorInputText: "rgba(255,255,255,0.9)",
+          colorText: "rgba(255,255,255,0.9)",
+          colorTextSecondary: "rgba(255,255,255,0.4)",
+          colorNeutral: "rgba(255,255,255,0.45)",
           colorTextOnPrimaryBackground: "#ffffff",
           borderRadius: "0.625rem",
           fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
           fontSize: "14px",
+          spacingUnit: "16px",
+        },
+        layout: {
+          socialButtonsVariant: "blockButton" as any,
+          socialButtonsPlacement: "top" as any,
+          shimmer: true,
         },
         elements: {
-          // ─── Card container ─────────────────────────────────
+          // ─── Card (glassmorphic) ───────────────────────────────
           card: {
-            backgroundColor: "rgba(10,15,26,0.88)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            borderRadius: "16px",
-            boxShadow: "0 32px 80px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.04), inset 0 0.5px 0 rgba(255,255,255,0.06)",
-            backdropFilter: "blur(40px) saturate(1.6)",
-            WebkitBackdropFilter: "blur(40px) saturate(1.6)",
-            padding: "28px",
+            backgroundColor: "rgba(8,12,22,0.75)",
+            border: "1px solid rgba(255,255,255,0.05)",
+            borderRadius: "20px",
+            boxShadow: [
+              "0 40px 100px rgba(0,0,0,0.55)",
+              "0 0 0 0.5px rgba(255,255,255,0.03)",
+              "inset 0 1px 0 rgba(255,255,255,0.04)",
+              "inset 0 -0.5px 0 rgba(0,0,0,0.2)",
+            ].join(", "),
+            backdropFilter: "blur(48px) saturate(1.8)",
+            WebkitBackdropFilter: "blur(48px) saturate(1.8)",
+            overflow: "hidden",
           },
 
-          // ─── Header ─────────────────────────────────────────
+          // ─── Header ─────────────────────────────────────────────
           headerTitle: {
-            color: "rgba(255,255,255,0.94)",
-            fontWeight: "700",
-            fontSize: "20px",
-            letterSpacing: "-0.01em",
+            color: "rgba(255,255,255,0.95)",
+            fontWeight: "800",
+            fontSize: "21px",
+            letterSpacing: "-0.02em",
+            lineHeight: "1.3",
           },
           headerSubtitle: {
-            color: "rgba(255,255,255,0.35)",
-            fontSize: "13px",
+            color: "rgba(255,255,255,0.30)",
+            fontSize: "13.5px",
             fontWeight: "400",
+            letterSpacing: "0.005em",
           },
 
-          // ─── Social buttons ─────────────────────────────────
+          // ─── Social buttons (liquid glass) ──────────────────────
           socialButtonsBlockButton: {
-            backgroundColor: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            borderRadius: "10px",
-            height: "42px",
-            transition: "all 200ms cubic-bezier(0.2,0,0,1)",
+            backgroundColor: "rgba(255,255,255,0.025)",
+            border: "1px solid rgba(255,255,255,0.05)",
+            borderRadius: "12px",
+            height: "44px",
+            position: "relative" as const,
+            overflow: "hidden" as const,
+            transition: "all 250ms cubic-bezier(0.2,0,0,1)",
             "&:hover": {
-              backgroundColor: "rgba(255,255,255,0.06)",
+              backgroundColor: "rgba(255,255,255,0.055)",
               border: "1px solid rgba(255,255,255,0.1)",
-              boxShadow: "inset 0 0.5px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.2)",
-              transform: "translateY(-0.5px)",
+              backdropFilter: "blur(24px) saturate(2)",
+              WebkitBackdropFilter: "blur(24px) saturate(2)",
+              boxShadow: [
+                "inset 0 1px 0 rgba(255,255,255,0.12)",
+                "inset 0 -0.5px 0 rgba(255,255,255,0.02)",
+                "0 6px 24px rgba(0,0,0,0.25)",
+                "0 0 0 0.5px rgba(255,255,255,0.06)",
+              ].join(", "),
+              transform: "translateY(-1px)",
+            },
+            "&:active": {
+              transform: "translateY(0.5px)",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
             },
           },
           socialButtonsBlockButtonText: {
             fontSize: "13px",
-            fontWeight: "500",
-            color: "rgba(255,255,255,0.7)",
+            fontWeight: "600",
+            color: "rgba(255,255,255,0.65)",
+            letterSpacing: "0.005em",
           },
           socialButtonsProviderIcon: {
             width: "18px",
             height: "18px",
           },
 
-          // ─── Divider ────────────────────────────────────────
+          // ─── Divider ────────────────────────────────────────────
           dividerLine: {
-            backgroundColor: "rgba(255,255,255,0.05)",
+            backgroundColor: "rgba(255,255,255,0.04)",
           },
           dividerText: {
-            color: "rgba(255,255,255,0.2)",
-            fontSize: "11px",
+            color: "rgba(255,255,255,0.18)",
+            fontSize: "10px",
+            fontWeight: "600",
             textTransform: "uppercase" as const,
-            letterSpacing: "0.1em",
-            fontWeight: "500",
+            letterSpacing: "0.15em",
           },
 
-          // ─── Form fields ────────────────────────────────────
+          // ─── Form labels ────────────────────────────────────────
           formFieldLabel: {
-            color: "rgba(255,255,255,0.5)",
+            color: "rgba(255,255,255,0.45)",
             fontSize: "12px",
             fontWeight: "600",
-            letterSpacing: "0.01em",
+            letterSpacing: "0.02em",
           },
+
+          // ─── Inputs (liquid glass) ──────────────────────────────
           formFieldInput: {
-            backgroundColor: "rgba(255,255,255,0.025)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            borderRadius: "10px",
+            backgroundColor: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.05)",
+            borderRadius: "12px",
             fontSize: "14px",
-            height: "42px",
-            color: "rgba(255,255,255,0.88)",
-            transition: "all 200ms cubic-bezier(0.2,0,0,1)",
+            height: "44px",
+            color: "rgba(255,255,255,0.9)",
+            transition: "all 250ms cubic-bezier(0.2,0,0,1)",
             "&:focus": {
-              borderColor: "rgba(74,144,255,0.5)",
-              boxShadow: "0 0 0 3px rgba(74,144,255,0.08), inset 0 0.5px 0 rgba(255,255,255,0.04)",
-              backgroundColor: "rgba(255,255,255,0.035)",
+              borderColor: "rgba(74,144,255,0.45)",
+              backgroundColor: "rgba(255,255,255,0.03)",
+              boxShadow: [
+                "0 0 0 3px rgba(74,144,255,0.08)",
+                "inset 0 0.5px 0 rgba(255,255,255,0.04)",
+                "0 0 20px rgba(74,144,255,0.06)",
+              ].join(", "),
             },
             "&::placeholder": {
-              color: "rgba(255,255,255,0.2)",
+              color: "rgba(255,255,255,0.18)",
             },
           },
 
-          // ─── Primary button ─────────────────────────────────
+          // ─── Primary button (premium glow) ─────────────────────
           formButtonPrimary: {
             backgroundColor: "#4A90FF",
-            borderRadius: "10px",
-            height: "42px",
-            fontSize: "13.5px",
+            borderRadius: "12px",
+            height: "44px",
+            fontSize: "14px",
             fontWeight: "700",
             letterSpacing: "0.01em",
             border: "none",
-            boxShadow: "0 4px 20px rgba(74,144,255,0.25), inset 0 1px 0 rgba(255,255,255,0.1)",
-            transition: "all 200ms cubic-bezier(0.2,0,0,1)",
+            position: "relative" as const,
+            overflow: "hidden" as const,
+            boxShadow: [
+              "0 6px 24px rgba(74,144,255,0.25)",
+              "0 0 0 0.5px rgba(74,144,255,0.5)",
+              "inset 0 1px 0 rgba(255,255,255,0.15)",
+              "inset 0 -1px 0 rgba(0,0,0,0.1)",
+            ].join(", "),
+            transition: "all 250ms cubic-bezier(0.2,0,0,1)",
             "&:hover": {
-              backgroundColor: "#3A80EE",
-              boxShadow: "0 6px 28px rgba(74,144,255,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
-              transform: "translateY(-0.5px)",
+              backgroundColor: "#3B82F6",
+              boxShadow: [
+                "0 8px 32px rgba(74,144,255,0.35)",
+                "0 0 0 0.5px rgba(74,144,255,0.6)",
+                "inset 0 1px 0 rgba(255,255,255,0.2)",
+                "inset 0 -1px 0 rgba(0,0,0,0.1)",
+                "0 0 40px rgba(74,144,255,0.12)",
+              ].join(", "),
+              transform: "translateY(-1px)",
             },
             "&:active": {
               transform: "translateY(0.5px)",
-              boxShadow: "0 2px 12px rgba(74,144,255,0.2)",
+              boxShadow: "0 3px 12px rgba(74,144,255,0.2), inset 0 1px 0 rgba(255,255,255,0.1)",
             },
           },
 
-          // ─── Footer links ──────────────────────────────────
+          // ─── Footer ─────────────────────────────────────────────
           footerActionLink: {
             color: "#4A90FF",
             fontWeight: "600",
             fontSize: "13px",
-            transition: "color 150ms",
+            transition: "all 200ms",
             "&:hover": {
               color: "#6AADFF",
+              textShadow: "0 0 12px rgba(74,144,255,0.3)",
             },
           },
           footerActionText: {
-            color: "rgba(255,255,255,0.3)",
+            color: "rgba(255,255,255,0.25)",
             fontSize: "13px",
           },
 
-          // ─── Identity preview ───────────────────────────────
+          // ─── Identity preview ───────────────────────────────────
           identityPreview: {
-            backgroundColor: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            borderRadius: "10px",
+            backgroundColor: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.05)",
+            borderRadius: "12px",
           },
           identityPreviewEditButton: {
             color: "#4A90FF",
+            "&:hover": { color: "#6AADFF" },
           },
 
-          // ─── User button popover ────────────────────────────
+          // ─── User button popover ────────────────────────────────
           userButtonPopoverCard: {
-            backgroundColor: "rgba(10,15,26,0.92)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            borderRadius: "14px",
-            boxShadow: "0 20px 60px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.06)",
+            backgroundColor: "rgba(8,12,22,0.92)",
+            border: "1px solid rgba(255,255,255,0.05)",
+            borderRadius: "16px",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.04)",
             backdropFilter: "blur(40px) saturate(1.6)",
           },
-
-          // ─── Alert/errors ───────────────────────────────────
-          alert: {
-            borderRadius: "10px",
-            border: "1px solid rgba(239,68,68,0.2)",
-            backgroundColor: "rgba(239,68,68,0.06)",
-          },
-
-          // ─── OTP input ──────────────────────────────────────
-          otpCodeFieldInput: {
-            backgroundColor: "rgba(255,255,255,0.025)",
-            border: "1px solid rgba(255,255,255,0.06)",
+          userButtonPopoverActionButton: {
+            transition: "all 200ms cubic-bezier(0.2,0,0,1)",
             borderRadius: "8px",
-            color: "rgba(255,255,255,0.88)",
+            "&:hover": {
+              backgroundColor: "rgba(255,255,255,0.05)",
+              backdropFilter: "blur(16px)",
+            },
           },
 
-          // ─── Hide Clerk branding ────────────────────────────
-          footerPages: {
-            display: "none",
+          // ─── OTP ────────────────────────────────────────────────
+          otpCodeFieldInput: {
+            backgroundColor: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.05)",
+            borderRadius: "10px",
+            color: "rgba(255,255,255,0.9)",
+            fontSize: "18px",
+            fontWeight: "700",
           },
-          badge: {
-            display: "none",
+
+          // ─── Alerts ─────────────────────────────────────────────
+          alert: {
+            borderRadius: "12px",
+            border: "1px solid rgba(239,68,68,0.15)",
+            backgroundColor: "rgba(239,68,68,0.05)",
+            backdropFilter: "blur(12px)",
           },
+
+          // ─── Internal Clerk badges ──────────────────────────────
+          badge: { display: "none" },
+          footerPages: { display: "none" },
         },
       }}
     >
       <html lang="en">
-        <body style={{ margin: 0, padding: 0, background: "#06090F" }}>
+        <body style={{ margin: 0, padding: 0, background: "#030508" }}>
           {children}
         </body>
       </html>
