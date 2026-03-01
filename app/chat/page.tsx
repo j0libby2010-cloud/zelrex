@@ -126,17 +126,30 @@ function ZelrexZIcon({ size = 24 }: { size?: number }) {
 
 function ZelrexThinking({ stage }: { stage?: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 0, padding: "6px 0", minHeight: 32 }}>
-      {/* Breathing accent line — single elegant indicator */}
-      <div className="z-pulse-line" />
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 0", minHeight: 36 }}>
+      {/* Dyson sphere Z icon */}
+      <div className="dyson-wrap">
+        <div className="dyson-core"><ZelrexZIcon size={22} /></div>
+        <div className="dyson-ring dyson-r1" />
+        <div className="dyson-ring dyson-r2" />
+        <div className="dyson-ring dyson-r3" />
+        <div className="dyson-glow" />
+      </div>
       <span className="z-think-label">{stage || "Thinking"}</span>
       <style>{`
-        .z-pulse-line{width:2px;height:18px;border-radius:1px;background:${C.accent};opacity:0.7;animation:z-pulse 2.4s cubic-bezier(0.4,0,0.2,1) infinite;flex-shrink:0;box-shadow:0 0 10px ${C.accent}50,0 0 3px ${C.accent}80;margin-right:10px}
-        @keyframes z-pulse{0%,100%{opacity:0.25;height:10px;box-shadow:0 0 6px ${C.accent}20}35%{opacity:0.9;height:20px;box-shadow:0 0 14px ${C.accent}60,0 0 4px ${C.accent}90}65%{opacity:0.5;height:14px;box-shadow:0 0 8px ${C.accent}35}}
+        .dyson-wrap{position:relative;width:36px;height:36px;flex-shrink:0}
+        .dyson-core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2}
+        .dyson-glow{position:absolute;inset:4px;border-radius:50%;background:radial-gradient(circle,${C.accent}12 0%,transparent 70%);animation:dyson-breathe 3s ease-in-out infinite;z-index:0}
+        @keyframes dyson-breathe{0%,100%{opacity:0.3;transform:scale(0.9)}50%{opacity:0.8;transform:scale(1.1)}}
+        .dyson-ring{position:absolute;inset:-1px;border-radius:50%;border:1.5px solid transparent;z-index:1}
+        .dyson-r1{border-top-color:${C.accent};border-right-color:${C.accent}50;animation:dyson-spin1 2.4s linear infinite;filter:drop-shadow(0 0 4px ${C.accent}60)}
+        .dyson-r2{inset:2px;border-bottom-color:${C.accent}80;border-left-color:${C.accent}30;animation:dyson-spin2 3.6s linear infinite;filter:drop-shadow(0 0 3px ${C.accent}40)}
+        .dyson-r3{inset:-3px;border-top-color:${C.accent}35;border-left-color:${C.accent}18;animation:dyson-spin3 5.5s linear infinite;filter:drop-shadow(0 0 6px ${C.accent}25)}
+        @keyframes dyson-spin1{to{transform:rotate(360deg)}}
+        @keyframes dyson-spin2{to{transform:rotate(-360deg)}}
+        @keyframes dyson-spin3{to{transform:rotate(360deg)}}
         .z-think-label{font-size:13px;font-weight:500;letter-spacing:0.01em;color:${C.textMuted};animation:z-label-fade 2.4s cubic-bezier(0.4,0,0.2,1) infinite}
         @keyframes z-label-fade{0%,100%{opacity:0.4;color:${C.textMuted}}35%{opacity:1;color:${C.textSec}}}
-        .z-momentum-line{position:absolute;bottom:-3px;left:50%;width:14px;height:1.5px;transform:translateX(-50%);background:linear-gradient(90deg,transparent,${C.accent}80,transparent);border-radius:2px;animation:zml 2.8s ease-in-out infinite;overflow:hidden}
-        @keyframes zml{0%,100%{opacity:0;width:6px}50%{opacity:0.6;width:18px}}
       `}</style>
     </div>
   );
@@ -302,37 +315,6 @@ function PreviewFrame({ html }: { html: string }) {
 // MAIN
 // ═══════════════════════════════════════════════════════════════════════
 
-// ─── LOADING SCREEN ──────────────────────────────────────────────
-function LoadingScreen({ onDone }: { onDone: () => void }) {
-  const [phase, setPhase] = useState(0);
-  useEffect(() => {
-    const timers = [
-      setTimeout(() => setPhase(1), 200),    // ZELREX fades in
-      setTimeout(() => setPhase(2), 800),    // Momentum line sweeps
-      setTimeout(() => setPhase(3), 2200),   // Everything fades out
-      setTimeout(onDone, 2800),
-    ];
-    return () => timers.forEach(clearTimeout);
-  }, [onDone]);
-  return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "#05070B", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", opacity: phase >= 3 ? 0 : 1, transition: "opacity 0.6s cubic-bezier(0.4,0,0.2,1)", pointerEvents: phase >= 3 ? "none" : "all" }}>
-      {/* Subtle radial glow */}
-      <div style={{ position: "absolute", width: 300, height: 300, borderRadius: "50%", background: `radial-gradient(circle, ${C.accent}06 0%, transparent 70%)`, opacity: phase >= 1 ? 1 : 0, transition: "opacity 1.2s ease", pointerEvents: "none" }} />
-
-      {/* ZELREX wordmark — italic, weighted like the actual logo */}
-      <div style={{ opacity: phase >= 1 ? 1 : 0, transform: phase >= 1 ? "translateY(0)" : "translateY(6px)", transition: "all 0.7s cubic-bezier(0.16,1,0.3,1)", marginBottom: 10 }}>
-        <div style={{ fontSize: 18, fontWeight: 800, fontStyle: "italic", color: "rgba(225,230,240,0.95)", letterSpacing: phase >= 1 ? "0.16em" : "0.35em", transition: "letter-spacing 0.9s cubic-bezier(0.16,1,0.3,1)", fontFamily: "Inter, -apple-system, sans-serif" }}>ZELREX</div>
-      </div>
-
-      {/* Momentum line — matches actual logo gradient (blue center, transparent edges) */}
-      <div style={{ width: 120, height: 2.5, borderRadius: 2, overflow: "hidden", position: "relative" }}>
-        <div style={{ position: "absolute", inset: 0, background: "rgba(255,255,255,0.03)", borderRadius: 2 }} />
-        <div style={{ width: phase >= 2 ? "100%" : "0%", height: "100%", borderRadius: 2, background: `linear-gradient(90deg, rgba(59,123,246,0.15), #3B7BF6, #4A90FF, #5BA0FF, rgba(91,160,255,0.15))`, transition: "width 0.9s cubic-bezier(0.22,1,0.36,1)", transformOrigin: "left" }} />
-      </div>
-    </div>
-  );
-}
-
 export default function ChatPage() {
   // ─── Auth ──────────────────────────────────────────────────────────
   const { user: clerkUser, isLoaded: authLoaded, isSignedIn } = useUser();
@@ -341,7 +323,6 @@ export default function ChatPage() {
   const [dataLoaded, setDataLoaded] = useState(false);
   const debouncedSave = useDebouncedSave(800);
 
-  const [appLoaded, setAppLoaded] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => { const check = () => setIsMobile(window.innerWidth < 768); check(); window.addEventListener("resize", check); return () => window.removeEventListener("resize", check); }, []);
@@ -1437,7 +1418,6 @@ export default function ChatPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text }}>
-      {!appLoaded && <LoadingScreen onDone={() => setAppLoaded(true)} />}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif}
@@ -1694,7 +1674,7 @@ export default function ChatPage() {
                       </div>
                     );
                   })}
-                  {isSending && <div style={{ display: "flex", gap: 10, marginBottom: 16, alignItems: "flex-start" }}><div style={{ width: 26, height: 26, flexShrink: 0, marginTop: 2, position: "relative" }}><ZelrexZIcon size={26} /><div className="z-momentum-line" /></div><div style={{ paddingTop: 4 }}><ZelrexThinking stage={buildStage} /></div></div>}
+                  {isSending && <div style={{ display: "flex", gap: 6, marginBottom: 16, alignItems: "center" }}><ZelrexThinking stage={buildStage} /></div>}
                   <div ref={listEndRef} />
                 </div>
               )}
@@ -1721,7 +1701,7 @@ export default function ChatPage() {
                   ))}
                 </div>
               )}
-              <div style={{ display: "flex", alignItems: "center", padding: "6px 8px" }}>
+              <div style={{ display: "flex", alignItems: "center", padding: "4px 8px" }}>
                 <div style={{ position: "relative" }}>
                   <input ref={imageInputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.currentTarget.value = ""; }} />
                   <input ref={fileInputRef} type="file" multiple style={{ display: "none" }} onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.currentTarget.value = ""; }} />
@@ -1734,7 +1714,7 @@ export default function ChatPage() {
                   )}
                 </div>
                 <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} onPaste={onPaste} placeholder="Message Zelrex..."
-                  style={{ flex: 1, maxHeight: 220, minHeight: 46, resize: "none", background: "none", border: "none", outline: "none", padding: "12px 8px", fontSize: 14, lineHeight: 1.6, color: C.text }} />
+                  style={{ flex: 1, maxHeight: 200, minHeight: 36, resize: "none", background: "none", border: "none", outline: "none", padding: "8px 8px", fontSize: 14, lineHeight: 1.5, color: C.text }} />
                 <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <HBtn onClick={startSpeech} style={{ width: 38, height: 38, color: listening ? C.accent : C.textMuted }}><Ic n="mic" style={{ width: 20, height: 20 }} /></HBtn>
                   <HBtn onClick={isSending ? stopResponse : () => sendMessage()}
