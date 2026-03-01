@@ -129,7 +129,7 @@ function ZelrexThinking({ stage }: { stage?: string }) {
     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 0", minHeight: 36 }}>
       {/* Dyson sphere Z icon */}
       <div className="dyson-wrap">
-        <div className="dyson-core"><ZelrexZIcon size={22} /></div>
+        <div className="dyson-core"><ZelrexZIcon size={16} /></div>
         <div className="dyson-ring dyson-r1" />
         <div className="dyson-ring dyson-r2" />
         <div className="dyson-ring dyson-r3" />
@@ -163,43 +163,53 @@ function Typewriter({ text, speed = 8, onFinish }: { text: string; speed?: numbe
   return <div>{formatMessage(text.slice(0, n))}</div>;
 }
 
-function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal }: { phase: BusinessPhase; businessName: string | null; sidebarOpen: boolean; isMobile: boolean; userGoal?: { text: string; target: string; deadline: string } | null }) {
-  const phases: { key: BusinessPhase; label: string }[] = [
+function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal, onAddGoal }: { phase: BusinessPhase; businessName: string | null; sidebarOpen: boolean; isMobile: boolean; userGoal?: { text: string; target: string; deadline: string } | null; onAddGoal?: () => void }) {
+  const phases: { key: string; label: string }[] = [
     { key: "ready", label: "Start" },
     { key: "intake", label: "Discovery" },
     { key: "evaluating", label: "Evaluation" },
     { key: "building", label: "Website" },
     { key: "live", label: businessName || "Live" },
+    { key: "firstdollar", label: "First $" },
   ];
-  const currentIdx = phases.findIndex((p) => p.key === phase);
+  const phaseKeys = ["ready", "intake", "evaluating", "building", "live"];
+  const currentIdx = phaseKeys.indexOf(phase);
   const accentColor = phase === "live" ? "#10B981" : phase === "building" ? "#8B5CF6" : phase === "evaluating" ? "#F59E0B" : C.accent;
-
   const leftOffset = (!isMobile && sidebarOpen) ? 260 : 0;
 
   return (
-    <div style={{ height: userGoal ? 52 : 32, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 0, borderBottom: `1px solid ${C.border}`, background: currentIdx > 0 ? `linear-gradient(90deg, transparent, ${accentColor}06, transparent)` : "transparent", padding: "0 20px", marginLeft: leftOffset, width: `calc(100% - ${leftOffset}px)`, transition: "margin-left 300ms cubic-bezier(0.2,0,0,1), width 300ms cubic-bezier(0.2,0,0,1), height 300ms ease" }}>
+    <div style={{ height: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 0, borderBottom: `1px solid ${C.border}`, background: currentIdx > 0 ? `linear-gradient(90deg, transparent, ${accentColor}06, transparent)` : "transparent", padding: "0 20px", marginLeft: leftOffset, width: `calc(100% - ${leftOffset}px)`, transition: "margin-left 300ms cubic-bezier(0.2,0,0,1), width 300ms cubic-bezier(0.2,0,0,1)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
       {phases.map((p, i) => {
-        const isDone = i < currentIdx;
-        const isCurrent = i === currentIdx;
-        const color = isDone ? "#10B981" : isCurrent ? accentColor : C.textMuted;
+        const isFirstDollar = p.key === "firstdollar";
+        const isDone = !isFirstDollar && i < currentIdx;
+        const isCurrent = !isFirstDollar && phaseKeys[currentIdx] === p.key;
+        const color = isDone ? "#10B981" : isCurrent ? accentColor : isFirstDollar ? "#F59E0B" : C.textMuted;
         return (
           <React.Fragment key={p.key}>
-            {i > 0 && <div style={{ width: 32, height: 1, background: isDone ? "#10B981" : C.border, margin: "0 2px", transition: "background 500ms" }} />}
+            {i > 0 && <div style={{ width: isMobile ? 16 : 32, height: 1, background: isDone ? "#10B981" : C.border, margin: "0 2px", transition: "background 500ms" }} />}
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 6, height: 6, borderRadius: 999, background: color, boxShadow: isCurrent ? `0 0 8px ${color}` : "none", transition: "all 500ms", animation: isCurrent && (phase === "evaluating" || phase === "building") ? "zp 2s ease infinite" : "none" }} />
-              <span style={{ fontSize: 10, fontWeight: isCurrent ? 700 : 500, color, letterSpacing: "0.04em", textTransform: "uppercase", transition: "all 300ms" }}>{p.label}</span>
+              <span style={{ width: 6, height: 6, borderRadius: 999, background: color, boxShadow: isCurrent ? `0 0 8px ${color}` : isFirstDollar ? `0 0 6px ${color}40` : "none", transition: "all 500ms", animation: isCurrent && (phase === "evaluating" || phase === "building") ? "zp 2s ease infinite" : "none" }} />
+              <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: isCurrent ? 700 : isFirstDollar ? 600 : 500, color, letterSpacing: "0.04em", textTransform: "uppercase", transition: "all 300ms" }}>{p.label}</span>
             </div>
           </React.Fragment>
         );
       })}
-      </div>
-      {userGoal && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, opacity: 0.7 }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-          <span style={{ fontSize: 10, color: C.textSec, fontWeight: 500 }}>Goal: {userGoal.text}{userGoal.target ? ` · ${userGoal.target}` : ""}{userGoal.deadline ? ` · by ${userGoal.deadline}` : ""}</span>
+      {/* Separator + Goal or Add Goal */}
+      <div style={{ width: isMobile ? 16 : 32, height: 1, background: C.border, margin: "0 2px" }} />
+      {userGoal ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 600, color: C.accent, letterSpacing: "0.04em", textTransform: "uppercase", maxWidth: 160, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userGoal.text}</span>
         </div>
+      ) : (
+        <button type="button" onClick={onAddGoal} style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: isMobile ? 9 : 10, fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", textTransform: "uppercase", transition: "all 200ms" }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.accent + "60"; e.currentTarget.style.color = C.accent; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textMuted; }}>
+          <span style={{ fontSize: 11, lineHeight: 1 }}>+</span> Goal
+        </button>
       )}
+      </div>
       <style>{`@keyframes zp{0%,100%{opacity:1}50%{opacity:.35}}`}</style>
     </div>
   );
@@ -1550,10 +1560,10 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <StatusBar phase={phase} businessName={businessName} sidebarOpen={sidebarOpen} isMobile={isMobile} userGoal={userGoal} />
+      <StatusBar phase={phase} businessName={businessName} sidebarOpen={sidebarOpen} isMobile={isMobile} userGoal={userGoal} onAddGoal={() => setGoalModalOpen(true)} />
 
       {/* LAYOUT: sidebar + chat + preview */}
-      <div style={{ display: "flex", height: `calc(100vh - ${userGoal ? 101 : 81}px)`, position: "relative", transition: "height 300ms ease" }}>
+      <div style={{ display: "flex", height: `calc(100vh - 81px)`, position: "relative" }}>
 
         {/* SIDEBAR BACKDROP (mobile only) */}
         {sidebarOpen && isMobile && (
@@ -1606,14 +1616,51 @@ export default function ChatPage() {
             })}
           </div>
           <div style={{ borderTop: `1px solid ${C.border}`, padding: 8 }}>
-            <button type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", transition: "all 150ms" }}
-              onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
-              onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}
-              onClick={() => { isSignedIn ? signOut() : window.location.href = "/sign-in"; }}>
-              <Ic n="signin" className="h-4 w-4" /> {isSignedIn ? "Sign out" : "Sign in"}
-            </button>
+            {isSignedIn && clerkUser ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, cursor: "default", transition: "all 200ms", position: "relative" }}>
+                <img src={clerkUser.imageUrl} alt="" style={{ width: 32, height: 32, borderRadius: 999, border: `1.5px solid ${C.border}`, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0, opacity: sidebarOpen ? 1 : 0, transition: "opacity 200ms" }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
+                  <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, letterSpacing: "0.03em", marginTop: 1 }}>Free plan</div>
+                </div>
+                <button type="button" onClick={() => signOut()} title="Sign out" style={{ width: 28, height: 28, borderRadius: 8, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 200ms", opacity: sidebarOpen ? 1 : 0 }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = C.text; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = C.textMuted; e.currentTarget.style.background = "none"; }}>
+                  <Ic n="settings" className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <button type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", transition: "all 150ms" }}
+                onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; }}
+                onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; }}
+                onClick={() => { window.location.href = "/sign-in"; }}>
+                <Ic n="signin" className="h-4 w-4" /> Sign in
+              </button>
+            )}
           </div>
         </aside>
+
+        {/* Collapsed profile avatar (visible when sidebar is closed) */}
+        {!sidebarOpen && !isMobile && isSignedIn && clerkUser && (
+          <div className="collapsed-avatar-wrap" style={{ position: "fixed", bottom: 14, left: 10, zIndex: 21 }}>
+            <div className="collapsed-avatar" style={{ position: "relative", cursor: "pointer" }}
+              onMouseEnter={(e) => { const reveal = e.currentTarget.querySelector('.collapsed-reveal') as HTMLElement; if (reveal) { reveal.style.opacity = "1"; reveal.style.transform = "translateX(0)"; reveal.style.pointerEvents = "auto"; } }}
+              onMouseLeave={(e) => { const reveal = e.currentTarget.querySelector('.collapsed-reveal') as HTMLElement; if (reveal) { reveal.style.opacity = "0"; reveal.style.transform = "translateX(-6px)"; reveal.style.pointerEvents = "none"; } }}>
+              <img src={clerkUser.imageUrl} alt="" style={{ width: 32, height: 32, borderRadius: 999, border: `1.5px solid ${C.border}`, display: "block" }} />
+              <div className="collapsed-reveal" style={{ position: "absolute", left: 38, top: -4, display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "rgba(10,15,26,0.92)", border: `1px solid ${C.border}`, backdropFilter: "blur(32px) saturate(1.6)", WebkitBackdropFilter: "blur(32px) saturate(1.6)", boxShadow: "0 8px 32px rgba(0,0,0,0.4)", whiteSpace: "nowrap", opacity: 0, transform: "translateX(-6px)", transition: "all 200ms cubic-bezier(0.2,0,0,1)", pointerEvents: "none" }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
+                  <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, marginTop: 1 }}>Free plan</div>
+                </div>
+                <button type="button" onClick={() => signOut()} title="Sign out" style={{ width: 26, height: 26, borderRadius: 7, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 200ms" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = C.text; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = C.textMuted; e.currentTarget.style.background = "none"; }}>
+                  <Ic n="settings" className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* CHAT */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 280, transition: dragRef.current ? "none" : "all 300ms ease", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0 }}>
@@ -1690,7 +1737,19 @@ export default function ChatPage() {
               </div>
             )}
             <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 24, background: "linear-gradient(to bottom, rgba(6,9,15,0), rgba(6,9,15,0.9))", pointerEvents: "none" }} />
-            <div style={{ position: "relative", zIndex: 1, maxWidth: previewOpen ? "100%" : 820, margin: "0 auto", borderRadius: draftAttachments.length ? 18 : 999, border: `1px solid ${inputFocused ? C.borderHover : C.border}`, background: C.bgInput, boxShadow: `0 4px 24px rgba(0,0,0,0.3)`, transition: "border-color 200ms" }}>
+            <div className={inputFocused ? "input-box input-focus-glow" : "input-box"} style={{ position: "relative", zIndex: 1, maxWidth: previewOpen ? "100%" : 820, margin: "0 auto", borderRadius: draftAttachments.length ? 18 : 999, border: `1px solid ${inputFocused ? C.borderHover : C.border}`, background: C.bgInput, boxShadow: `0 4px 24px rgba(0,0,0,0.3)`, transition: "border-color 200ms, box-shadow 200ms" }}>
+              <style>{`
+                .input-focus-glow {
+                  border-color: ${C.accent} !important;
+                  box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 2px rgba(74,144,255,0.15), 0 0 20px rgba(74,144,255,0.08) !important;
+                  animation: inputGlowPulse 500ms cubic-bezier(0.2,0,0,1) forwards;
+                }
+                @keyframes inputGlowPulse {
+                  0% { box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 3px rgba(74,144,255,0.35), 0 0 30px rgba(74,144,255,0.15); border-color: #5BA0FF; }
+                  50% { box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 2.5px rgba(74,144,255,0.25), 0 0 24px rgba(74,144,255,0.1); }
+                  100% { box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 1.5px rgba(74,144,255,0.1), 0 0 12px rgba(74,144,255,0.04); border-color: rgba(255,255,255,0.14); }
+                }
+              `}</style>
               {draftAttachments.length > 0 && (
                 <div style={{ padding: "8px 8px 0", display: "flex", flexWrap: "wrap", gap: 6 }}>
                   {draftAttachments.map((a) => (
