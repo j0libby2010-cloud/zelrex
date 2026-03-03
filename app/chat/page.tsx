@@ -80,6 +80,14 @@ function Ic({ n, className, style }: { n: string; className?: string; style?: Re
     bolt: <><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></>,
     bell: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></>,
     goal: <><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.4" /><circle cx="12" cy="12" r="6" stroke="currentColor" strokeWidth="1.4" /><circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="1.4" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.5" /></>,
+    chevdown: <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />,
+    chevright: <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />,
+    calendar: <><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.4" /><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /><circle cx="8" cy="15" r="1" fill="currentColor" /><circle cx="12" cy="15" r="1" fill="currentColor" /></>,
+    analytics: <><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.4" /><path d="M8 14l2.5-3 2.5 1.5L16 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><circle cx="16" cy="9" r="1.5" fill="currentColor" /></>,
+    briefcase: <><rect x="2" y="7" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.4" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" stroke="currentColor" strokeWidth="1.4" /><path d="M2 13h20" stroke="currentColor" strokeWidth="1.4" /></>,
+    globe: <><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.4" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" strokeWidth="1.4" /></>,
+    credit: <><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.4" /><path d="M2 10h20" stroke="currentColor" strokeWidth="1.4" /><path d="M6 15h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></>,
+    shield: <><path d="M12 2l8 4v5c0 5.55-3.84 10.74-8 12-4.16-1.26-8-6.45-8-12V6l8-4z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" /><path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></>,
   };
   return <svg className={cls} style={style} viewBox="0 0 24 24" fill="none">{d[n]}</svg>;
 }
@@ -126,30 +134,34 @@ function ZelrexZIcon({ size = 24 }: { size?: number }) {
 
 function ZelrexThinking({ stage }: { stage?: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 0", minHeight: 36 }}>
-      {/* Dyson sphere Z icon */}
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 0", minHeight: 40 }}>
       <div className="dyson-wrap">
-        <div className="dyson-core"><ZelrexZIcon size={16} /></div>
+        <div className="dyson-core"><ZelrexZIcon size={14} /></div>
         <div className="dyson-ring dyson-r1" />
         <div className="dyson-ring dyson-r2" />
         <div className="dyson-ring dyson-r3" />
+        <div className="dyson-ring dyson-r4" />
         <div className="dyson-glow" />
+        <div className="dyson-pulse" />
       </div>
       <span className="z-think-label">{stage || "Thinking"}</span>
       <style>{`
-        .dyson-wrap{position:relative;width:36px;height:36px;flex-shrink:0}
-        .dyson-core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2}
-        .dyson-glow{position:absolute;inset:4px;border-radius:50%;background:radial-gradient(circle,${C.accent}12 0%,transparent 70%);animation:dyson-breathe 3s ease-in-out infinite;z-index:0}
-        @keyframes dyson-breathe{0%,100%{opacity:0.3;transform:scale(0.9)}50%{opacity:0.8;transform:scale(1.1)}}
-        .dyson-ring{position:absolute;inset:-1px;border-radius:50%;border:1.5px solid transparent;z-index:1}
-        .dyson-r1{border-top-color:${C.accent};border-right-color:${C.accent}50;animation:dyson-spin1 2.4s linear infinite;filter:drop-shadow(0 0 4px ${C.accent}60)}
-        .dyson-r2{inset:2px;border-bottom-color:${C.accent}80;border-left-color:${C.accent}30;animation:dyson-spin2 3.6s linear infinite;filter:drop-shadow(0 0 3px ${C.accent}40)}
-        .dyson-r3{inset:-3px;border-top-color:${C.accent}35;border-left-color:${C.accent}18;animation:dyson-spin3 5.5s linear infinite;filter:drop-shadow(0 0 6px ${C.accent}25)}
-        @keyframes dyson-spin1{to{transform:rotate(360deg)}}
-        @keyframes dyson-spin2{to{transform:rotate(-360deg)}}
-        @keyframes dyson-spin3{to{transform:rotate(360deg)}}
-        .z-think-label{font-size:13px;font-weight:500;letter-spacing:0.01em;color:${C.textMuted};animation:z-label-fade 2.4s cubic-bezier(0.4,0,0.2,1) infinite}
-        @keyframes z-label-fade{0%,100%{opacity:0.4;color:${C.textMuted}}35%{opacity:1;color:${C.textSec}}}
+        .dyson-wrap{position:relative;width:40px;height:40px;flex-shrink:0}
+        .dyson-core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3}
+        .dyson-glow{position:absolute;inset:6px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,0.28) 0%,rgba(74,144,255,0.08) 50%,transparent 80%);animation:dyson-breathe 2.8s ease-in-out infinite;z-index:0}
+        .dyson-pulse{position:absolute;inset:-6px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,0.06) 0%,transparent 70%);animation:dyson-pa 3.2s ease-in-out infinite;z-index:0}
+        @keyframes dyson-breathe{0%,100%{opacity:0.4;transform:scale(0.85)}50%{opacity:1;transform:scale(1.15)}}
+        @keyframes dyson-pa{0%,100%{opacity:0;transform:scale(0.8)}50%{opacity:0.6;transform:scale(1.5)}}
+        .dyson-ring{position:absolute;border-radius:50%;border:1.5px solid transparent;z-index:1}
+        .dyson-r1{inset:1px;border-top-color:#3B82F6;border-right-color:rgba(59,130,246,0.4);animation:dyson-s1 2s linear infinite;filter:drop-shadow(0 0 6px rgba(59,130,246,0.6))}
+        .dyson-r2{inset:4px;border-bottom-color:rgba(96,165,250,0.7);border-left-color:rgba(96,165,250,0.25);animation:dyson-s2 3.2s linear infinite;filter:drop-shadow(0 0 4px rgba(96,165,250,0.4))}
+        .dyson-r3{inset:-2px;border-top-color:rgba(59,130,246,0.3);border-left-color:rgba(59,130,246,0.12);animation:dyson-s3 4.8s linear infinite;filter:drop-shadow(0 0 8px rgba(59,130,246,0.2))}
+        .dyson-r4{inset:-5px;border-right-color:rgba(147,197,253,0.15);border-bottom-color:rgba(147,197,253,0.06);animation:dyson-s1 7s linear infinite reverse;filter:drop-shadow(0 0 10px rgba(147,197,253,0.1))}
+        @keyframes dyson-s1{to{transform:rotate(360deg)}}
+        @keyframes dyson-s2{to{transform:rotate(-360deg)}}
+        @keyframes dyson-s3{to{transform:rotate(360deg)}}
+        .z-think-label{font-size:13px;font-weight:600;letter-spacing:0.02em;background:linear-gradient(135deg,#93C5FD,#3B82F6,#60A5FA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:z-label-fade 2.4s cubic-bezier(0.4,0,0.2,1) infinite}
+        @keyframes z-label-fade{0%,100%{opacity:0.5}40%{opacity:1}}
       `}</style>
     </div>
   );
@@ -339,6 +351,8 @@ export default function ChatPage() {
   const [previewWidth, setPreviewWidth] = useState(0); // 0 = auto (flex: 1)
   const dragRef = useRef<{ startX: number; startW: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<"account"|"subscription"|"features"|"notifications">("account");
+  const [expandedBizId, setExpandedBizId] = useState<string | null>(null);
   const [showSurvey, setShowSurvey] = useState(false);
   const [surveyData, setSurveyData] = useState<SurveyData | null>(null);
   const [surveyDismissed, setSurveyDismissed] = useState(false);
@@ -1507,12 +1521,7 @@ export default function ChatPage() {
                 <Ic n="signin" className="h-3.5 w-3.5" /> Sign in
               </HBtn>
             )}
-            {/* Goals button */}
-            <div style={{ position: "relative" }}>
-              <HBtn onClick={() => { if (userGoal) setGoalDraft({ text: userGoal.text, target: userGoal.target, deadline: userGoal.deadline }); else setGoalDraft({ text: "", target: "", deadline: "" }); setGoalModalOpen(true); }} style={{ padding: "5px 12px", border: `1px solid ${userGoal ? C.accent + "40" : C.border}`, background: userGoal ? C.accentSoft : "transparent", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, gap: 5, borderRadius: 10 }}>
-                <Ic n="goal" style={{ width: 14, height: 14 }} />{!isMobile && (userGoal ? " My Goal" : " Set Goal")}
-              </HBtn>
-            </div>
+
             {/* Notifications bell */}
             <div style={{ position: "relative" }} onMouseDown={(e) => e.stopPropagation()}>
               <HBtn onClick={() => setNotifOpen((v) => !v)} style={{ width: 38, height: 38, color: C.text, position: "relative" }}>
@@ -1563,11 +1572,33 @@ export default function ChatPage() {
         {/* SIDEBAR */}
         <aside style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, borderRight: sidebarOpen ? `1px solid ${C.border}` : "none", background: C.bg, transition: "all 300ms cubic-bezier(0.2,0,0,1)", overflow: "hidden", display: "flex", flexDirection: "column", position: isMobile ? "fixed" : "absolute", top: isMobile ? 0 : -81, bottom: 0, left: 0, paddingTop: isMobile ? 60 : 81, zIndex: 20 }}>
           <div style={{ padding: 10, opacity: sidebarOpen ? 1 : 0, transition: "opacity 200ms" }}>
+            {/* New Business button */}
             <button onClick={createNewChat} type="button" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 0", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer", transition: "all 150ms" }}
               onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
               onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
-              <Ic n="compose" className="h-4 w-4" /> New business
+              <Ic n="briefcase" className="h-4 w-4" /> New Business
             </button>
+
+            {/* Tool buttons */}
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
+              <button type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer", transition: "all 150ms" }}
+                onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
+                onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
+                <Ic n="calendar" style={{ width: 15, height: 15, color: "#10B981" }} /> Weekly Summaries
+              </button>
+              <button type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer", transition: "all 150ms" }}
+                onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
+                onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
+                <Ic n="analytics" style={{ width: 15, height: 15, color: "#8B5CF6" }} /> Business Analytics
+              </button>
+              <button type="button" onClick={() => { if (userGoal) setGoalDraft({ text: userGoal.text, target: userGoal.target, deadline: userGoal.deadline }); else setGoalDraft({ text: "", target: "", deadline: "" }); setGoalModalOpen(true); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer", transition: "all 150ms" }}
+                onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
+                onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
+                <Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? C.accent : "#F59E0B" }} /> {userGoal ? "My Goal" : "Set Goal"}
+              </button>
+            </div>
+
+            {/* Search */}
             <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
               <Ic n="search" className="h-3.5 w-3.5" style={{ color: C.textMuted }} />
               <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search businesses..." style={{ flex: 1, background: "none", border: "none", outline: "none", color: C.text, fontSize: 12 }} />
@@ -1576,29 +1607,64 @@ export default function ChatPage() {
           </div>
           <div style={{ height: 1, margin: "0 10px", background: C.border }} />
           <div style={{ flex: 1, overflowY: "auto", padding: "6px 6px" }}>
-            <div style={{ padding: "4px 8px 6px", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.textMuted }}>Businesses</div>
+            <div style={{ padding: "4px 8px 6px", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.textMuted }}>Your Businesses</div>
             {filteredChats.map((c) => {
-              const isA = c.id === activeChatId; const isR = renamingChatId === c.id;
+              const isA = c.id === activeChatId; const isR = renamingChatId === c.id; const isExp = expandedBizId === c.id;
+              const bizPhase = detectPhase(c.messages); const bizName = getBusinessName(c.messages);
+              const createdDate = c.id.includes("_") ? new Date(parseInt(c.id.split("_").pop() || "0", 16)).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
               return (
-                <div key={c.id} className="chat-row" style={{ display: "flex", alignItems: "center", padding: "6px 8px", borderRadius: 8, marginBottom: 1, cursor: "pointer", background: isA ? "rgba(255,255,255,0.06)" : "transparent", transition: "background 150ms", position: "relative" }}
-                  onMouseEnter={(e) => { if (!isA) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
-                  onMouseLeave={(e) => { if (!isA) e.currentTarget.style.background = isA ? "rgba(255,255,255,0.06)" : "transparent"; }}>
-                  <button onClick={() => { setActiveChatId(c.id); if (isMobile) setSidebarOpen(false); }} type="button" style={{ flex: 1, textAlign: "left", background: "none", border: "none", cursor: "pointer", color: C.text, padding: 0, overflow: "hidden" }}>
-                    {isR ? (
-                      <input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") { setRenamingChatId(null); setRenameValue(""); } }} onBlur={commitRename} autoFocus style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: `1px solid ${C.border}`, borderRadius: 4, padding: "2px 6px", color: C.text, fontSize: 12, outline: "none" }} />
-                    ) : (
-                      <div className="chat-title" style={{ fontSize: 12, color: isA ? C.text : C.textSec, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 180, transition: "color 150ms", position: "relative", zIndex: 1 }}>{c.title || "New business"}</div>
+                <div key={c.id} style={{ marginBottom: 2, borderRadius: 10, overflow: "hidden", border: isA ? `1px solid rgba(255,255,255,0.06)` : "1px solid transparent", background: isA ? "rgba(255,255,255,0.04)" : "transparent", transition: "all 200ms" }}>
+                  {/* Business row */}
+                  <div className="chat-row" style={{ display: "flex", alignItems: "center", padding: "7px 8px", cursor: "pointer", transition: "background 150ms" }}
+                    onMouseEnter={(e) => { if (!isA) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
+                    <button onClick={() => { setActiveChatId(c.id); if (isMobile) setSidebarOpen(false); }} type="button" style={{ flex: 1, textAlign: "left", background: "none", border: "none", cursor: "pointer", color: C.text, padding: 0, overflow: "hidden" }}>
+                      {isR ? (
+                        <input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") { setRenamingChatId(null); setRenameValue(""); } }} onBlur={commitRename} autoFocus style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: `1px solid ${C.border}`, borderRadius: 6, padding: "3px 8px", color: C.text, fontSize: 12, outline: "none" }} />
+                      ) : (
+                        <div style={{ fontSize: 12, color: isA ? C.text : C.textSec, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 170, fontWeight: isA ? 600 : 400, transition: "color 150ms" }}>{c.title || "New business"}</div>
+                      )}
+                    </button>
+                    {!isR && (
+                      <HBtn onMouseDown={(e: React.MouseEvent) => e.stopPropagation()} onClick={(e: React.MouseEvent) => { e.stopPropagation(); setExpandedBizId(isExp ? null : c.id); }} className="chat-dots" style={{ width: 26, height: 26, color: C.textMuted, opacity: isA || isExp ? 0.8 : 0, marginLeft: 2, transition: "all 200ms" }}>
+                        <Ic n="chevdown" style={{ width: 14, height: 14, transition: "transform 200ms", transform: isExp ? "rotate(180deg)" : "rotate(0deg)" }} />
+                      </HBtn>
                     )}
-                  </button>
-                  {!isR && (
-                    <HBtn onMouseDown={(e: React.MouseEvent) => e.stopPropagation()} onClick={(e: React.MouseEvent) => { e.stopPropagation(); setOpenChatMenuId((v) => (v === c.id ? null : c.id)); }} className="chat-dots" style={{ width: 28, height: 28, color: C.text, opacity: isA || openChatMenuId === c.id ? 0.9 : 0, marginLeft: 2 }}>
-                      <Ic n="dots" style={{ width: 16, height: 16 }} />
-                    </HBtn>
-                  )}
-                  {openChatMenuId === c.id && (
-                    <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "absolute", right: 4, top: 32, zIndex: 100, width: 140, borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 12px 36px rgba(0,0,0,0.5)", overflow: "hidden" }}>
-                      <button onClick={() => startRename(c.id)} type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", transition: "all 180ms" }} onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), 0 4px 16px rgba(0,0,0,0.15)"; }} onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}><Ic n="pencil" className="h-3 w-3" /> Rename</button>
-                      <button onClick={() => deleteChat(c.id)} type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", transition: "all 180ms" }} onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), 0 4px 16px rgba(0,0,0,0.15)"; }} onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}><Ic n="trash" className="h-3 w-3" /> Delete</button>
+                  </div>
+                  {/* Expanded details */}
+                  {isExp && (
+                    <div style={{ padding: "2px 10px 10px", animation: "bizExpand 200ms ease" }}>
+                      <style>{`@keyframes bizExpand{from{opacity:0;max-height:0}to{opacity:1;max-height:200px}}`}</style>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 8 }}>
+                        <div style={{ padding: "6px 8px", borderRadius: 7, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
+                          <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Created</div>
+                          <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>{createdDate}</div>
+                        </div>
+                        <div style={{ padding: "6px 8px", borderRadius: 7, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
+                          <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Type</div>
+                          <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>{bizName ? "Freelance" : "—"}</div>
+                        </div>
+                        <div style={{ padding: "6px 8px", borderRadius: 7, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
+                          <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Website</div>
+                          <div style={{ fontSize: 11, color: bizPhase === "building" || bizPhase === "live" ? "#10B981" : C.textSec, marginTop: 2 }}>{bizPhase === "live" ? "Live" : bizPhase === "building" ? "Building" : "Not started"}</div>
+                        </div>
+                        <div style={{ padding: "6px 8px", borderRadius: 7, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
+                          <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Progress</div>
+                          <div style={{ fontSize: 11, color: bizPhase === "live" ? "#10B981" : bizPhase === "evaluating" ? "#F59E0B" : C.textSec, marginTop: 2, textTransform: "capitalize" }}>{bizPhase}</div>
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <button onClick={() => startRename(c.id)} type="button" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 7, border: "none", background: "rgba(255,255,255,0.03)", color: C.textSec, fontSize: 11, fontWeight: 500, cursor: "pointer", transition: "all 180ms" }}
+                          onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.08)"; s.backdropFilter = "blur(20px) saturate(1.8)"; (s as any).webkitBackdropFilter = "blur(20px) saturate(1.8)"; s.boxShadow = "inset 0 0.5px 0 rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.15)"; }}
+                          onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.03)"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}>
+                          <Ic n="pencil" style={{ width: 11, height: 11 }} /> Rename
+                        </button>
+                        <button onClick={() => { deleteChat(c.id); setExpandedBizId(null); }} type="button" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 7, border: "none", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 11, fontWeight: 500, cursor: "pointer", transition: "all 180ms" }}
+                          onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(239,68,68,0.12)"; s.backdropFilter = "blur(20px) saturate(1.8)"; (s as any).webkitBackdropFilter = "blur(20px) saturate(1.8)"; s.boxShadow = "inset 0 0.5px 0 rgba(239,68,68,0.15), 0 2px 8px rgba(0,0,0,0.15)"; }}
+                          onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "rgba(239,68,68,0.06)"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}>
+                          <Ic n="trash" style={{ width: 11, height: 11 }} /> Delete
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1825,213 +1891,267 @@ export default function ChatPage() {
         )}
 
         {/* GOAL MODAL */}
-        {/* ─── SETTINGS PANEL ─────────────────────────────────── */}
+        {/* ─── FULL-SCREEN SETTINGS ─────────────────────────── */}
         {settingsOpen && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div onClick={() => setSettingsOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }} />
-            <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "relative", width: 560, maxWidth: "92vw", maxHeight: "85vh", borderRadius: 20, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(10,14,22,0.92)", backdropFilter: "blur(48px) saturate(1.8)", WebkitBackdropFilter: "blur(48px) saturate(1.8)", boxShadow: "0 40px 100px rgba(0,0,0,0.6), 0 0 0 0.5px rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.05)", overflow: "hidden", display: "flex", flexDirection: "column", animation: "settingsFadeIn 300ms cubic-bezier(0.16,1,0.3,1)" }}>
-              <style>{`
-                @keyframes settingsFadeIn { from { opacity: 0; transform: scale(0.97) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-                .stg-btn { padding: 9px 14px; border-radius: 10px; border: none; background: none; color: ${C.textSec}; font-size: 13px; font-weight: 500; cursor: pointer; text-align: left; width: 100%; transition: all 220ms cubic-bezier(0.2,0,0,1); position: relative; overflow: hidden; }
-                .stg-btn:hover { background: rgba(255,255,255,0.05); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.1), 0 4px 12px rgba(0,0,0,0.15); color: ${C.text}; }
-                .stg-btn.stg-active { background: rgba(74,144,255,0.08); color: ${C.accent}; font-weight: 600; box-shadow: inset 0 0.5px 0 rgba(74,144,255,0.15); }
-                .stg-input { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.025); color: ${C.text}; font-size: 14px; font-family: inherit; outline: none; transition: all 250ms cubic-bezier(0.2,0,0,1); }
-                .stg-input:focus { border-color: rgba(74,144,255,0.4); box-shadow: 0 0 0 3px rgba(74,144,255,0.08), 0 0 16px rgba(74,144,255,0.05); background: rgba(255,255,255,0.035); }
-                .stg-input::placeholder { color: rgba(255,255,255,0.18); }
-                .stg-toggle { position: relative; width: 40px; height: 22px; border-radius: 11px; border: none; cursor: pointer; transition: all 200ms; flex-shrink: 0; }
-                .stg-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 9px; background: white; transition: all 200ms cubic-bezier(0.2,0,0,1); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
-                .stg-toggle.stg-on { background: ${C.accent}; }
-                .stg-toggle.stg-on::after { transform: translateX(18px); }
-                .stg-toggle.stg-off { background: rgba(255,255,255,0.1); }
-                .stg-section { margin-bottom: 28px; }
-                .stg-section-title { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 14px; }
-                .stg-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
-                .stg-row:last-child { border-bottom: none; }
-                .stg-label { font-size: 13px; font-weight: 500; color: ${C.text}; }
-                .stg-sublabel { font-size: 11.5px; color: rgba(255,255,255,0.35); margin-top: 2px; line-height: 1.4; }
-                .stg-danger { color: #EF4444; }
-                .stg-danger:hover { background: rgba(239,68,68,0.08) !important; color: #EF4444 !important; }
-              `}</style>
+          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.95)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", animation: "stgFadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }}>
+            <style>{`
+              @keyframes stgFadeIn { from { opacity: 0; } to { opacity: 1; } }
+              .stg-tab { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 10px; border: none; background: none; color: ${C.textSec}; font-size: 13px; font-weight: 500; cursor: pointer; width: 100%; text-align: left; transition: all 220ms cubic-bezier(0.2,0,0,1); }
+              .stg-tab:hover { background: rgba(255,255,255,0.04); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.08), 0 2px 8px rgba(0,0,0,0.1); }
+              .stg-tab-active { background: rgba(74,144,255,0.08) !important; color: ${C.accent} !important; font-weight: 600; box-shadow: inset 0 0.5px 0 rgba(74,144,255,0.12) !important; }
+              .stg-input { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.025); color: ${C.text}; font-size: 14px; font-family: inherit; outline: none; transition: all 250ms; }
+              .stg-input:focus { border-color: rgba(74,144,255,0.4); box-shadow: 0 0 0 3px rgba(74,144,255,0.08), 0 0 16px rgba(74,144,255,0.05); }
+              .stg-toggle { position: relative; width: 40px; height: 22px; border-radius: 11px; border: none; cursor: pointer; transition: all 200ms; flex-shrink: 0; }
+              .stg-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 9px; background: white; transition: all 200ms cubic-bezier(0.2,0,0,1); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+              .stg-toggle.stg-on { background: ${C.accent}; }
+              .stg-toggle.stg-on::after { transform: translateX(18px); }
+              .stg-toggle.stg-off { background: rgba(255,255,255,0.1); }
+              .stg-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+              .stg-row:last-child { border-bottom: none; }
+              .stg-section { margin-bottom: 32px; }
+              .stg-section-title { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.25); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 16px; }
+              .stg-card { padding: 18px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); }
+            `}</style>
 
-              {/* Header */}
-              <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid rgba(255,255,255,0.05)`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${C.accent}12`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Ic n="settings" style={{ width: 18, height: 18, color: C.accent }} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 17, fontWeight: 700, color: C.text, letterSpacing: "-0.01em" }}>Settings</div>
-                    <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1 }}>Customize your Zelrex experience</div>
-                  </div>
+            {/* Left sidebar */}
+            <div style={{ width: 260, borderRight: `1px solid rgba(255,255,255,0.05)`, display: "flex", flexDirection: "column", padding: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
+                <ZelrexZIcon size={20} />
+                <span style={{ fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "-0.01em" }}>Settings</span>
+              </div>
+              <nav style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
+                <button className={`stg-tab ${settingsTab === "account" ? "stg-tab-active" : ""}`} onClick={() => setSettingsTab("account")}>
+                  <Ic n="user" style={{ width: 16, height: 16 }} /> Account
+                </button>
+                <button className={`stg-tab ${settingsTab === "subscription" ? "stg-tab-active" : ""}`} onClick={() => setSettingsTab("subscription")}>
+                  <Ic n="credit" style={{ width: 16, height: 16 }} /> Subscription
+                </button>
+                <button className={`stg-tab ${settingsTab === "features" ? "stg-tab-active" : ""}`} onClick={() => setSettingsTab("features")}>
+                  <Ic n="bolt" style={{ width: 16, height: 16 }} /> Zelrex Features
+                </button>
+                <button className={`stg-tab ${settingsTab === "notifications" ? "stg-tab-active" : ""}`} onClick={() => setSettingsTab("notifications")}>
+                  <Ic n="bell" style={{ width: 16, height: 16 }} /> Notifications
+                </button>
+              </nav>
+              {/* Settings footer */}
+              <div style={{ paddingTop: 16, borderTop: `1px solid rgba(255,255,255,0.04)` }}>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.15)" }}>Zelrex v1.0 · Claude Opus 4.6</span>
+              </div>
+            </div>
+
+            {/* Right content */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+              {/* Top bar */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 28px", borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: C.text, letterSpacing: "-0.01em" }}>
+                  {settingsTab === "account" && "Account"}
+                  {settingsTab === "subscription" && "Subscription & Billing"}
+                  {settingsTab === "features" && "Zelrex Features"}
+                  {settingsTab === "notifications" && "Notifications"}
                 </div>
-                <button onClick={() => setSettingsOpen(false)} style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "rgba(255,255,255,0.04)", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 200ms" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = C.text; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = C.textMuted; }}>
-                  <Ic n="close" style={{ width: 14, height: 14 }} />
+                <button onClick={() => setSettingsOpen(false)} style={{ width: 36, height: 36, borderRadius: 10, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.03)", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 200ms" }}
+                  onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.08)"; s.backdropFilter = "blur(20px) saturate(1.8)"; (s as any).webkitBackdropFilter = "blur(20px) saturate(1.8)"; s.boxShadow = "inset 0 0.5px 0 rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.1)"; s.color = C.text; }}
+                  onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.03)"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.color = C.textMuted; }}>
+                  <Ic n="close" style={{ width: 16, height: 16 }} />
                 </button>
               </div>
 
-              {/* Content (scrollable) */}
-              <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px 24px" }}>
+              {/* Scrollable content */}
+              <div style={{ flex: 1, overflowY: "auto", padding: "28px 28px 40px", maxWidth: 640 }}>
 
-                {/* Profile */}
-                <div className="stg-section">
-                  <div className="stg-section-title">Profile</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-                    <img src={clerkUser?.imageUrl} alt="" style={{ width: 52, height: 52, borderRadius: 14, border: `2px solid rgba(255,255,255,0.06)` }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: C.text }}>{clerkUser?.fullName || clerkUser?.firstName || "User"}</div>
-                      <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{clerkUser?.primaryEmailAddress?.emailAddress || ""}</div>
+                {/* ─── ACCOUNT TAB ─── */}
+                {settingsTab === "account" && (<>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Profile</div>
+                    <div className="stg-card" style={{ display: "flex", alignItems: "center", gap: 18 }}>
+                      <img src={clerkUser?.imageUrl} alt="" style={{ width: 64, height: 64, borderRadius: 16, border: `2px solid rgba(255,255,255,0.06)` }} />
+                      <div>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{clerkUser?.fullName || clerkUser?.firstName || "User"}</div>
+                        <div style={{ fontSize: 13, color: C.textMuted, marginTop: 3 }}>{clerkUser?.primaryEmailAddress?.emailAddress || ""}</div>
+                        <div style={{ marginTop: 6, display: "inline-block", padding: "3px 10px", borderRadius: 999, background: `${C.accent}12`, fontSize: 11, fontWeight: 700, color: C.accent, letterSpacing: "0.04em" }}>FREE PLAN</div>
+                      </div>
                     </div>
                   </div>
-                </div>
-
-                {/* Subscription */}
-                <div className="stg-section">
-                  <div className="stg-section-title">Subscription</div>
-                  <div style={{ padding: "16px", borderRadius: 14, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.02)" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Free Plan</div>
-                        <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Basic access to Zelrex features</div>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Connected Accounts</div>
+                    <div className="stg-row">
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center" }}><Ic n="globe" style={{ width: 16, height: 16, color: C.textSec }} /></div>
+                        <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Stripe</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Accept payments on your website</div></div>
                       </div>
-                      <div style={{ padding: "4px 10px", borderRadius: 999, background: `${C.accent}15`, fontSize: 11, fontWeight: 700, color: C.accent, letterSpacing: "0.04em", textTransform: "uppercase" }}>Current</div>
+                      <button style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
+                        onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.07)"; s.backdropFilter = "blur(20px) saturate(1.8)"; (s as any).webkitBackdropFilter = "blur(20px) saturate(1.8)"; s.boxShadow = "inset 0 0.5px 0 rgba(255,255,255,0.1), 0 2px 8px rgba(0,0,0,0.12)"; }}
+                        onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.025)"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}>Connect</button>
                     </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button style={{ flex: 1, padding: "10px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 16px ${C.accent}30`, transition: "all 220ms cubic-bezier(0.2,0,0,1)" }}
-                        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 6px 24px ${C.accent}40`; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = `0 4px 16px ${C.accent}30`; e.currentTarget.style.transform = "none"; }}>
-                        Upgrade to Pro — $26/mo
-                      </button>
+                    <div className="stg-row">
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center" }}><Ic n="chart" style={{ width: 16, height: 16, color: C.textSec }} /></div>
+                        <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Google Analytics</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Track your website visitors</div></div>
+                      </div>
+                      <button style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
+                        onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.07)"; s.backdropFilter = "blur(20px) saturate(1.8)"; (s as any).webkitBackdropFilter = "blur(20px) saturate(1.8)"; s.boxShadow = "inset 0 0.5px 0 rgba(255,255,255,0.1), 0 2px 8px rgba(0,0,0,0.12)"; }}
+                        onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.025)"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}>Connect</button>
                     </div>
-                    <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                      {["Unlimited websites", "Priority AI responses", "Custom domains", "Weekly business reports"].map(f => (
-                        <div key={f} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: C.textSec }}>
-                          <span style={{ color: "#10B981", fontSize: 13 }}>✓</span> {f}
+                  </div>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Keyboard Shortcuts</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      {[["New business","Ctrl+N"],["Send message","Enter"],["New line","Shift+Enter"],["Toggle sidebar","Ctrl+B"],["Focus input","Ctrl+K"],["Close modal","Esc"]].map(([a,k]) => (
+                        <div key={a} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", fontSize: 12 }}>
+                          <span style={{ color: C.textSec }}>{a}</span>
+                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.05)", fontSize: 11, fontWeight: 600, color: C.textMuted, fontFamily: "monospace" }}>{k}</span>
                         </div>
                       ))}
                     </div>
                   </div>
-                </div>
+                  <div className="stg-section">
+                    <div className="stg-section-title" style={{ color: "#EF4444" }}>Danger Zone</div>
+                    <div className="stg-row"><div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Sign out</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Sign out of your Zelrex account</div></div>
+                      <button onClick={() => { setSettingsOpen(false); signOut(); }} style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
+                        onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.07)"; s.backdropFilter = "blur(20px) saturate(1.8)"; (s as any).webkitBackdropFilter = "blur(20px) saturate(1.8)"; s.boxShadow = "inset 0 0.5px 0 rgba(255,255,255,0.1), 0 2px 8px rgba(0,0,0,0.12)"; }}
+                        onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.025)"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}>Sign out</button>
+                    </div>
+                    <div className="stg-row" style={{ borderBottom: "none" }}><div><div style={{ fontSize: 13, fontWeight: 500, color: "#EF4444" }}>Delete account</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Permanently delete your account and all data</div></div>
+                      <button style={{ padding: "7px 16px", borderRadius: 9, border: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.06)"; }}>Delete</button>
+                    </div>
+                  </div>
+                </>)}
 
-                {/* Preferences */}
-                <div className="stg-section">
-                  <div className="stg-section-title">Preferences</div>
-                  <div className="stg-row">
-                    <div>
-                      <div className="stg-label">AI Response Style</div>
-                      <div className="stg-sublabel">How Zelrex communicates with you</div>
-                    </div>
-                    <select style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.03)", color: C.text, fontSize: 12, fontWeight: 500, cursor: "pointer", outline: "none" }}>
-                      <option value="direct">Direct & concise</option>
-                      <option value="detailed">Detailed explanations</option>
-                      <option value="coaching">Coaching style</option>
-                    </select>
-                  </div>
-                  <div className="stg-row">
-                    <div>
-                      <div className="stg-label">Sound Effects</div>
-                      <div className="stg-sublabel">Play sounds for notifications and actions</div>
-                    </div>
-                    <button className="stg-toggle stg-off" onClick={(e) => e.currentTarget.classList.toggle("stg-on") || e.currentTarget.classList.toggle("stg-off")} />
-                  </div>
-                  <div className="stg-row">
-                    <div>
-                      <div className="stg-label">Weekly Business Digest</div>
-                      <div className="stg-sublabel">Email summary of your business progress</div>
-                    </div>
-                    <button className="stg-toggle stg-on" onClick={(e) => e.currentTarget.classList.toggle("stg-on") || e.currentTarget.classList.toggle("stg-off")} />
-                  </div>
-                  <div className="stg-row">
-                    <div>
-                      <div className="stg-label">Proactive Suggestions</div>
-                      <div className="stg-sublabel">Let Zelrex suggest improvements between chats</div>
-                    </div>
-                    <button className="stg-toggle stg-on" onClick={(e) => e.currentTarget.classList.toggle("stg-on") || e.currentTarget.classList.toggle("stg-off")} />
-                  </div>
-                </div>
-
-                {/* Connected Accounts */}
-                <div className="stg-section">
-                  <div className="stg-section-title">Connected Accounts</div>
-                  <div className="stg-row">
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 7, background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24"><path d="M7.5 4.5C9.433 4.5 11 6.067 11 8s-1.567 3.5-3.5 3.5S4 9.933 4 8s1.567-3.5 3.5-3.5zM22 7h-2V5h-2v2h-2v2h2v2h2V9h2V7z" fill="rgba(255,255,255,0.5)" /></svg>
+                {/* ─── SUBSCRIPTION TAB ─── */}
+                {settingsTab === "subscription" && (<>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Current Plan</div>
+                    <div className="stg-card" style={{ position: "relative", overflow: "hidden" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                        <div><div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>Free</div><div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>Basic access to Zelrex</div></div>
+                        <div style={{ padding: "5px 12px", borderRadius: 999, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", fontSize: 12, fontWeight: 600, color: C.textSec }}>Current</div>
                       </div>
-                      <div>
-                        <div className="stg-label">Stripe</div>
-                        <div className="stg-sublabel">Accept payments on your website</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 16 }}>
+                        {["3 businesses", "Basic AI responses", "1 website deploy", "Community support"].map(f => (
+                          <div key={f} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.textSec }}><span style={{ color: C.textMuted }}>✓</span> {f}</div>
+                        ))}
                       </div>
                     </div>
-                    <button style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.03)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; }}>
-                      Connect
-                    </button>
                   </div>
-                  <div className="stg-row">
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 7, background: "rgba(255,255,255,0.04)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878V14.89h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" fill="rgba(255,255,255,0.5)" /></svg>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Upgrade</div>
+                    <div className="stg-card" style={{ border: `1px solid ${C.accent}25`, position: "relative", overflow: "hidden" }}>
+                      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${C.accent}, transparent)` }} />
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                        <div><div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>Pro <span style={{ fontSize: 14, fontWeight: 500, color: C.textSec }}>$26/mo</span></div><div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>Everything you need to scale</div></div>
+                        <div style={{ padding: "5px 12px", borderRadius: 999, background: `${C.accent}15`, fontSize: 12, fontWeight: 700, color: C.accent }}>RECOMMENDED</div>
                       </div>
-                      <div>
-                        <div className="stg-label">Google Analytics</div>
-                        <div className="stg-sublabel">Track your website visitors</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 18 }}>
+                        {["Unlimited businesses", "Priority AI (Opus 4.6)", "Unlimited deploys", "Custom domains", "Weekly business reports", "Priority support", "Business analytics", "Stripe integration"].map(f => (
+                          <div key={f} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.textSec }}><span style={{ color: "#10B981" }}>✓</span> {f}</div>
+                        ))}
                       </div>
+                      <button style={{ width: "100%", padding: "12px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: `0 6px 24px ${C.accent}30, inset 0 1px 0 rgba(255,255,255,0.1)`, transition: "all 220ms cubic-bezier(0.2,0,0,1)" }}
+                        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 32px ${C.accent}40`; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = `0 6px 24px ${C.accent}30`; e.currentTarget.style.transform = "none"; }}>
+                        Upgrade to Pro
+                      </button>
                     </div>
-                    <button style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.03)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"; }}>
-                      Connect
-                    </button>
                   </div>
-                </div>
-
-                {/* Keyboard Shortcuts */}
-                <div className="stg-section">
-                  <div className="stg-section-title">Keyboard Shortcuts</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-                    {[["New chat", "Ctrl+N"], ["Send message", "Enter"], ["New line", "Shift+Enter"], ["Toggle sidebar", "Ctrl+B"], ["Focus input", "Ctrl+K"], ["Close modal", "Esc"]].map(([action, key]) => (
-                      <div key={action} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", fontSize: 12 }}>
-                        <span style={{ color: C.textSec }}>{action}</span>
-                        <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", fontSize: 11, fontWeight: 600, color: C.textMuted, fontFamily: "monospace" }}>{key}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Danger Zone */}
-                <div className="stg-section">
-                  <div className="stg-section-title stg-danger">Account</div>
-                  <div className="stg-row">
-                    <div>
-                      <div className="stg-label">Sign out</div>
-                      <div className="stg-sublabel">Sign out of your Zelrex account</div>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Billing History</div>
+                    <div style={{ textAlign: "center", padding: "32px 0" }}>
+                      <Ic n="credit" style={{ width: 28, height: 28, color: C.textMuted, opacity: 0.4, margin: "0 auto 10px", display: "block" }} />
+                      <div style={{ fontSize: 13, color: C.textMuted }}>No billing history yet</div>
+                      <div style={{ fontSize: 11, color: C.textMuted, opacity: 0.5, marginTop: 4 }}>Invoices will appear here after your first payment</div>
                     </div>
-                    <button onClick={() => { setSettingsOpen(false); signOut(); }} style={{ padding: "6px 14px", borderRadius: 8, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.03)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}>
-                      Sign out
-                    </button>
                   </div>
-                  <div className="stg-row" style={{ borderBottom: "none" }}>
-                    <div>
-                      <div className="stg-label stg-danger" style={{ color: "#EF4444" }}>Delete account</div>
-                      <div className="stg-sublabel">Permanently delete your account and all data</div>
-                    </div>
-                    <button style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.3)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.06)"; e.currentTarget.style.borderColor = "rgba(239,68,68,0.2)"; }}>
-                      Delete
-                    </button>
-                  </div>
-                </div>
+                </>)}
 
-                {/* Version info */}
-                <div style={{ textAlign: "center", padding: "8px 0 0", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
-                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.15)", fontWeight: 500 }}>Zelrex v1.0 · Powered by Claude Opus 4.6</span>
-                </div>
+                {/* ─── FEATURES TAB ─── */}
+                {settingsTab === "features" && (<>
+                  <div className="stg-section">
+                    <div className="stg-section-title">AI Configuration</div>
+                    <div className="stg-row">
+                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Response Style</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>How Zelrex communicates with you</div></div>
+                      <select style={{ padding: "7px 12px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.text, fontSize: 12, fontWeight: 500, cursor: "pointer", outline: "none" }}>
+                        <option value="direct">Direct & concise</option><option value="detailed">Detailed</option><option value="coaching">Coaching</option>
+                      </select>
+                    </div>
+                    <div className="stg-row">
+                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Revenue-First Mode</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Prioritize revenue in all suggestions</div></div>
+                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    </div>
+                    <div className="stg-row">
+                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Idea Rejection Engine</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Actively reject weak business ideas</div></div>
+                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    </div>
+                    <div className="stg-row">
+                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Proactive Suggestions</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Zelrex suggests improvements between chats</div></div>
+                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    </div>
+                  </div>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Website Builder</div>
+                    <div className="stg-row">
+                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Auto-Deploy</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Automatically deploy websites after build</div></div>
+                      <button className="stg-toggle stg-off" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    </div>
+                    <div className="stg-row">
+                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Preview Quality</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Resolution for website previews</div></div>
+                      <select style={{ padding: "7px 12px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.text, fontSize: 12, fontWeight: 500, cursor: "pointer", outline: "none" }}>
+                        <option value="high">High (default)</option><option value="low">Low (faster)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Business Copilot</div>
+                    <div className="stg-row">
+                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Weekly Business Digest</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Email summary of business progress</div></div>
+                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    </div>
+                    <div className="stg-row">
+                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Market Monitoring</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Track market changes relevant to your business</div></div>
+                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    </div>
+                    <div className="stg-row">
+                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Sound Effects</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Play sounds for notifications and actions</div></div>
+                      <button className="stg-toggle stg-off" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    </div>
+                  </div>
+                </>)}
+
+                {/* ─── NOTIFICATIONS TAB ─── */}
+                {settingsTab === "notifications" && (<>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Email Notifications</div>
+                    <div className="stg-row">
+                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Weekly Business Report</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Summary of your business metrics every Monday</div></div>
+                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    </div>
+                    <div className="stg-row">
+                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Goal Milestones</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Get notified when you hit revenue targets</div></div>
+                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    </div>
+                    <div className="stg-row">
+                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Market Alerts</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Opportunities and threats in your market</div></div>
+                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    </div>
+                    <div className="stg-row">
+                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Product Updates</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>New Zelrex features and improvements</div></div>
+                      <button className="stg-toggle stg-off" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    </div>
+                  </div>
+                  <div className="stg-section">
+                    <div className="stg-section-title">In-App Notifications</div>
+                    <div className="stg-row">
+                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Business Suggestions</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Zelrex proactive business recommendations</div></div>
+                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    </div>
+                    <div className="stg-row">
+                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Deploy Status</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Website deployment success or failure</div></div>
+                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    </div>
+                  </div>
+                </>)}
+
               </div>
             </div>
           </div>
