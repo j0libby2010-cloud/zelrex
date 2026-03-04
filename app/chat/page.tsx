@@ -134,32 +134,44 @@ function ZelrexZIcon({ size = 24 }: { size?: number }) {
 
 function ZelrexThinking({ stage }: { stage?: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 0", minHeight: 40 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 0", minHeight: 44 }}>
       <div className="dyson-wrap">
-        <div className="dyson-core"><ZelrexZIcon size={14} /></div>
+        <div className="dyson-core"><ZelrexZIcon size={16} /></div>
+        {/* Orbital rings tilted at different 3D angles to form a sphere */}
         <div className="dyson-ring dyson-r1" />
         <div className="dyson-ring dyson-r2" />
         <div className="dyson-ring dyson-r3" />
         <div className="dyson-ring dyson-r4" />
+        <div className="dyson-ring dyson-r5" />
         <div className="dyson-glow" />
         <div className="dyson-pulse" />
       </div>
       <span className="z-think-label">{stage || "Thinking"}</span>
       <style>{`
-        .dyson-wrap{position:relative;width:40px;height:40px;flex-shrink:0}
-        .dyson-core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3}
-        .dyson-glow{position:absolute;inset:6px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,0.28) 0%,rgba(74,144,255,0.08) 50%,transparent 80%);animation:dyson-breathe 2.8s ease-in-out infinite;z-index:0}
-        .dyson-pulse{position:absolute;inset:-6px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,0.06) 0%,transparent 70%);animation:dyson-pa 3.2s ease-in-out infinite;z-index:0}
-        @keyframes dyson-breathe{0%,100%{opacity:0.4;transform:scale(0.85)}50%{opacity:1;transform:scale(1.15)}}
-        @keyframes dyson-pa{0%,100%{opacity:0;transform:scale(0.8)}50%{opacity:0.6;transform:scale(1.5)}}
-        .dyson-ring{position:absolute;border-radius:50%;border:1.5px solid transparent;z-index:1}
-        .dyson-r1{inset:1px;border-top-color:#3B82F6;border-right-color:rgba(59,130,246,0.4);animation:dyson-s1 2s linear infinite;filter:drop-shadow(0 0 6px rgba(59,130,246,0.6))}
-        .dyson-r2{inset:4px;border-bottom-color:rgba(96,165,250,0.7);border-left-color:rgba(96,165,250,0.25);animation:dyson-s2 3.2s linear infinite;filter:drop-shadow(0 0 4px rgba(96,165,250,0.4))}
-        .dyson-r3{inset:-2px;border-top-color:rgba(59,130,246,0.3);border-left-color:rgba(59,130,246,0.12);animation:dyson-s3 4.8s linear infinite;filter:drop-shadow(0 0 8px rgba(59,130,246,0.2))}
-        .dyson-r4{inset:-5px;border-right-color:rgba(147,197,253,0.15);border-bottom-color:rgba(147,197,253,0.06);animation:dyson-s1 7s linear infinite reverse;filter:drop-shadow(0 0 10px rgba(147,197,253,0.1))}
-        @keyframes dyson-s1{to{transform:rotate(360deg)}}
-        @keyframes dyson-s2{to{transform:rotate(-360deg)}}
-        @keyframes dyson-s3{to{transform:rotate(360deg)}}
+        .dyson-wrap{position:relative;width:44px;height:44px;flex-shrink:0;perspective:200px}
+        .dyson-core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:4}
+        .dyson-glow{position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,0.32) 0%,rgba(74,144,255,0.06) 60%,transparent 85%);animation:dyson-breathe 3s ease-in-out infinite;z-index:0}
+        .dyson-pulse{position:absolute;inset:-8px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,0.05) 0%,transparent 65%);animation:dyson-pa 4s ease-in-out infinite;z-index:0}
+        @keyframes dyson-breathe{0%,100%{opacity:0.35;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}
+        @keyframes dyson-pa{0%,100%{opacity:0;transform:scale(0.7)}50%{opacity:0.5;transform:scale(1.6)}}
+        .dyson-ring{position:absolute;inset:2px;border-radius:50%;border:1.2px solid transparent;z-index:2}
+        /* Equatorial ring — flat, fastest */
+        .dyson-r1{border-top-color:#3B82F6;border-bottom-color:rgba(59,130,246,0.15);animation:dyson-spin 1.8s linear infinite;filter:drop-shadow(0 0 5px rgba(59,130,246,0.5))}
+        /* Tilted ring 60° on X */
+        .dyson-r2{border-left-color:rgba(96,165,250,0.8);border-right-color:rgba(96,165,250,0.15);transform:rotateX(60deg);animation:dyson-spin-r 2.6s linear infinite;filter:drop-shadow(0 0 4px rgba(96,165,250,0.4))}
+        /* Tilted ring -60° on X */
+        .dyson-r3{border-top-color:rgba(147,197,253,0.6);border-bottom-color:rgba(147,197,253,0.1);transform:rotateX(-60deg);animation:dyson-spin 3.4s linear infinite;filter:drop-shadow(0 0 4px rgba(147,197,253,0.3))}
+        /* Polar ring — 90° on X (vertical), slight Y tilt */
+        .dyson-r4{border-left-color:rgba(59,130,246,0.45);border-right-color:rgba(59,130,246,0.08);transform:rotateX(90deg) rotateY(20deg);animation:dyson-spin-r 4s linear infinite;filter:drop-shadow(0 0 6px rgba(59,130,246,0.25))}
+        /* Diagonal ring — 45° on both axes */
+        .dyson-r5{inset:0px;border-top-color:rgba(147,197,253,0.2);border-left-color:rgba(147,197,253,0.08);transform:rotateX(45deg) rotateZ(45deg);animation:dyson-spin 5.5s linear infinite;filter:drop-shadow(0 0 8px rgba(147,197,253,0.12))}
+        @keyframes dyson-spin{to{transform:rotateX(var(--rx,0deg)) rotateZ(var(--rz,0deg)) rotate(360deg)}}
+        @keyframes dyson-spin-r{to{transform:rotateX(var(--rx,0deg)) rotateZ(var(--rz,0deg)) rotate(-360deg)}}
+        .dyson-r1{--rx:0deg;--rz:0deg}
+        .dyson-r2{--rx:60deg;--rz:0deg}
+        .dyson-r3{--rx:-60deg;--rz:0deg}
+        .dyson-r4{--rx:90deg;--rz:20deg}
+        .dyson-r5{--rx:45deg;--rz:45deg}
         .z-think-label{font-size:13px;font-weight:600;letter-spacing:0.02em;background:linear-gradient(135deg,#93C5FD,#3B82F6,#60A5FA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:z-label-fade 2.4s cubic-bezier(0.4,0,0.2,1) infinite}
         @keyframes z-label-fade{0%,100%{opacity:0.5}40%{opacity:1}}
       `}</style>
