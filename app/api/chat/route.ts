@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { createClient } from '@supabase/supabase-js';
+import { MemoryService } from '@/lib/memory';
+import { buildSystemPrompt, ZELREX_TOOLS } from '@/lib/systemPrompt';
 import { buildWebsite } from "@/website/core/buildWebsite";
 import { saveWebsite } from "@/website/core/saveWebsite";
 import { randomUUID } from "crypto";
@@ -29,6 +32,12 @@ import { SurveyData } from "@/website/core/buildWebsite";
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+const memoryService = new MemoryService(supabase);
 
 async function getProgress(userId: string): Promise<BusinessProgress | null> {
   try {
@@ -441,31 +450,93 @@ export async function POST(req: Request) {
       });
     }
 
-    // ─── Normal conversation flow ─────────────────────────────────
-    const anthropicMessages = messages.map((m: any) => ({
+    // ─── Normal conversation flow (with memory + tools) ──────────
+    const chatId = body.chatId || "unknown";
+
+    // 1. Load user's memory from database
+    const userContext = await memoryService.loadFullContext(userId);
+
+    // 2. Build prompt (only loads sections relevant to this user's stage)
+    const dynamicSystemPrompt = buildSystemPrompt(userContext);
+
+    // 3. Call Claude with tools in a loop
+    let currentMessages: any[] = messages.map((m: any) => ({
       role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
-      content: [
-        {
-          type: "text" as const,
-          text: m.content,
-        },
-      ],
+      content: m.content,
     }));
+    let finalResponse: any = null;
+    let loops = 0;
 
-    const response = await anthropic.messages.create({
-      model: "claude-opus-4-6",
-      system: SYSTEM_PROMPT,
-      messages: anthropicMessages,
-      max_tokens: 4096,
-      temperature: 0.4,
-    });
+    while (loops < 5) {
+      loops++;
+      const response = await anthropic.messages.create({
+        model: 'claude-opus-4-6-20250925',
+        max_tokens: 4096,
+        system: dynamicSystemPrompt,
+        messages: currentMessages,
+        tools: ZELREX_TOOLS as any,
+      });
 
-    const reply =
-      response.content?.[0]?.type === "text"
-        ? response.content[0].text
-        : "Tell me what outcome you want to reach.";
+      const toolCalls = response.content.filter((b: any) => b.type === 'tool_use');
 
-    // Before returning the normal chat reply, check business health
+      // If no tool calls, we're done
+      if (toolCalls.length === 0 || response.stop_reason === 'end_turn') {
+        finalResponse = response;
+        break;
+      }
+
+      // Handle tool calls
+      currentMessages.push({ role: 'assistant', content: response.content });
+      const toolResults: any[] = [];
+
+      for (const tool of toolCalls as any[]) {
+        let result = '';
+        const input = tool.input as any;
+
+        switch (tool.name) {
+          case 'save_memory':
+            await memoryService.setFacts(userId, input.facts, chatId);
+            result = `Saved ${input.facts.length} facts.`;
+            break;
+          case 'reach_milestone':
+            await memoryService.reachMilestone(userId, input.stage, input.evidence, chatId);
+            result = `Milestone ${input.stage} recorded.`;
+            break;
+          case 'create_commitments':
+            await memoryService.createCommitments(userId, input.commitments, input.week_number, chatId);
+            result = `Created ${input.commitments.length} commitments.`;
+            break;
+          case 'resolve_commitment':
+            await memoryService.resolveCommitment(input.commitment_id, input.status, input.outcome_note, chatId);
+            result = `Commitment resolved.`;
+            break;
+          case 'save_offer':
+            await memoryService.saveOffer(userId, input, chatId);
+            result = `Offer saved.`;
+            break;
+          default:
+            result = 'Unknown tool.';
+        }
+
+        toolResults.push({
+          type: 'tool_result',
+          tool_use_id: tool.id,
+          content: result,
+        });
+      }
+
+      currentMessages.push({ role: 'user', content: toolResults });
+    }
+
+    // 4. Extract text from response
+    const reply = finalResponse
+      ? finalResponse.content
+          .filter((b: any) => b.type === 'text')
+          .map((b: any) => b.text)
+          .join('')
+      : "Tell me what outcome you want to reach.";
+
+    // Before returning, check business health
     const healthPrefix = generateHealthCheck(messages);
     const finalReply = healthPrefix
       ? healthPrefix + "\n\n---\n\n" + reply
