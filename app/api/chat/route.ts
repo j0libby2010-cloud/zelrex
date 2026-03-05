@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from '@supabase/supabase-js';
-import { MemoryService } from '@/lib/memory';
-import { buildSystemPrompt, ZELREX_TOOLS } from '@/lib/systemPrompt';
 import { buildWebsite } from "@/website/core/buildWebsite";
 import { saveWebsite } from "@/website/core/saveWebsite";
 import { randomUUID } from "crypto";
@@ -24,11 +22,44 @@ import {
   generateShareData,
   addCommitments,
 } from "./progressTracker";
-import { kv } from "@vercel/kv";
 import type { BrandTone } from "@/website/core/websiteTypes";
 import { SurveyData } from "@/website/core/buildWebsite";
 
-// ─── Anthropic client ───────────────────────────────────────────────
+// ─── SAFE IMPORTS: Memory + v5 prompt (with fallback) ─────────────
+// These are wrapped so that if the modules have issues, the route still loads.
+
+let MemoryServiceClass: any = null;
+let buildSystemPromptFn: ((ctx: any) => string) | null = null;
+let ZELREX_TOOLS_IMPORTED: any[] | null = null;
+
+try {
+  const memoryModule = require('@/lib/memory');
+  MemoryServiceClass = memoryModule.MemoryService;
+  console.log('[ZELREX BOOT] MemoryService loaded');
+} catch (e) {
+  console.warn('[ZELREX BOOT] MemoryService failed to load — running without memory:', (e as Error).message);
+}
+
+try {
+  const promptModule = require('@/lib/systemPrompt');
+  buildSystemPromptFn = promptModule.buildSystemPrompt;
+  ZELREX_TOOLS_IMPORTED = promptModule.ZELREX_TOOLS;
+  console.log('[ZELREX BOOT] v5 system prompt loaded');
+} catch (e) {
+  console.warn('[ZELREX BOOT] v5 system prompt failed to load — falling back to v3:', (e as Error).message);
+}
+
+// ─── SAFE IMPORT: Vercel KV (with fallback) ──────────────────────
+let kv: any = null;
+try {
+  const kvModule = require('@vercel/kv');
+  kv = kvModule.kv;
+  console.log('[ZELREX BOOT] Vercel KV loaded');
+} catch (e) {
+  console.warn('[ZELREX BOOT] Vercel KV not available — progress tracking disabled:', (e as Error).message);
+}
+
+// ─── Clients ─────────────────────────────────────────────────────
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
@@ -37,26 +68,32 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
-const memoryService = new MemoryService(supabase);
 
+// Only create memory service if the class loaded
+const memoryService = MemoryServiceClass ? new MemoryServiceClass(supabase) : null;
+
+// ─── Progress helpers (safe with KV fallback) ────────────────────
 async function getProgress(userId: string): Promise<BusinessProgress | null> {
+  if (!kv) return null;
   try {
-    const raw = await kv.get<string>(`progress:${userId}`);
+    const raw = await kv.get(`progress:${userId}`) as string | null;
     return raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : null;
-  } catch {
+  } catch (e) {
+    console.warn('[ZELREX] getProgress failed:', (e as Error).message);
     return null;
   }
 }
 
 async function saveProgress(progress: BusinessProgress): Promise<void> {
+  if (!kv) return;
   try {
     await kv.set(`progress:${progress.userId}`, JSON.stringify(progress));
   } catch (e) {
-    console.error("Failed to save progress:", e);
+    console.error("[ZELREX] saveProgress failed:", (e as Error).message);
   }
 }
 
-// ─── Intent detection ───────────────────────────────────────────────
+// ─── Intent detection ───────────────────────────────────────────
 function wantsWebsite(message: string): boolean {
   return /\b(build|make|create|generate|launch)\b.*\b(website|site|page|link)\b/i.test(message);
 }
@@ -129,7 +166,7 @@ function mapStyleToTone(style: string): BrandTone {
   }
 }
 
-// ─── Extract business context from conversation ─────────────────────
+// ─── Extract business context from conversation ─────────────────
 interface BusinessContext {
   name: string;
   tagline: string;
@@ -193,10 +230,7 @@ Return ONLY the JSON object. No markdown, no explanation.`;
   }
 }
 
-// ─── Fallback market evaluation (no web search) ─────────────────────
-// Used when the API plan doesn't support web search. Still valuable
-// because Claude has extensive business knowledge from training data.
-
+// ─── Fallback market evaluation (no web search) ─────────────────
 async function runMarketEvalFallback(
   messages: Array<{ role: string; content: string }>,
   sessionState: any
@@ -259,8 +293,8 @@ RULES:
 
   return text;
 }
-// ─── Main API handler ───────────────────────────────────────────────
-// ─── Main API handler ───────────────────────────────────────────────
+
+// ─── Main API handler ───────────────────────────────────────────
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -279,7 +313,9 @@ export async function POST(req: Request) {
         ? lastUserMessage.content
         : "";
 
-    // ─── Assumption update flow ───────────────────────────────────
+    console.log(`[ZELREX] Processing message: "${userText.substring(0, 80)}..." | Memory: ${memoryService ? 'ON' : 'OFF'} | v5 prompt: ${buildSystemPromptFn ? 'ON' : 'OFF'} | KV: ${kv ? 'ON' : 'OFF'}`);
+
+    // ─── Assumption update flow ──────────────────────────────
     const assumptionUpdate = updateAssumptionsFromMessage(
       userText,
       sessionState
@@ -302,12 +338,13 @@ export async function POST(req: Request) {
       });
     }
 
-    // Get or create user progress (use a session ID or auth ID)
+    // Get or create user progress
     const userId = body.userId || "anonymous";
     let progress = await getProgress(userId);
 
-    // ─── Market Evaluation ────────────────────────────────
+    // ─── Market Evaluation ───────────────────────────────────
     if (lastUserMessage && wantsMarketEval(lastUserMessage.content)) {
+      console.log('[ZELREX] Market evaluation triggered');
       const mentionedBusiness = extractBusinessTypeFromText(userText);
       if (mentionedBusiness && !isAllowedBusiness(mentionedBusiness)) {
         return NextResponse.json({
@@ -315,53 +352,72 @@ export async function POST(req: Request) {
           sessionState,
         });
       }
-      const { reply, evaluationRecord } = await runMarketEvaluation(messages);
 
-      // Mark milestone + create progress if needed
-      if (!progress) {
-        progress = createBusinessProgress(userId, "other");
-      }
-      progress = markMilestone(progress, "evaluation");
-      await saveProgress(progress);
+      try {
+        const { reply, evaluationRecord } = await runMarketEvaluation(messages);
 
-      return NextResponse.json({ reply });
-    }
-
-    // ─── Weekly Summary ───────────────────────────────────
-    if (lastUserMessage && wantsWeeklySummary(lastUserMessage.content)) {
-      const reply = await generateWeeklySummary(messages, progress);
-      return NextResponse.json({ reply });
-    }
-
-    // ─── Milestone Detection (runs on every message) ──────
-    if (progress && lastUserMessage) {
-      const detected = detectMilestonesInMessage(lastUserMessage.content, progress);
-
-      for (const key of detected.milestonesReached) {
-        progress = markMilestone(progress, key);
-      }
-
-      if (detected.revenueDetected !== null) {
-        progress = addRevenueReport(
-          progress,
-          detected.revenueDetected,
-          detected.clientsDetected || 1
-        );
-      }
-
-      if (detected.milestonesReached.length > 0 || detected.revenueDetected) {
+        if (!progress) {
+          progress = createBusinessProgress(userId, "other");
+        }
+        progress = markMilestone(progress, "evaluation");
         await saveProgress(progress);
+
+        return NextResponse.json({ reply });
+      } catch (evalError) {
+        console.error('[ZELREX] Market evaluation failed, trying fallback:', evalError);
+        try {
+          const fallbackReply = await runMarketEvalFallback(messages, sessionState);
+          return NextResponse.json({ reply: fallbackReply });
+        } catch (fallbackError) {
+          console.error('[ZELREX] Fallback evaluation also failed:', fallbackError);
+          return NextResponse.json({
+            reply: "I wasn't able to complete the market evaluation right now. Can you tell me more about your situation and I'll work with what I know?",
+            sessionState,
+          });
+        }
       }
     }
 
-    // ─── Website generation flow ──────────────────────────────────
-    // Two paths:
-    // A) Survey data provided (from frontend survey overlay) — preferred
-    // B) Chat-only (extract context from conversation) — fallback
+    // ─── Weekly Summary ──────────────────────────────────────
+    if (lastUserMessage && wantsWeeklySummary(lastUserMessage.content)) {
+      console.log('[ZELREX] Weekly summary triggered');
+      try {
+        const reply = await generateWeeklySummary(messages, progress);
+        return NextResponse.json({ reply });
+      } catch (e) {
+        console.error('[ZELREX] Weekly summary failed:', e);
+      }
+    }
 
+    // ─── Milestone Detection (runs on every message) ─────────
+    if (progress && lastUserMessage) {
+      try {
+        const detected = detectMilestonesInMessage(lastUserMessage.content, progress);
+
+        for (const key of detected.milestonesReached) {
+          progress = markMilestone(progress, key);
+        }
+
+        if (detected.revenueDetected !== null) {
+          progress = addRevenueReport(
+            progress,
+            detected.revenueDetected,
+            detected.clientsDetected || 1
+          );
+        }
+
+        if (detected.milestonesReached.length > 0 || detected.revenueDetected) {
+          await saveProgress(progress);
+        }
+      } catch (e) {
+        console.warn('[ZELREX] Milestone detection failed (non-fatal):', (e as Error).message);
+      }
+    }
+
+    // ─── Website generation flow ─────────────────────────────
     if (wantsWebsite(userText) || wantsBusiness(userText) || body.action === "buildWebsite") {
       const siteId = randomUUID();
-      console.log("ZELREX: entering website build path");
+      console.log("[ZELREX] Entering website build path");
 
       const surveyInput: SurveyData | undefined = body.surveyData;
 
@@ -419,11 +475,7 @@ export async function POST(req: Request) {
       }
 
       console.log("ZELREX: website build completed", website.id);
-      try { await saveWebsite(website); } catch (e) { console.warn("ZELREX: saveWebsite skipped (no KV):", e); }
-
-//This wraps the save in a try/catch so if KV isn't set up, it logs a warning but doesn't crash. The response with `websiteData` will still go through.
-
-
+      try { await saveWebsite(website); } catch (e) { console.warn("ZELREX: saveWebsite skipped:", (e as Error).message); }
 
       const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin;
 
@@ -450,108 +502,203 @@ export async function POST(req: Request) {
       });
     }
 
-    // ─── Normal conversation flow (with memory + tools) ──────────
+    // ─── Normal conversation flow ────────────────────────────
     const chatId = body.chatId || "unknown";
 
-    // 1. Load user's memory from database
-    const userContext = await memoryService.loadFullContext(userId);
+    // STRATEGY: Try v5 (memory + dynamic prompt + tools) first.
+    // If anything in v5 fails, fall back to v3 (static prompt, no tools).
 
-    // 2. Build prompt (only loads sections relevant to this user's stage)
-    const dynamicSystemPrompt = buildSystemPrompt(userContext);
+    // --- ATTEMPT 1: v5 with memory + tools ---
+    if (memoryService && buildSystemPromptFn && ZELREX_TOOLS_IMPORTED) {
+      try {
+        console.log('[ZELREX] Using v5 path (memory + dynamic prompt + tools)');
 
-    // 3. Call Claude with tools in a loop
-    let currentMessages: any[] = messages.map((m: any) => ({
-      role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
-      content: m.content,
-    }));
-    let finalResponse: any = null;
-    let loops = 0;
+        // 1. Load user memory
+        const userContext = await memoryService.loadFullContext(userId);
+        console.log(`[ZELREX] Memory loaded: ${userContext.memory?.length || 0} facts, stage ${userContext.progressStage}`);
 
-    while (loops < 5) {
-      loops++;
-      const response = await anthropic.messages.create({
-        model: 'claude-opus-4-6-20250925',
-        max_tokens: 4096,
-        system: dynamicSystemPrompt,
-        messages: currentMessages,
-        tools: ZELREX_TOOLS as any,
-      });
+        // 2. Build dynamic prompt
+        const dynamicSystemPrompt = buildSystemPromptFn(userContext);
 
-      const toolCalls = response.content.filter((b: any) => b.type === 'tool_use');
+        // 3. Call Claude with tools in a loop
+        let currentMessages: any[] = messages.map((m: any) => ({
+          role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
+          content: m.content,
+        }));
+        let finalResponse: any = null;
+        let loops = 0;
 
-      // If no tool calls, we're done
-      if (toolCalls.length === 0 || response.stop_reason === 'end_turn') {
-        finalResponse = response;
-        break;
-      }
+        while (loops < 5) {
+          loops++;
+          console.log(`[ZELREX] Claude call loop ${loops}`);
 
-      // Handle tool calls
-      currentMessages.push({ role: 'assistant', content: response.content });
-      const toolResults: any[] = [];
+          const response = await anthropic.messages.create({
+            model: 'claude-opus-4-6',
+            max_tokens: 4096,
+            system: dynamicSystemPrompt,
+            messages: currentMessages,
+            tools: ZELREX_TOOLS_IMPORTED as any,
+          });
 
-      for (const tool of toolCalls as any[]) {
-        let result = '';
-        const input = tool.input as any;
+          const toolCalls = response.content.filter((b: any) => b.type === 'tool_use');
 
-        switch (tool.name) {
-          case 'save_memory':
-            await memoryService.setFacts(userId, input.facts, chatId);
-            result = `Saved ${input.facts.length} facts.`;
+          // If no tool calls or end_turn, we're done
+          if (toolCalls.length === 0 || response.stop_reason === 'end_turn') {
+            finalResponse = response;
             break;
-          case 'reach_milestone':
-            await memoryService.reachMilestone(userId, input.stage, input.evidence, chatId);
-            result = `Milestone ${input.stage} recorded.`;
-            break;
-          case 'create_commitments':
-            await memoryService.createCommitments(userId, input.commitments, input.week_number, chatId);
-            result = `Created ${input.commitments.length} commitments.`;
-            break;
-          case 'resolve_commitment':
-            await memoryService.resolveCommitment(input.commitment_id, input.status, input.outcome_note, chatId);
-            result = `Commitment resolved.`;
-            break;
-          case 'save_offer':
-            await memoryService.saveOffer(userId, input, chatId);
-            result = `Offer saved.`;
-            break;
-          default:
-            result = 'Unknown tool.';
+          }
+
+          // Handle tool calls
+          currentMessages.push({ role: 'assistant', content: response.content });
+          const toolResults: any[] = [];
+
+          for (const tool of toolCalls as any[]) {
+            let result = '';
+            const input = tool.input as any;
+
+            try {
+              switch (tool.name) {
+                case 'save_memory':
+                  await memoryService.setFacts(userId, input.facts, chatId);
+                  result = `Saved ${input.facts.length} facts.`;
+                  break;
+                case 'reach_milestone':
+                  await memoryService.reachMilestone(userId, input.stage, input.evidence, chatId);
+                  result = `Milestone ${input.stage} recorded.`;
+                  break;
+                case 'create_commitments':
+                  await memoryService.createCommitments(userId, input.commitments, input.week_number, chatId);
+                  result = `Created ${input.commitments.length} commitments.`;
+                  break;
+                case 'resolve_commitment':
+                  await memoryService.resolveCommitment(input.commitment_id, input.status, input.outcome_note, chatId);
+                  result = `Commitment resolved.`;
+                  break;
+                case 'save_offer':
+                  await memoryService.saveOffer(userId, input, chatId);
+                  result = `Offer saved.`;
+                  break;
+                default:
+                  result = 'Unknown tool.';
+              }
+            } catch (toolError) {
+              console.error(`[ZELREX] Tool "${tool.name}" failed:`, toolError);
+              result = `Tool execution failed: ${(toolError as Error).message}. Continue without this data.`;
+            }
+
+            toolResults.push({
+              type: 'tool_result',
+              tool_use_id: tool.id,
+              content: result,
+            });
+          }
+
+          currentMessages.push({ role: 'user', content: toolResults });
         }
 
-        toolResults.push({
-          type: 'tool_result',
-          tool_use_id: tool.id,
-          content: result,
-        });
-      }
+        // 4. Extract text
+        const reply = finalResponse
+          ? finalResponse.content
+              .filter((b: any) => b.type === 'text')
+              .map((b: any) => b.text)
+              .join('')
+          : "Tell me what outcome you want to reach.";
 
-      currentMessages.push({ role: 'user', content: toolResults });
+        // Business health check
+        let finalReply = reply;
+        try {
+          const healthPrefix = generateHealthCheck(messages);
+          if (healthPrefix) {
+            finalReply = healthPrefix + "\n\n---\n\n" + reply;
+          }
+        } catch (e) {
+          console.warn('[ZELREX] Health check failed (non-fatal):', (e as Error).message);
+        }
+
+        return NextResponse.json({ reply: finalReply, sessionState });
+
+      } catch (v5Error) {
+        // v5 failed — log the SPECIFIC error and fall through to v3
+        console.error('[ZELREX] v5 path FAILED. Falling back to v3. Error:', v5Error);
+        console.error('[ZELREX] v5 error name:', (v5Error as Error).name);
+        console.error('[ZELREX] v5 error message:', (v5Error as Error).message);
+        if ((v5Error as any).status) console.error('[ZELREX] v5 API status:', (v5Error as any).status);
+        if ((v5Error as any).error) console.error('[ZELREX] v5 API error body:', JSON.stringify((v5Error as any).error));
+      }
     }
 
-    // 4. Extract text from response
-    const reply = finalResponse
-      ? finalResponse.content
-          .filter((b: any) => b.type === 'text')
-          .map((b: any) => b.text)
-          .join('')
-      : "Tell me what outcome you want to reach.";
+    // --- ATTEMPT 2: v3 fallback (static prompt, no tools, no memory) ---
+    console.log('[ZELREX] Using v3 fallback path (static prompt, no tools)');
+    try {
+      const currentMessages = messages.map((m: any) => ({
+        role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
+        content: m.content,
+      }));
 
-    // Before returning, check business health
-    const healthPrefix = generateHealthCheck(messages);
-    const finalReply = healthPrefix
-      ? healthPrefix + "\n\n---\n\n" + reply
-      : reply;
+      const response = await anthropic.messages.create({
+        model: 'claude-opus-4-6',
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
+        messages: currentMessages,
+      });
 
-    return NextResponse.json({ reply: finalReply, sessionState });
+      const reply = response.content
+        .filter((b: any) => b.type === 'text')
+        .map((b: any) => b.text)
+        .join('');
+
+      let finalReply = reply;
+      try {
+        const healthPrefix = generateHealthCheck(messages);
+        if (healthPrefix) {
+          finalReply = healthPrefix + "\n\n---\n\n" + reply;
+        }
+      } catch (e) {
+        // non-fatal
+      }
+
+      return NextResponse.json({ reply: finalReply, sessionState });
+
+    } catch (v3Error) {
+      console.error('[ZELREX] v3 fallback ALSO FAILED:', v3Error);
+      console.error('[ZELREX] v3 error name:', (v3Error as Error).name);
+      console.error('[ZELREX] v3 error message:', (v3Error as Error).message);
+      if ((v3Error as any).status) console.error('[ZELREX] v3 API status:', (v3Error as any).status);
+      if ((v3Error as any).error) console.error('[ZELREX] v3 API error body:', JSON.stringify((v3Error as any).error));
+
+      // Last resort: return a helpful error with diagnostic info
+      return NextResponse.json(
+        {
+          reply: "Something didn't load correctly on my side. Try again in a moment.",
+          _debug: process.env.NODE_ENV === 'development' ? {
+            error: (v3Error as Error).message,
+            apiStatus: (v3Error as any).status,
+          } : undefined,
+        },
+        { status: 500 }
+      );
+    }
+
   } catch (error) {
-    console.error("Zelrex API error FULL:", error);
+    // Outermost catch — something failed before we even got to Claude
+    console.error("[ZELREX] CRITICAL pre-Claude error:", error);
+    console.error("[ZELREX] Error type:", (error as Error).constructor?.name);
+    console.error("[ZELREX] Error message:", (error as Error).message);
+    console.error("[ZELREX] Stack:", (error as Error).stack);
 
     return NextResponse.json(
       {
-        reply:
-          "Something didn't load correctly on my side. Try again in a moment.",
+        reply: "Something didn't load correctly on my side. Try again in a moment.",
+        _debug: process.env.NODE_ENV === 'development' ? {
+          error: (error as Error).message,
+          stack: (error as Error).stack,
+        } : undefined,
       },
       { status: 500 }
     );
   }
 }
+
+
+
+
