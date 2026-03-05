@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useUser, useClerk, RedirectToSignIn } from "@clerk/nextjs";
 import { formatMessage } from "./formatMessage";
 import { WebsiteSurvey, SurveyData } from "@/website/pages/components/Websitesurvey";
@@ -347,10 +348,11 @@ function PreviewFrame({ html }: { html: string }) {
 // MAIN
 // ═══════════════════════════════════════════════════════════════════════
 
-export default function ChatPage() {
+export default function ChatPage({ initialChatId }: { initialChatId?: string } = {}) {
   // ─── Auth ──────────────────────────────────────────────────────────
   const { user: clerkUser, isLoaded: authLoaded, isSignedIn } = useUser();
   const { signOut } = useClerk();
+  const router = useRouter();
   const [dbUserId, setDbUserId] = useState<string | null>(null);
   const [dataLoaded, setDataLoaded] = useState(false);
   const debouncedSave = useDebouncedSave(800);
@@ -1147,8 +1149,13 @@ export default function ChatPage() {
     });
   }, [chats, dataLoaded, dbUserId]);
   useEffect(() => { if (!activeChatId && chats[0]?.id) setActiveChatId(chats[0].id); if (activeChatId && !chats.some((c) => c.id === activeChatId) && chats[0]?.id) setActiveChatId(chats[0].id); }, [activeChatId, chats]);
+  // Select chat from URL param on mount
+  useEffect(() => { if (initialChatId && chats.some(c => c.id === initialChatId)) { setActiveChatId(initialChatId); } }, [initialChatId]);
+  // Redirect bare /chat to most recent chat
+  useEffect(() => { if (!initialChatId && chats.length > 0 && dataLoaded) { const latest = [...chats].sort((a, b) => b.updatedAt - a.updatedAt)[0]; if (latest?.id) router.replace(`/chat/${latest.id}`, { scroll: false }); } }, [initialChatId, chats.length, dataLoaded]);
   useEffect(() => { listEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [activeChat?.messages.length, isSending]);
-  useEffect(() => { const el = textareaRef.current; if (!el) return; if (!input) { el.style.height = "42px"; return; } el.style.height = "42px"; el.style.height = `${Math.max(42, Math.min(180, el.scrollHeight))}px`; }, [input]);
+  useEffect(() => { const el = textareaRef.current; if (!el) return; el.style.height = "42px"; if (input) { el.style.height = `${Math.max(42, Math.min(180, el.scrollHeight))}px`; } }, [input]);
+  useEffect(() => { const el = textareaRef.current; if (el) { el.style.height = "42px"; } }, []);
   useEffect(() => { const h = () => { setOpenChatMenuId(null); setOpenMsgMenuId(null); setAttachMenuOpen(false); setNotifOpen(false); }; window.addEventListener("mousedown", h); return () => window.removeEventListener("mousedown", h); }, []);
   useEffect(() => { if (previewOpen) setSidebarOpen(false); }, [previewOpen]);
 
@@ -1283,8 +1290,9 @@ export default function ChatPage() {
     const chatId = dbChat?.id || uid("chat");
     const c: Chat = { id: chatId, title: "New business", messages: [], updatedAt: Date.now(), pendingSurvey: false };
     setChats((p) => [c, ...p]); setActiveChatId(c.id); setOpenChatMenuId(null); setRenamingChatId(null); setInput(""); setDraftAttachments((p) => { for (const a of p) if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); return []; }); if (isMobile) setSidebarOpen(false);
+    router.push(`/chat/${chatId}`, { scroll: false });
   }
-  async function deleteChat(id: string) { db.deleteChat(id); setChats((p) => p.filter((c) => c.id !== id)); setOpenChatMenuId(null); if (id === activeChatId) { const r = chats.filter((c) => c.id !== id); setActiveChatId(r[0]?.id ?? ""); } }
+  async function deleteChat(id: string) { db.deleteChat(id); setChats((p) => p.filter((c) => c.id !== id)); setOpenChatMenuId(null); if (id === activeChatId) { const r = chats.filter((c) => c.id !== id); if (r[0]?.id) { setActiveChatId(r[0].id); router.replace(`/chat/${r[0].id}`, { scroll: false }); } else { setActiveChatId(""); router.replace("/chat", { scroll: false }); } } }
   function startRename(id: string) { setRenamingChatId(id); setRenameValue(chats.find((x) => x.id === id)?.title ?? ""); setOpenChatMenuId(null); }
   function commitRename() { if (!renamingChatId) return; setChats((p) => p.map((c) => (c.id === renamingChatId ? { ...c, title: renameValue.trim() || "New business" } : c))); setRenamingChatId(null); setRenameValue(""); }
   function sendViaCard(text: string) { setInput(text); setTimeout(() => sendMessage(text), 50); }
@@ -1630,7 +1638,7 @@ export default function ChatPage() {
                   <div className="chat-row" style={{ display: "flex", alignItems: "center", padding: "7px 8px", cursor: "pointer", transition: "background 150ms" }}
                     onMouseEnter={(e) => { if (!isA) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
-                    <button onClick={() => { setActiveChatId(c.id); if (isMobile) setSidebarOpen(false); }} type="button" style={{ flex: 1, textAlign: "left", background: "none", border: "none", cursor: "pointer", color: C.text, padding: 0, overflow: "hidden" }}>
+                    <button onClick={() => { setActiveChatId(c.id); router.push(`/chat/${c.id}`, { scroll: false }); if (isMobile) setSidebarOpen(false); }} type="button" style={{ flex: 1, textAlign: "left", background: "none", border: "none", cursor: "pointer", color: C.text, padding: 0, overflow: "hidden" }}>
                       {isR ? (
                         <input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") { setRenamingChatId(null); setRenameValue(""); } }} onBlur={commitRename} autoFocus style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: `1px solid ${C.border}`, borderRadius: 6, padding: "3px 8px", color: C.text, fontSize: 12, outline: "none" }} />
                       ) : (
@@ -1841,7 +1849,7 @@ export default function ChatPage() {
                   )}
                 </div>
                 <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} onPaste={onPaste} placeholder="Ask anything"
-                  style={{ flex: 1, maxHeight: 200, minHeight: 42, resize: "none", background: "none", border: "none", outline: "none", padding: "10px 8px", fontSize: 14, lineHeight: 1.5, color: C.text }} />
+                  style={{ flex: 1, maxHeight: 200, minHeight: 42, height: 42, resize: "none", background: "none", border: "none", outline: "none", padding: "10px 8px", fontSize: 14, lineHeight: 1.5, color: C.text, boxSizing: "border-box" }} />
                 <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
                   <HBtn onClick={startSpeech} style={{ width: 38, height: 38, color: listening ? C.accent : C.textMuted }}><Ic n="mic" style={{ width: 20, height: 20 }} /></HBtn>
                   <HBtn onClick={isSending ? stopResponse : () => sendMessage()}
