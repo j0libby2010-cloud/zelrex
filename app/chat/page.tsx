@@ -1289,7 +1289,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     const dbChat = await db.createChat("New business");
     const chatId = dbChat?.id || uid("chat");
     const c: Chat = { id: chatId, title: "New business", messages: [], updatedAt: Date.now(), pendingSurvey: false };
-    setChats((p) => [c, ...p]); setActiveChatId(c.id); setOpenChatMenuId(null); setRenamingChatId(null); setInput(""); setDraftAttachments((p) => { for (const a of p) if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); return []; }); if (isMobile) setSidebarOpen(false);
+    setChats((p) => [c, ...p]); setActiveChatId(c.id); setOpenChatMenuId(null); setRenamingChatId(null); setExpandedBizId(null); setInput(""); setPreviewOpen(false); setShowSurvey(false); setSurveyData(null); setDraftAttachments((p) => { for (const a of p) if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); return []; }); if (isMobile) setSidebarOpen(false);
     router.push(`/chat/${chatId}`, { scroll: false });
   }
   async function deleteChat(id: string) { db.deleteChat(id); setChats((p) => p.filter((c) => c.id !== id)); setOpenChatMenuId(null); if (id === activeChatId) { const r = chats.filter((c) => c.id !== id); if (r[0]?.id) { setActiveChatId(r[0].id); router.replace(`/chat/${r[0].id}`, { scroll: false }); } else { setActiveChatId(""); router.replace("/chat", { scroll: false }); } } }
@@ -1642,7 +1642,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                       {isR ? (
                         <input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") { setRenamingChatId(null); setRenameValue(""); } }} onBlur={commitRename} autoFocus style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: `1px solid ${C.border}`, borderRadius: 6, padding: "3px 8px", color: C.text, fontSize: 12, outline: "none" }} />
                       ) : (
-                        <div style={{ fontSize: 12, color: isA ? C.text : C.textSec, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 170, fontWeight: isA ? 600 : 400, transition: "color 150ms" }}>{c.title || "New business"}</div>
+                        <div className="chat-title" style={{ fontSize: 12, color: isA ? C.text : C.textSec, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 170, fontWeight: isA ? 600 : 400, transition: "color 150ms" }}>{c.title || "New business"}</div>
                       )}
                     </button>
                     {!isR && (
