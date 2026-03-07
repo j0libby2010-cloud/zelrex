@@ -532,8 +532,9 @@ export async function POST(req: Request) {
       // ─── AUTO STRIPE: Create checkout + inject into website ────
       let stripeCheckoutUrls: Record<string, string> = {};
       let stripeMessage = "";
+      const stripePreference = body.surveyData?.stripeCheckout || "auto";
 
-      if (stripeService && userId !== "anonymous") {
+      if (stripePreference !== "none" && stripeService && userId !== "anonymous") {
         try {
           const stripeStatus = await stripeService.getAccountStatus(userId);
 
@@ -562,10 +563,15 @@ export async function POST(req: Request) {
                 stripeCheckoutUrls = await stripeService.createPaymentLinks(userId);
                 console.log(`[ZELREX] Created ${products.length} products, ${Object.keys(stripeCheckoutUrls).length} payment links`);
 
-                (website as any).stripeCheckoutUrls = stripeCheckoutUrls;
-                (website as any).stripeConnected = true;
-
-                stripeMessage = "\n\nYour Stripe checkout is live. Each pricing tier has its own payment link — when clients click a tier on your site, they'll go straight to a Stripe checkout page. Money goes directly to your bank account.";
+                // Only inject into website if user chose "auto" (not "link-only")
+                if (stripePreference === "auto") {
+                  (website as any).stripeCheckoutUrls = stripeCheckoutUrls;
+                  (website as any).stripeConnected = true;
+                  stripeMessage = "\n\nYour Stripe checkout is live. Each pricing tier has its own payment link — when clients click a tier on your site, they'll go straight to a Stripe checkout page. Money goes directly to your bank account.";
+                } else {
+                  // link-only: don't inject into website, just include links in chat
+                  stripeMessage = "\n\nYour Stripe payment links are ready. I've included them below — you can share them directly with clients or add them to your site wherever you like.";
+                }
               }
             }
           } else if (stripeStatus.connected && !stripeStatus.chargesEnabled) {

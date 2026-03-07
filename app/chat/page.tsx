@@ -1373,6 +1373,9 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             primaryColor: result.websiteData.branding?.primaryColor || data.primaryColor,
             socialLinks: Object.fromEntries((data.socialLinks || []).filter((s) => s.url).map((s) => [s.platform.toLowerCase().replace("/", ""), s.url])),
           },
+          // Carry through Stripe checkout URLs if the API returned them
+          stripeCheckoutUrls: result.stripeCheckoutUrls || result.websiteData.stripeCheckoutUrls || undefined,
+          stripeConnected: result.websiteData.stripeConnected || false,
         };
         saveWebsiteData(enriched);
       }

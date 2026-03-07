@@ -38,6 +38,9 @@ export interface SurveyData {
   tiers: Array<{ name: string; price: string; features: string[] }>;
   guarantee: string;
   
+  // Stripe checkout preference
+  stripeCheckout: "auto" | "link-only" | "none";
+  
   // Step 3: Brand & visual
   primaryColor: string;
   stylePreference: "dark-premium" | "light-clean" | "bold-colorful" | "minimal-elegant";
@@ -106,6 +109,7 @@ export function WebsiteSurvey({
       { name: "", price: "", features: [""] },
     ],
     guarantee: initialData?.guarantee ?? "",
+    stripeCheckout: initialData?.stripeCheckout ?? "auto",
     primaryColor: initialData?.primaryColor ?? "#4A90FF",
     stylePreference: initialData?.stylePreference ?? "dark-premium",
     fontPreference: initialData?.fontPreference ?? "modern",
@@ -383,6 +387,7 @@ const ZELREX_TIPS: Record<string, string> = {
   calendly: "A booking link is the single highest-converting CTA for service businesses. It removes friction — clients can book instantly instead of waiting for email replies. This alone can double your inquiry-to-call rate.",
   socialPlatforms: "Only list platforms where you're actually active and posting relevant content. An empty social profile hurts more than no social presence. Focus on 2-3 platforms max where your clients actually spend time.",
   hours: "Setting business hours creates boundaries and professionalism. It also creates subtle urgency — clients know you're not available 24/7. Even 'Mon-Fri 9-5' signals you run a real business.",
+  stripeCheckout: "Adding Stripe checkout to your website means clients can pay you directly from your pricing page — no back-and-forth invoicing. Zelrex creates the checkout on YOUR Stripe account, so money goes straight to your bank. You'll need a Stripe account (free to create). If you're not ready for payments, choose 'No payments yet' and add it later.",
 };
 
 function ZelrexTipPopover({ tipKey }: { tipKey: string }) {
@@ -585,6 +590,21 @@ function StepService({ data, update, zelrexTip, setZelrexTip }: StepProps) {
         <Hint>What makes it safe for the client to say yes?</Hint>
         <Input value={data.guarantee} onChange={(v) => update("guarantee", v)} placeholder="e.g., 100% refund if not satisfied within 7 days" />
       </FieldGroup>
+
+      <FieldGroup>
+        <Label askKey="stripeCheckout" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>How do you want to accept payments?</Label>
+        {zelrexTip === "stripeCheckout" && <ZelrexTipPopover tipKey="stripeCheckout" />}
+        <Hint>Zelrex can create a Stripe checkout and wire it directly into your pricing buttons.</Hint>
+        <OptionGrid
+          value={data.stripeCheckout}
+          onChange={(v) => update("stripeCheckout", v as SurveyData["stripeCheckout"])}
+          options={[
+            { key: "auto", label: "Add to my website", desc: "Zelrex creates checkout & adds to pricing buttons" },
+            { key: "link-only", label: "Just give me the links", desc: "I'll add payment links myself" },
+            { key: "none", label: "No payments yet", desc: "I'll set up payments later" },
+          ]}
+        />
+      </FieldGroup>
     </div>
   );
 }
@@ -758,6 +778,7 @@ function StepReview({ data }: { data: SurveyData }) {
       ["Price", data.hasMultipleTiers ? `${data.tiers.length} tiers` : data.price],
       ["Turnaround", data.turnaround],
       ["Deliverables", data.deliverables.filter(Boolean).join(", ")],
+      ["Payments", data.stripeCheckout === "auto" ? "Stripe checkout on website" : data.stripeCheckout === "link-only" ? "Payment links only" : "Set up later"],
     ]},
     { label: "Brand", items: [
       ["Style", data.stylePreference],

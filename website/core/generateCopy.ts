@@ -24,6 +24,7 @@ export interface SurveyData {
   hasMultipleTiers: boolean;
   tiers: Array<{ name: string; price: string; features: string[] }>;
   guarantee: string;
+  stripeCheckout: "auto" | "link-only" | "none";
   primaryColor: string;
   stylePreference: "dark-premium" | "light-clean" | "bold-colorful" | "minimal-elegant";
   fontPreference: "modern" | "classic" | "editorial" | "tech";
