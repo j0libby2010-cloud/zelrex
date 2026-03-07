@@ -188,7 +188,7 @@ function Typewriter({ text, speed = 8, onFinish }: { text: string; speed?: numbe
   return <div>{formatMessage(text.slice(0, n))}</div>;
 }
 
-function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal, onAddGoal }: { phase: BusinessPhase; businessName: string | null; sidebarOpen: boolean; isMobile: boolean; userGoal?: { text: string; target: string; deadline: string } | null; onAddGoal?: () => void }) {
+function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal, onAddGoal }: { phase: BusinessPhase; businessName: string | null; sidebarOpen: boolean; isMobile: boolean; userGoal?: { text: string; target: string; deadline: string } | null; onAddGoal?: (e: React.MouseEvent) => void }) {
   const phases: { key: string; label: string }[] = [
     { key: "ready", label: "Start" },
     { key: "intake", label: "Discovery" },
@@ -372,6 +372,49 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [goalDraft, setGoalDraft] = useState({ text: "", target: "", deadline: "" });
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Array<{ id: string; text: string; time: number; read: boolean }>>([]);
+
+  // ─── Overlay origin-zoom animation state ───────────────────────────
+  const [settingsClosing, setSettingsClosing] = useState(false);
+  const [goalClosing, setGoalClosing] = useState(false);
+  const [notifClosing, setNotifClosing] = useState(false);
+  const settingsOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const goalOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const notifOriginRef = useRef<{ x: number; y: number } | null>(null);
+
+  // ─── Overlay origin-zoom helpers ───────────────────────────────────
+  const openSettings = (e: React.MouseEvent) => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    settingsOriginRef.current = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    setSettingsOpen(true);
+  };
+  const closeSettings = () => {
+    if (settingsClosing) return;
+    setSettingsClosing(true);
+    setTimeout(() => { setSettingsOpen(false); setSettingsClosing(false); }, 420);
+  };
+  const openGoalModal = (e: React.MouseEvent) => {
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    goalOriginRef.current = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    if (userGoal) setGoalDraft({ text: userGoal.text, target: userGoal.target, deadline: userGoal.deadline });
+    else setGoalDraft({ text: "", target: "", deadline: "" });
+    setGoalModalOpen(true);
+  };
+  const closeGoalModal = () => {
+    if (goalClosing) return;
+    setGoalClosing(true);
+    setTimeout(() => { setGoalModalOpen(false); setGoalClosing(false); }, 420);
+  };
+  const openNotif = (e: React.MouseEvent) => {
+    if (notifOpen) { closeNotif(); return; }
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    notifOriginRef.current = { x: r.left + r.width / 2, y: r.bottom };
+    setNotifOpen(true);
+  };
+  const closeNotif = () => {
+    if (notifClosing) return;
+    setNotifClosing(true);
+    setTimeout(() => { setNotifOpen(false); setNotifClosing(false); }, 300);
+  };
 
   const [chats, setChats] = useState<Chat[]>([{ id: uid("chat"), title: "New business", messages: [], updatedAt: Date.now() }]);
   const [activeChatId, setActiveChatId] = useState(() => chats[0]?.id ?? "");
@@ -1148,7 +1191,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   useEffect(() => { listEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [activeChat?.messages.length, isSending]);
   useEffect(() => { const el = textareaRef.current; if (!el) return; el.style.height = "42px"; if (input) { el.style.height = `${Math.max(42, Math.min(180, el.scrollHeight))}px`; } }, [input]);
   useEffect(() => { const el = textareaRef.current; if (el) { el.style.height = "42px"; } }, []);
-  useEffect(() => { const h = () => { setOpenChatMenuId(null); setOpenMsgMenuId(null); setAttachMenuOpen(false); setNotifOpen(false); }; window.addEventListener("mousedown", h); return () => window.removeEventListener("mousedown", h); }, []);
+  useEffect(() => { const h = () => { setOpenChatMenuId(null); setOpenMsgMenuId(null); setAttachMenuOpen(false); setNotifOpen(false); setNotifClosing(false); }; window.addEventListener("mousedown", h); return () => window.removeEventListener("mousedown", h); }, []);
   useEffect(() => { if (previewOpen) setSidebarOpen(false); }, [previewOpen]);
 
   // ─── Helper: push an assistant message into the active chat ────────
@@ -1528,6 +1571,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .burger-top.open{width:18px;transform:rotate(45deg)}
         .burger-mid.open{width:0;opacity:0}
         .burger-bot.open{width:18px;transform:rotate(-45deg)}
+        /* ── Origin-zoom overlay animations ─────────────────── */
+        @keyframes overlayZoomIn{from{opacity:0;transform:scale(0.35)}to{opacity:1;transform:scale(1)}}
+        @keyframes overlayZoomOut{from{opacity:1;transform:scale(1)}to{opacity:0;transform:scale(0.35)}}
+        @keyframes backdropFadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes backdropFadeOut{from{opacity:1}to{opacity:0}}
+        @keyframes dropdownZoomIn{from{opacity:0;transform:scale(0.6) translateY(-8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+        @keyframes dropdownZoomOut{from{opacity:1;transform:scale(1) translateY(0)}to{opacity:0;transform:scale(0.6) translateY(-8px)}}
         @media(max-width:768px){
           .hide-mobile{display:none!important}
           .welcome-h1{font-size:28px!important}
@@ -1567,14 +1617,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
             {/* Notifications bell */}
             <div style={{ position: "relative" }} onMouseDown={(e) => e.stopPropagation()}>
-              <HBtn onClick={() => setNotifOpen((v) => !v)} style={{ width: 38, height: 38, color: C.text, position: "relative" }}>
+              <HBtn onClick={openNotif} style={{ width: 38, height: 38, color: C.text, position: "relative" }}>
                 <Ic n="bell" style={{ width: 18, height: 18 }} />
                 {notifications.filter(n => !n.read).length > 0 && (
                   <span style={{ position: "absolute", top: 6, right: 6, width: 8, height: 8, borderRadius: 999, background: "#EF4444", border: "2px solid #06090F" }} />
                 )}
               </HBtn>
-              {notifOpen && (
-                <div style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 300, borderRadius: 14, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.92)", backdropFilter: "blur(40px) saturate(1.6)", WebkitBackdropFilter: "blur(40px) saturate(1.6)", boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", overflow: "hidden" }}>
+              {(notifOpen || notifClosing) && (
+                <div style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 300, borderRadius: 14, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.92)", backdropFilter: "blur(40px) saturate(1.6)", WebkitBackdropFilter: "blur(40px) saturate(1.6)", boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", overflow: "hidden", transformOrigin: "top right", animation: `${notifClosing ? "dropdownZoomOut" : "dropdownZoomIn"} 300ms cubic-bezier(0.32,0.72,0,1) forwards` }}>
                   <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Notifications</span>
                     {notifications.length > 0 && <button onClick={() => { setNotifications(ns => ns.map(n => ({ ...n, read: true }))); db.markNotificationsRead(); }} style={{ background: "none", border: "none", color: C.accent, fontSize: 11, cursor: "pointer", fontWeight: 600 }}>Mark all read</button>}
@@ -1602,7 +1652,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         </div>
       </div>
 
-      <StatusBar phase={phase} businessName={businessName} sidebarOpen={sidebarOpen} isMobile={isMobile} userGoal={userGoal} onAddGoal={() => setGoalModalOpen(true)} />
+      <StatusBar phase={phase} businessName={businessName} sidebarOpen={sidebarOpen} isMobile={isMobile} userGoal={userGoal} onAddGoal={openGoalModal} />
 
       {/* LAYOUT: sidebar + chat + preview */}
       <div style={{ display: "flex", height: `calc(100vh - 81px)`, position: "relative" }}>
@@ -1628,7 +1678,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               <button type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="analytics" style={{ width: 15, height: 15, color: "#8B5CF6" }} /> Business Analytics
               </button>
-              <button type="button" className="z-glass" onClick={() => { if (userGoal) setGoalDraft({ text: userGoal.text, target: userGoal.target, deadline: userGoal.deadline }); else setGoalDraft({ text: "", target: "", deadline: "" }); setGoalModalOpen(true); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+              <button type="button" className="z-glass" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? C.accent : "#F59E0B" }} /> {userGoal ? "My Goal" : "Set Goal"}
               </button>
             </div>
@@ -1710,7 +1760,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, letterSpacing: "0.03em", marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" onClick={() => setSettingsOpen(true)} title="Settings" className="z-glass" style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: sidebarOpen ? 1 : 0 }}>
+                <button type="button" onClick={openSettings} title="Settings" className="z-glass" style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: sidebarOpen ? 1 : 0 }}>
                   <Ic n="settings" style={{ width: 20, height: 20 }} />
                 </button>
               </div>
@@ -1733,7 +1783,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" onClick={() => setSettingsOpen(true)} title="Settings" className="z-glass" style={{ width: 30, height: 30, borderRadius: 7, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <button type="button" onClick={openSettings} title="Settings" className="z-glass" style={{ width: 30, height: 30, borderRadius: 7, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Ic n="settings" style={{ width: 18, height: 18 }} />
                 </button>
               </div>
@@ -1917,10 +1967,9 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
         {/* GOAL MODAL */}
         {/* ─── FULL-SCREEN SETTINGS ─────────────────────────── */}
-        {settingsOpen && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.95)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", animation: "stgFadeIn 400ms cubic-bezier(0.32,0.72,0,1)" }}>
+        {(settingsOpen || settingsClosing) && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.95)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", transformOrigin: settingsOriginRef.current ? `${settingsOriginRef.current.x}px ${settingsOriginRef.current.y}px` : "center center", animation: `${settingsClosing ? "overlayZoomOut" : "overlayZoomIn"} 420ms cubic-bezier(0.32,0.72,0,1) forwards`, pointerEvents: settingsClosing ? "none" : undefined }}>
             <style>{`
-              @keyframes stgFadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
               .stg-tab { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 10px; border: none; background: none; color: ${C.textSec}; font-size: 13px; font-weight: 500; cursor: pointer; width: 100%; text-align: left; transition: all 500ms cubic-bezier(0.32,0.72,0,1); }
               .stg-tab::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0; background:linear-gradient(168deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.06) 18%,rgba(255,255,255,0.015) 45%,transparent 60%,rgba(255,255,255,0.025) 78%,rgba(255,255,255,0.09) 100%); box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.3),inset 0 -0.5px 0 rgba(255,255,255,0.05); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
               .stg-tab::after { content:''; position:absolute; top:-35%; left:8%; width:84%; height:70%; border-radius:50%; background:radial-gradient(ellipse at 38% 35%,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.035) 32%,transparent 68%); opacity:0; transition:opacity 600ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
@@ -1979,7 +2028,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   {settingsTab === "features" && "Zelrex Features"}
                   {settingsTab === "notifications" && "Notifications"}
                 </div>
-                <button onClick={() => setSettingsOpen(false)} className="z-glass" style={{ width: 36, height: 36, borderRadius: 10, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.03)", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <button onClick={closeSettings} className="z-glass" style={{ width: 36, height: 36, borderRadius: 10, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.03)", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Ic n="close" style={{ width: 16, height: 16 }} />
                 </button>
               </div>
@@ -2031,7 +2080,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div className="stg-section">
                     <div className="stg-section-title" style={{ color: "#EF4444" }}>Danger Zone</div>
                     <div className="stg-row"><div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Sign out</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Sign out of your Zelrex account</div></div>
-                      <button onClick={() => { setSettingsOpen(false); signOut(); }} className="z-glass" style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Sign out</button>
+                      <button onClick={() => { closeSettings(); signOut(); }} className="z-glass" style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Sign out</button>
                     </div>
                     <div className="stg-row" style={{ borderBottom: "none" }}><div><div style={{ fontSize: 13, fontWeight: 500, color: "#EF4444" }}>Delete account</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Permanently delete your account and all data</div></div>
                       <button className="z-glass-danger" style={{ padding: "7px 16px", borderRadius: 9, border: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Delete</button>
@@ -2175,9 +2224,9 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           </div>
         )}
 
-        {goalModalOpen && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div onClick={() => setGoalModalOpen(false)} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} />
+        {(goalModalOpen || goalClosing) && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", transformOrigin: goalOriginRef.current ? `${goalOriginRef.current.x}px ${goalOriginRef.current.y}px` : "center center", animation: `${goalClosing ? "overlayZoomOut" : "overlayZoomIn"} 420ms cubic-bezier(0.32,0.72,0,1) forwards`, pointerEvents: goalClosing ? "none" : undefined }}>
+            <div onClick={closeGoalModal} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} />
             <div style={{ position: "relative", width: 420, maxWidth: "90vw", borderRadius: 20, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.88)", backdropFilter: "blur(40px) saturate(1.8)", WebkitBackdropFilter: "blur(40px) saturate(1.8)", boxShadow: "0 32px 80px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", padding: 0, overflow: "hidden" }}>
               {/* Glass header */}
               <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
@@ -2209,10 +2258,10 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               {/* Footer */}
               <div style={{ padding: "0 24px 20px", display: "flex", gap: 10 }}>
                 {userGoal && (
-                  <button onClick={async () => { setUserGoal(null); setGoalDraft({ text: "", target: "", deadline: "" }); await db.deleteGoal(); setGoalModalOpen(false); }} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Remove goal</button>
+                  <button onClick={async () => { setUserGoal(null); setGoalDraft({ text: "", target: "", deadline: "" }); await db.deleteGoal(); closeGoalModal(); }} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Remove goal</button>
                 )}
-                <button onClick={() => setGoalModalOpen(false)} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-                <button onClick={async () => { if (goalDraft.text.trim()) { const g = { text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() }; setUserGoal(g); await db.saveGoal(g); setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]); } setGoalModalOpen(false); }} style={{ flex: 1.5, padding: "10px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 16px ${C.accent}40` }}>Save goal</button>
+                <button onClick={closeGoalModal} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                <button onClick={async () => { if (goalDraft.text.trim()) { const g = { text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() }; setUserGoal(g); await db.saveGoal(g); setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]); } closeGoalModal(); }} style={{ flex: 1.5, padding: "10px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 16px ${C.accent}40` }}>Save goal</button>
               </div>
             </div>
           </div>
