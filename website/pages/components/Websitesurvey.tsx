@@ -84,10 +84,12 @@ export function WebsiteSurvey({
   onComplete, 
   onClose,
   initialData,
+  onAskZelrex,
 }: { 
   onComplete: (data: SurveyData) => void;
   onClose: () => void;
   initialData?: Partial<SurveyData>;
+  onAskZelrex?: (question: string) => void;
 }) {
   const [step, setStep] = useState(0);
   const totalSteps = 5;
@@ -127,6 +129,33 @@ export function WebsiteSurvey({
   function update<K extends keyof SurveyData>(key: K, value: SurveyData[K]) {
     setData((prev) => ({ ...prev, [key]: value }));
   }
+
+  const ASK_ZELREX_QUESTIONS: Record<string, string> = {
+    businessName: "What should I name my business? I need a memorable brand name that works for my industry.",
+    tagline: "Help me write a tagline that clearly says what I do and grabs attention.",
+    businessType: "I'm not sure how to categorize my business. Can you help me figure out what type of service I offer?",
+    targetAudience: "Who is my ideal customer? Help me define my target audience.",
+    mainService: "Help me articulate my main service offering clearly and compellingly.",
+    serviceDescription: "How should I describe my service so potential clients immediately understand the value?",
+    deliverables: "What deliverables should I list for my service? Help me think through what clients actually get.",
+    turnaround: "What's a reasonable turnaround time for my type of service?",
+    pricingModel: "Should I use packages, hourly, or project-based pricing? Help me decide.",
+    price: "How should I price my service? Help me figure out competitive pricing. (Note: Zelrex provides general guidance — not financial advice.)",
+    tiers: "Help me structure my pricing tiers. What should each tier include? (Note: Zelrex provides general guidance — not financial advice.)",
+    guarantee: "Should I offer a guarantee? What kind of guarantee works for my type of service?",
+    stripeCheckout: "Should I add Stripe checkout to my website? What are the pros and cons?",
+    primaryColor: "What brand color would work best for my business and audience?",
+    stylePreference: "What website style would best represent my brand?",
+    fontPreference: "Which font style best fits my brand's personality?",
+    email: "What email should I use for business inquiries?",
+    phone: "Should I list a phone number on my website?",
+    location: "How should I display my business location?",
+    hours: "What business hours should I set?",
+    socialLinks: "Which social media platforms should I be on for my business?",
+    calendlyUrl: "Should I add a scheduling link to my website?",
+    aboutStory: "Help me write my business story in a way that builds trust and connection.",
+    uniqueSellingPoint: "What makes my business different? Help me find my unique selling point.",
+  };
 
   const [errors, setErrors] = useState<string[]>([]);
 
@@ -208,10 +237,10 @@ export function WebsiteSurvey({
 
         {/* Content */}
         <div style={{ flex: 1, overflow: "auto", padding: "24px 24px 16px" }}>
-          {step === 0 && <StepBusiness data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} />}
-          {step === 1 && <StepService data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} />}
-          {step === 2 && <StepBrand data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} />}
-          {step === 3 && <StepContact data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} />}
+          {step === 0 && <StepBusiness data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={ASK_ZELREX_QUESTIONS} />}
+          {step === 1 && <StepService data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={ASK_ZELREX_QUESTIONS} />}
+          {step === 2 && <StepBrand data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={ASK_ZELREX_QUESTIONS} />}
+          {step === 3 && <StepContact data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={ASK_ZELREX_QUESTIONS} />}
           {step === 4 && <StepReview data={data} />}
         </div>
 
@@ -257,12 +286,18 @@ export function WebsiteSurvey({
 
 // ─── Shared Input Components ────────────────────────────────────────
 
-function Label({ children, required, askKey, zelrexTip, setZelrexTip }: { children: React.ReactNode; required?: boolean; askKey?: string; zelrexTip?: string | null; setZelrexTip?: (k: string | null) => void }) {
+function Label({ children, required, askKey, zelrexTip, setZelrexTip, onAskZelrex, askQuestions }: { children: React.ReactNode; required?: boolean; askKey?: string; zelrexTip?: string | null; setZelrexTip?: (k: string | null) => void; onAskZelrex?: (question: string) => void; askQuestions?: Record<string, string> }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
       <label style={{ fontSize: 13, fontWeight: 600, color: S.text }}>{children}{required && <span style={{ color: S.danger, marginLeft: 4 }}>*</span>}</label>
       {askKey && setZelrexTip && (
-        <button type="button" onClick={() => setZelrexTip(zelrexTip === askKey ? null : askKey)} style={{
+        <button type="button" onClick={() => {
+          if (onAskZelrex && askQuestions?.[askKey]) {
+            onAskZelrex(askQuestions[askKey]);
+          } else {
+            setZelrexTip(zelrexTip === askKey ? null : askKey);
+          }
+        }} style={{
           display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 8,
           border: `1px solid ${zelrexTip === askKey ? S.accent + "50" : S.accent + "25"}`,
           background: zelrexTip === askKey ? `linear-gradient(135deg, ${S.accent}20, ${S.accent}08)` : `linear-gradient(135deg, ${S.accent}10, transparent)`,
@@ -414,26 +449,26 @@ function ZelrexTipPopover({ tipKey }: { tipKey: string }) {
 
 // ─── Step 1: Business Basics ────────────────────────────────────────
 
-type StepProps = { data: SurveyData; update: <K extends keyof SurveyData>(k: K, v: SurveyData[K]) => void; zelrexTip: string | null; setZelrexTip: (k: string | null) => void };
+type StepProps = { data: SurveyData; update: <K extends keyof SurveyData>(k: K, v: SurveyData[K]) => void; zelrexTip: string | null; setZelrexTip: (k: string | null) => void; onAskZelrex?: (question: string) => void; askQuestions?: Record<string, string> };
 
-function StepBusiness({ data, update, zelrexTip, setZelrexTip }: StepProps) {
+function StepBusiness({ data, update, zelrexTip, setZelrexTip, onAskZelrex, askQuestions }: StepProps) {
   return (
     <div>
       <FieldGroup>
-        <Label required askKey="businessName" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Business name</Label>
+        <Label required askKey="businessName" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Business name</Label>
         {zelrexTip === "businessName" && <ZelrexTipPopover tipKey="businessName" />}
         <Input value={data.businessName} onChange={(v) => update("businessName", v)} placeholder="e.g., Sarah Chen Design" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label askKey="tagline" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Tagline (one line that says what you do)</Label>
+        <Label askKey="tagline" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Tagline (one line that says what you do)</Label>
         {zelrexTip === "tagline" && <ZelrexTipPopover tipKey="tagline" />}
         <Hint>This becomes your hero subtitle. Make it clear, not clever.</Hint>
         <Input value={data.tagline} onChange={(v) => update("tagline", v)} placeholder="e.g., Brand identity and web design for startups" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label required askKey="businessType" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>What type of service do you offer?</Label>
+        <Label required askKey="businessType" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>What type of service do you offer?</Label>
         {zelrexTip === "businessType" && <ZelrexTipPopover tipKey="businessType" />}
         <OptionGrid
           value={data.businessType}
@@ -452,14 +487,14 @@ function StepBusiness({ data, update, zelrexTip, setZelrexTip }: StepProps) {
       </FieldGroup>
 
       <FieldGroup>
-        <Label required askKey="targetAudience" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Who is your ideal client?</Label>
+        <Label required askKey="targetAudience" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Who is your ideal client?</Label>
         {zelrexTip === "targetAudience" && <ZelrexTipPopover tipKey="targetAudience" />}
         <Hint>Be specific.</Hint>
         <Input value={data.targetAudience} onChange={(v) => update("targetAudience", v)} placeholder="e.g., SaaS startups with 10-50 employees who need a rebrand" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label askKey="platformsLeaving" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Are you leaving a platform? (optional)</Label>
+        <Label askKey="platformsLeaving" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Are you leaving a platform? (optional)</Label>
         {zelrexTip === "platformsLeaving" && <ZelrexTipPopover tipKey="platformsLeaving" />}
         <Input value={data.platformsLeavingFrom} onChange={(v) => update("platformsLeavingFrom", v)} placeholder="e.g., Upwork, Fiverr" />
       </FieldGroup>
@@ -469,24 +504,24 @@ function StepBusiness({ data, update, zelrexTip, setZelrexTip }: StepProps) {
 
 // ─── Step 2: Service Details ────────────────────────────────────────
 
-function StepService({ data, update, zelrexTip, setZelrexTip }: StepProps) {
+function StepService({ data, update, zelrexTip, setZelrexTip, onAskZelrex, askQuestions }: StepProps) {
   return (
     <div>
       <FieldGroup>
-        <Label required askKey="mainService" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Main service name</Label>
+        <Label required askKey="mainService" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Main service name</Label>
         {zelrexTip === "mainService" && <ZelrexTipPopover tipKey="mainService" />}
         <Hint>What would you call this offer on a menu?</Hint>
         <Input value={data.mainService} onChange={(v) => update("mainService", v)} placeholder="e.g., Complete Brand Identity Package" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label required askKey="serviceDescription" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Describe what the client gets.</Label>
+        <Label required askKey="serviceDescription" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Describe what the client gets.</Label>
         {zelrexTip === "serviceDescription" && <ZelrexTipPopover tipKey="serviceDescription" />}
         <TextArea value={data.serviceDescription} onChange={(v) => update("serviceDescription", v)} placeholder="e.g., I design your complete brand identity from scratch — logo, colors, typography, and brand guidelines. You get 3 concepts, unlimited revisions on the chosen direction, and a brand book delivered in 2 weeks." />
       </FieldGroup>
 
       <FieldGroup>
-        <Label askKey="deliverables" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>What's included? (one per line)</Label>
+        <Label askKey="deliverables" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>What's included? (one per line)</Label>
         {zelrexTip === "deliverables" && <ZelrexTipPopover tipKey="deliverables" />}
         <Hint>List specific deliverables.</Hint>
         {data.deliverables.map((d, i) => (
@@ -511,13 +546,13 @@ function StepService({ data, update, zelrexTip, setZelrexTip }: StepProps) {
       </FieldGroup>
 
       <FieldGroup>
-        <Label askKey="turnaround" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Turnaround time</Label>
+        <Label askKey="turnaround" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Turnaround time</Label>
         {zelrexTip === "turnaround" && <ZelrexTipPopover tipKey="turnaround" />}
         <Input value={data.turnaround} onChange={(v) => update("turnaround", v)} placeholder="e.g., 2 weeks, 48 hours, same-day" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label askKey="pricingModel" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Pricing model</Label>
+        <Label askKey="pricingModel" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Pricing model</Label>
         {zelrexTip === "pricingModel" && <ZelrexTipPopover tipKey="pricingModel" />}
         <OptionGrid
           value={data.pricingModel}
@@ -532,7 +567,7 @@ function StepService({ data, update, zelrexTip, setZelrexTip }: StepProps) {
       </FieldGroup>
 
       <FieldGroup>
-        <Label required askKey="price" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>{data.hasMultipleTiers ? "See tiers below" : "Your price"}</Label>
+        <Label required askKey="price" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>{data.hasMultipleTiers ? "See tiers below" : "Your price"}</Label>
         {zelrexTip === "price" && <ZelrexTipPopover tipKey="price" />}
         {!data.hasMultipleTiers && (
           <Input value={data.price} onChange={(v) => update("price", v)} placeholder="e.g., $1,500, $150/hr, $500/month" />
@@ -545,7 +580,7 @@ function StepService({ data, update, zelrexTip, setZelrexTip }: StepProps) {
 
       {data.hasMultipleTiers && (
         <FieldGroup>
-          <Label askKey="tiers" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Pricing tiers</Label>
+          <Label askKey="tiers" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Pricing tiers</Label>
           {zelrexTip === "tiers" && <ZelrexTipPopover tipKey="tiers" />}
           {data.tiers.map((tier, i) => (
             <div key={i} style={{
@@ -585,14 +620,14 @@ function StepService({ data, update, zelrexTip, setZelrexTip }: StepProps) {
       )}
 
       <FieldGroup>
-        <Label askKey="guarantee" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Guarantee or risk-reducer (optional)</Label>
+        <Label askKey="guarantee" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Guarantee or risk-reducer (optional)</Label>
         {zelrexTip === "guarantee" && <ZelrexTipPopover tipKey="guarantee" />}
         <Hint>What makes it safe for the client to say yes?</Hint>
         <Input value={data.guarantee} onChange={(v) => update("guarantee", v)} placeholder="e.g., 100% refund if not satisfied within 7 days" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label askKey="stripeCheckout" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>How do you want to accept payments?</Label>
+        <Label askKey="stripeCheckout" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>How do you want to accept payments?</Label>
         {zelrexTip === "stripeCheckout" && <ZelrexTipPopover tipKey="stripeCheckout" />}
         <Hint>Zelrex can create a Stripe checkout and wire it directly into your pricing buttons.</Hint>
         <OptionGrid
@@ -611,7 +646,7 @@ function StepService({ data, update, zelrexTip, setZelrexTip }: StepProps) {
 
 // ─── Step 3: Brand & Visual ─────────────────────────────────────────
 
-function StepBrand({ data, update, zelrexTip, setZelrexTip }: StepProps) {
+function StepBrand({ data, update, zelrexTip, setZelrexTip, onAskZelrex, askQuestions }: StepProps) {
   const colors = [
     { hex: "#4A90FF", name: "Blue" },
     { hex: "#8B5CF6", name: "Purple" },
@@ -626,7 +661,7 @@ function StepBrand({ data, update, zelrexTip, setZelrexTip }: StepProps) {
   return (
     <div>
       <FieldGroup>
-        <Label askKey="primaryColor" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Primary brand color</Label>
+        <Label askKey="primaryColor" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Primary brand color</Label>
         {zelrexTip === "primaryColor" && <ZelrexTipPopover tipKey="primaryColor" />}
         <Hint>This will be your accent color for buttons and highlights.</Hint>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -649,7 +684,7 @@ function StepBrand({ data, update, zelrexTip, setZelrexTip }: StepProps) {
       </FieldGroup>
 
       <FieldGroup>
-        <Label askKey="stylePreference" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Website style</Label>
+        <Label askKey="stylePreference" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Website style</Label>
         {zelrexTip === "stylePreference" && <ZelrexTipPopover tipKey="stylePreference" />}
         <OptionGrid
           value={data.stylePreference}
@@ -664,7 +699,7 @@ function StepBrand({ data, update, zelrexTip, setZelrexTip }: StepProps) {
       </FieldGroup>
 
       <FieldGroup>
-        <Label askKey="fontPreference" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Typography feel</Label>
+        <Label askKey="fontPreference" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Typography feel</Label>
         {zelrexTip === "fontPreference" && <ZelrexTipPopover tipKey="fontPreference" />}
         <OptionGrid
           value={data.fontPreference}
@@ -689,44 +724,44 @@ function StepBrand({ data, update, zelrexTip, setZelrexTip }: StepProps) {
 
 // ─── Step 4: Contact & Social ───────────────────────────────────────
 
-function StepContact({ data, update, zelrexTip, setZelrexTip }: StepProps) {
+function StepContact({ data, update, zelrexTip, setZelrexTip, onAskZelrex, askQuestions }: StepProps) {
   const socialPlatforms = ["Twitter/X", "LinkedIn", "Instagram", "YouTube", "TikTok", "Facebook", "Discord", "Dribbble", "Behance", "GitHub"];
   
   return (
     <div>
       <FieldGroup>
-        <Label required askKey="email" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Email address (shown on site)</Label>
+        <Label required askKey="email" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Email address (shown on site)</Label>
         {zelrexTip === "email" && <ZelrexTipPopover tipKey="email" />}
         <Input value={data.email} onChange={(v) => update("email", v)} placeholder="hello@yourdomain.com" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label askKey="phone" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Phone number (optional)</Label>
+        <Label askKey="phone" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Phone number (optional)</Label>
         {zelrexTip === "phone" && <ZelrexTipPopover tipKey="phone" />}
         <Input value={data.phone} onChange={(v) => update("phone", v)} placeholder="+1 (555) 123-4567" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label askKey="location" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Location (optional)</Label>
+        <Label askKey="location" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Location (optional)</Label>
         {zelrexTip === "location" && <ZelrexTipPopover tipKey="location" />}
         <Input value={data.location} onChange={(v) => update("location", v)} placeholder="e.g., Remote — based in Austin, TX" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label askKey="hours" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Business hours (optional)</Label>
+        <Label askKey="hours" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Business hours (optional)</Label>
         {zelrexTip === "hours" && <ZelrexTipPopover tipKey="hours" />}
         <Input value={data.hours} onChange={(v) => update("hours", v)} placeholder="e.g., Mon-Fri 9am-5pm EST" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label askKey="calendly" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Booking link (Calendly, Cal.com, etc.)</Label>
+        <Label askKey="calendly" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Booking link (Calendly, Cal.com, etc.)</Label>
         {zelrexTip === "calendly" && <ZelrexTipPopover tipKey="calendly" />}
         <Hint>If you have one, Zelrex will embed it in your site.</Hint>
         <Input value={data.calendlyUrl} onChange={(v) => update("calendlyUrl", v)} placeholder="https://calendly.com/yourname" />
       </FieldGroup>
 
       <FieldGroup>
-        <Label askKey="socialPlatforms" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Social media profiles</Label>
+        <Label askKey="socialPlatforms" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} askQuestions={askQuestions}>Social media profiles</Label>
         {zelrexTip === "socialPlatforms" && <ZelrexTipPopover tipKey="socialPlatforms" />}
         <Hint>Add any that you want linked on your site.</Hint>
         {data.socialLinks.map((link, i) => (

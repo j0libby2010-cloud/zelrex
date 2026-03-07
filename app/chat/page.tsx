@@ -1356,10 +1356,12 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           messages: activeChat?.messages ?? [],
           surveyData: data,
           action: "buildWebsite",
+          userId: clerkUser?.id,
+          userEmail: clerkUser?.primaryEmailAddress?.emailAddress,
         }),
       });
       const raw = await res.text();
-      let result: { reply?: string; previewUrl?: string; websiteData?: any } = {};
+      let result: { reply?: string; previewUrl?: string; websiteData?: any; stripeCheckoutUrls?: Record<string, string> } = {};
       try { result = JSON.parse(raw); } catch {}
       console.log("FULL API RESPONSE:", result);
       if (result.websiteData) {
@@ -1375,7 +1377,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           },
           // Carry through Stripe checkout URLs if the API returned them
           stripeCheckoutUrls: result.stripeCheckoutUrls || result.websiteData.stripeCheckoutUrls || undefined,
-          stripeConnected: result.websiteData.stripeConnected || false,
+          stripeConnected: !!(result.stripeCheckoutUrls || result.websiteData.stripeCheckoutUrls),
         };
         saveWebsiteData(enriched);
       }
@@ -1459,16 +1461,18 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     try {
       const ctrl = new AbortController(); abortRef.current = ctrl;
       // If this is a website rebuild, include existing survey data so the API has full context
-      const requestBody: any = { messages: [...activeChat.messages, userMsg] };
+      const requestBody: any = { messages: [...activeChat.messages, userMsg], userId: clerkUser?.id, userEmail: clerkUser?.primaryEmailAddress?.emailAddress };
       if (isBuild && surveyData) { requestBody.surveyData = surveyData; requestBody.action = "buildWebsite"; }
       const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(requestBody) });
-      const raw = await res.text(); let data: { reply?: string; previewUrl?: string; websiteData?: any } = {}; try { data = JSON.parse(raw); } catch {}
+      const raw = await res.text(); let data: { reply?: string; previewUrl?: string; websiteData?: any; stripeCheckoutUrls?: Record<string, string> } = {}; try { data = JSON.parse(raw); } catch {}
       if (data.websiteData) {
         // Enrich with survey data if available
         const enriched = surveyData ? {
           ...data.websiteData,
           survey: surveyData,
           branding: { ...data.websiteData.branding, socialLinks: Object.fromEntries((surveyData.socialLinks || []).filter((s: any) => s.url).map((s: any) => [s.platform.toLowerCase().replace("/", ""), s.url])) },
+          stripeCheckoutUrls: data.stripeCheckoutUrls || data.websiteData.stripeCheckoutUrls || undefined,
+          stripeConnected: !!(data.stripeCheckoutUrls || data.websiteData.stripeCheckoutUrls),
         } : data.websiteData;
         saveWebsiteData(enriched);
       }
@@ -1965,6 +1969,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           <WebsiteSurvey
             onComplete={handleSurveyComplete}
             onClose={() => { setShowSurvey(false); setSurveyDismissed(true); if (activeChat?.id) { setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, pendingSurvey: true } : c)); } }}
+            onAskZelrex={(question) => { setShowSurvey(false); setInput(question); }}
           />
         )}
 
