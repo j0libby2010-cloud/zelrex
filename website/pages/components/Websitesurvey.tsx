@@ -449,7 +449,7 @@ function StepBusiness({ data, update, zelrexTip, setZelrexTip }: StepProps) {
       <FieldGroup>
         <Label required askKey="targetAudience" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Who is your ideal client?</Label>
         {zelrexTip === "targetAudience" && <ZelrexTipPopover tipKey="targetAudience" />}
-        <Hint>Be specific. "Everyone" means no one.</Hint>
+        <Hint>Be specific.</Hint>
         <Input value={data.targetAudience} onChange={(v) => update("targetAudience", v)} placeholder="e.g., SaaS startups with 10-50 employees who need a rebrand" />
       </FieldGroup>
 
@@ -475,7 +475,7 @@ function StepService({ data, update, zelrexTip, setZelrexTip }: StepProps) {
       </FieldGroup>
 
       <FieldGroup>
-        <Label required askKey="serviceDescription" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Describe what the client gets (2-3 sentences)</Label>
+        <Label required askKey="serviceDescription" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>Describe what the client gets.</Label>
         {zelrexTip === "serviceDescription" && <ZelrexTipPopover tipKey="serviceDescription" />}
         <TextArea value={data.serviceDescription} onChange={(v) => update("serviceDescription", v)} placeholder="e.g., I design your complete brand identity from scratch — logo, colors, typography, and brand guidelines. You get 3 concepts, unlimited revisions on the chosen direction, and a brand book delivered in 2 weeks." />
       </FieldGroup>
@@ -483,7 +483,7 @@ function StepService({ data, update, zelrexTip, setZelrexTip }: StepProps) {
       <FieldGroup>
         <Label askKey="deliverables" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip}>What's included? (one per line)</Label>
         {zelrexTip === "deliverables" && <ZelrexTipPopover tipKey="deliverables" />}
-        <Hint>List specific deliverables. "And more" is not allowed.</Hint>
+        <Hint>List specific deliverables.</Hint>
         {data.deliverables.map((d, i) => (
           <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
             <Input value={d} onChange={(v) => {
@@ -659,7 +659,7 @@ function StepBrand({ data, update, zelrexTip, setZelrexTip }: StepProps) {
       </FieldGroup>
 
       <FieldGroup>
-        <Label>What makes you different from competitors? (one sentence)</Label>
+        <Label>What makes you different from competitors?</Label>
         <Hint>This becomes the core message on your site.</Hint>
         <Input value={data.uniqueSellingPoint} onChange={(v) => update("uniqueSellingPoint", v)} placeholder="e.g., I deliver in 48 hours, not 2 weeks. Same quality, 10x faster." />
       </FieldGroup>

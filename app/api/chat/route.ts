@@ -72,6 +72,16 @@ const supabase = createClient(
 // Only create memory service if the class loaded
 const memoryService = MemoryServiceClass ? new MemoryServiceClass(supabase) : null;
 
+// ─── Stripe service (safe load) ─────────────────────────────────
+let stripeService: any = null;
+try {
+  const { StripeService: SC } = require('@/lib/stripe');
+  stripeService = new SC(supabase);
+  console.log('[ZELREX BOOT] StripeService loaded');
+} catch (e) {
+  console.warn('[ZELREX BOOT] StripeService not available:', (e as Error).message);
+}
+
 // ─── Progress helpers (safe with KV fallback) ────────────────────
 async function getProgress(userId: string): Promise<BusinessProgress | null> {
   if (!kv) return null;
@@ -100,6 +110,10 @@ function wantsWebsite(message: string): boolean {
 
 function wantsBusiness(message: string): boolean {
   return /\b(build|make|create|launch|start)\b.*\b(business|company|offer|service)\b/i.test(message);
+}
+
+function wantsStripeConnect(message: string): boolean {
+  return /\b(connect|setup|link|add|enable)\b.*\b(stripe|payment|checkout|pay)\b/i.test(message);
 }
 
 const ALLOWED_CATEGORIES = [
@@ -342,6 +356,44 @@ export async function POST(req: Request) {
     const userId = body.userId || "anonymous";
     let progress = await getProgress(userId);
 
+    // ─── Stripe Connect ──────────────────────────────────────
+    if (wantsStripeConnect(userText) && stripeService) {
+      try {
+        const status = await stripeService.getAccountStatus(userId);
+
+        if (status.connected && status.chargesEnabled) {
+          return NextResponse.json({
+            reply: "Your Stripe account is already connected and ready to accept payments. When I build your website, checkout links will be added to your pricing tiers automatically.",
+            sessionState,
+          });
+        }
+
+        const userEmail = body.userEmail || "user@example.com";
+        const businessName = body.businessName || "";
+
+        const { onboardingUrl } = await stripeService.createConnectedAccount(
+          userId,
+          userEmail,
+          businessName,
+          `${process.env.NEXT_PUBLIC_APP_URL || 'https://zelrex.ai'}/api/stripe/callback?user_id=${userId}`
+        );
+
+        if (onboardingUrl) {
+          return NextResponse.json({
+            reply: `Let's connect your Stripe account. This takes about 2 minutes — Stripe will ask for your basic info and bank details.\n\n**[Click here to connect Stripe](${onboardingUrl})**\n\nOnce you're done, come back here and I'll set everything up.`,
+            stripeOnboardingUrl: onboardingUrl,
+            sessionState,
+          });
+        }
+      } catch (e) {
+        console.error("[ZELREX] Stripe connect error:", e);
+        return NextResponse.json({
+          reply: "Something went wrong setting up Stripe. Try again in a moment.",
+          sessionState,
+        });
+      }
+    }
+
     // ─── Market Evaluation ───────────────────────────────────
     if (lastUserMessage && wantsMarketEval(lastUserMessage.content)) {
       console.log('[ZELREX] Market evaluation triggered');
@@ -477,7 +529,65 @@ export async function POST(req: Request) {
       console.log("ZELREX: website build completed", website.id);
       try { await saveWebsite(website); } catch (e) { console.warn("ZELREX: saveWebsite skipped:", (e as Error).message); }
 
+      // ─── AUTO STRIPE: Create checkout + inject into website ────
+      let stripeCheckoutUrls: Record<string, string> = {};
+      let stripeMessage = "";
+
+      if (stripeService && userId !== "anonymous") {
+        try {
+          const stripeStatus = await stripeService.getAccountStatus(userId);
+
+          if (stripeStatus.connected && stripeStatus.chargesEnabled) {
+            console.log("[ZELREX] Stripe connected — creating products from pricing tiers");
+
+            const copyTiers = website.copy?.pricing?.pricing?.tiers;
+
+            if (copyTiers && copyTiers.length > 0) {
+              const offerForStripe = {
+                offer_name: website.branding.name || "Service",
+                business_name: website.branding.name,
+                target_audience: website.copy?.offer?.whoItsFor?.subtitle || "",
+                pricing_tiers: copyTiers.map((t: any) => ({
+                  tier: t.name,
+                  price: t.price,
+                  description: t.features?.join(", ") || t.note || t.name,
+                })),
+                included: website.copy?.offer?.whatYouGet?.items?.map((i: any) => i.title).join(", ") || "",
+                turnaround: "",
+              };
+
+              const products = await stripeService.createProductsFromOffer(userId, offerForStripe);
+
+              if (products.length > 0) {
+                stripeCheckoutUrls = await stripeService.createPaymentLinks(userId);
+                console.log(`[ZELREX] Created ${products.length} products, ${Object.keys(stripeCheckoutUrls).length} payment links`);
+
+                (website as any).stripeCheckoutUrls = stripeCheckoutUrls;
+                (website as any).stripeConnected = true;
+
+                stripeMessage = "\n\nYour Stripe checkout is live. Each pricing tier has its own payment link — when clients click a tier on your site, they'll go straight to a Stripe checkout page. Money goes directly to your bank account.";
+              }
+            }
+          } else if (stripeStatus.connected && !stripeStatus.chargesEnabled) {
+            stripeMessage = "\n\nYour Stripe account is connected but not fully set up yet. Finish your Stripe onboarding to enable payments on your site.";
+          } else {
+            stripeMessage = "\n\nWant to accept payments directly on your site? Connect your Stripe account and I'll add checkout buttons to every pricing tier automatically. Just say **connect Stripe**.";
+          }
+        } catch (stripeError) {
+          console.error("[ZELREX] Stripe integration failed (non-fatal):", stripeError);
+          stripeMessage = "\n\nI wasn't able to set up payments automatically. You can connect Stripe later — just say **connect Stripe** when you're ready.";
+        }
+      }
+
       const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin;
+
+      let checkoutLinksMessage = "";
+      if (Object.keys(stripeCheckoutUrls).length > 0) {
+        const linkLines = Object.entries(stripeCheckoutUrls).map(
+          ([tier, url]) => `- **${tier.charAt(0).toUpperCase() + tier.slice(1).replace(/_/g, ' ')}**: ${url}`
+        );
+        checkoutLinksMessage = `\n\nHere are your direct payment links if you want to share them separately:\n${linkLines.join("\n")}`;
+      }
 
       return NextResponse.json({
         reply: [
@@ -486,12 +596,15 @@ export async function POST(req: Request) {
           "Press **Preview** to see it live.",
           "",
           "Everything on the site — pricing, deliverables, contact info — comes from what you told me. No placeholders.",
+          stripeMessage,
+          checkoutLinksMessage,
           "",
           "Tell me what to change, or say **deploy** when you're ready to put it on your domain.",
-        ].join("\n"),
+        ].filter(Boolean).join("\n"),
         previewUrl: "__blob__",
         websiteData: website,
         assumptions: website.assumptions,
+        stripeCheckoutUrls: Object.keys(stripeCheckoutUrls).length > 0 ? stripeCheckoutUrls : undefined,
         sessionState: {
           ...sessionState,
           decisions: {

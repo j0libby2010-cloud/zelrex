@@ -202,7 +202,7 @@ function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal, onAdd
   const leftOffset = (!isMobile && sidebarOpen) ? 260 : 0;
 
   return (
-    <div style={{ height: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 0, borderBottom: `1px solid ${C.border}`, background: currentIdx > 0 ? `linear-gradient(90deg, transparent, ${accentColor}06, transparent)` : "transparent", padding: "0 20px", marginLeft: leftOffset, width: `calc(100% - ${leftOffset}px)`, transition: "margin-left 300ms cubic-bezier(0.2,0,0,1), width 300ms cubic-bezier(0.2,0,0,1)" }}>
+    <div style={{ height: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 0, borderBottom: `1px solid ${C.border}`, background: currentIdx > 0 ? `linear-gradient(90deg, transparent, ${accentColor}06, transparent)` : "transparent", padding: "0 20px", marginLeft: leftOffset, width: `calc(100% - ${leftOffset}px)`, transition: "margin-left 500ms cubic-bezier(0.32,0.72,0,1), width 500ms cubic-bezier(0.32,0.72,0,1)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
       {phases.map((p, i) => {
         const isDone = i < currentIdx;
@@ -213,7 +213,7 @@ function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal, onAdd
             {i > 0 && <div style={{ width: isMobile ? 16 : 32, height: 1, background: isDone ? "#10B981" : C.border, margin: "0 2px", transition: "background 500ms" }} />}
             <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
               <span style={{ width: 6, height: 6, borderRadius: 999, background: color, boxShadow: isCurrent ? `0 0 8px ${color}` : "none", transition: "all 500ms", animation: isCurrent && (phase === "evaluating" || phase === "building") ? "zp 2s ease infinite" : "none" }} />
-              <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: isCurrent ? 700 : 500, color, letterSpacing: "0.04em", textTransform: "uppercase", transition: "all 300ms" }}>{p.label}</span>
+              <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: isCurrent ? 700 : 500, color, letterSpacing: "0.04em", textTransform: "uppercase", transition: "all 500ms cubic-bezier(0.32,0.72,0,1)" }}>{p.label}</span>
             </div>
           </React.Fragment>
         );
@@ -226,9 +226,7 @@ function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal, onAdd
           <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 600, color: C.accent, letterSpacing: "0.04em", textTransform: "uppercase", maxWidth: 160, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userGoal.text}</span>
         </div>
       ) : (
-        <button type="button" onClick={onAddGoal} style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: isMobile ? 9 : 10, fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", textTransform: "uppercase", transition: "all 220ms cubic-bezier(0.2,0,0,1)" }}
-          onMouseEnter={(e) => { const s = e.currentTarget.style; s.borderColor = C.accent + "60"; s.color = C.accent; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
-          onMouseLeave={(e) => { const s = e.currentTarget.style; s.borderColor = C.border; s.color = C.textMuted; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
+        <button type="button" onClick={onAddGoal} className="z-glass-accent" style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: isMobile ? 9 : 10, fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", textTransform: "uppercase" }}>
           <span style={{ fontSize: 11, lineHeight: 1 }}>+</span> Goal
         </button>
       )}
@@ -282,10 +280,8 @@ function WelcomeScreen({ onAction }: { onAction: (t: string) => void }) {
       </p>
       <div className="welcome-grid" style={{ marginTop: 36, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, width: "100%", maxWidth: 540 }}>
         {cards.map((c) => (
-          <button key={c.title} type="button" onClick={() => onAction(c.action)}
-            style={{ textAlign: "left", padding: "20px 16px", borderRadius: 14, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)", cursor: "pointer", transition: "all 200ms ease", color: C.text }}
-            onMouseEnter={(e) => { const s = e.currentTarget.style; s.borderColor = C.borderHover; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-1px)"; }}
-            onMouseLeave={(e) => { const s = e.currentTarget.style; s.borderColor = C.border; s.background = "rgba(255,255,255,0.02)"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
+          <button key={c.title} type="button" onClick={() => onAction(c.action)} className="z-glass"
+            style={{ textAlign: "left", padding: "20px 16px", borderRadius: 14, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)", cursor: "pointer", color: C.text }}>
             <Ic n={c.icon} className="h-5 w-5" style={{ color: C.accent }} />
             <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>{c.title}</div>
             <div style={{ marginTop: 4, fontSize: 12, color: C.textMuted, lineHeight: 1.4 }}>{c.sub}</div>
@@ -298,22 +294,18 @@ function WelcomeScreen({ onAction }: { onAction: (t: string) => void }) {
 
 function ActionPill({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick}
-      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, border: `1px solid ${C.accent}40`, background: `${C.accent}15`, color: C.accent, fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = `${C.accent}25`; }}
-      onMouseLeave={(e) => { e.currentTarget.style.background = `${C.accent}15`; }}>
+    <button type="button" onClick={onClick} className="z-glass-accent"
+      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, border: `1px solid ${C.accent}40`, background: `${C.accent}15`, color: C.accent, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
       {label} &rarr;
     </button>
   );
 }
 
-// Button helper with hover — iPhone liquid glass
+// Button helper — Apple liquid glass
 function HBtn({ children, onClick, style, className, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { style?: React.CSSProperties }) {
   return (
-    <button type="button" onClick={onClick} className={cx("glass-btn", className)} {...rest}
-      style={{ background: "none", border: "none", cursor: "pointer", borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", transition: "all 220ms cubic-bezier(0.2,0,0,1)", ...style }}
-      onMouseEnter={(e) => { const t = e.currentTarget; t.style.background = "rgba(255,255,255,0.09)"; t.style.backdropFilter = "blur(40px) saturate(2)"; (t.style as any).webkitBackdropFilter = "blur(40px) saturate(2)"; t.style.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; t.style.transform = "translateY(-0.5px)"; }}
-      onMouseLeave={(e) => { const t = e.currentTarget; t.style.background = style?.background as string || "none"; t.style.backdropFilter = "none"; (t.style as any).webkitBackdropFilter = "none"; t.style.boxShadow = style?.boxShadow as string || "none"; t.style.transform = "none"; }}>
+    <button type="button" onClick={onClick} className={cx("z-glass", className)} {...rest}
+      style={{ background: "none", border: "none", cursor: "pointer", borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", ...style }}>
       {children}
     </button>
   );
@@ -1467,37 +1459,68 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:3px}
         ::selection{background:${C.accent}40}
         textarea::placeholder{color:${C.textMuted}}
-        .glass-btn{position:relative;overflow:hidden}
-        .glass-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(165deg,rgba(255,255,255,0.15) 0%,rgba(255,255,255,0.04) 30%,rgba(255,255,255,0.02) 60%,rgba(255,255,255,0.08) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.2),inset 0 -0.5px 0 rgba(255,255,255,0.05);transition:opacity 220ms cubic-bezier(0.2,0,0,1)}
-        .glass-btn:hover::before{opacity:1}
-        .glass-btn::after{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;border-radius:inherit;background:radial-gradient(ellipse at 30% 20%,rgba(255,255,255,0.06) 0%,transparent 60%);opacity:0;transition:opacity 220ms;pointer-events:none}
-        .glass-btn:hover::after{opacity:1}
+        /* ── Apple Liquid Glass ─────────────────────────────── */
+        .z-glass,.glass-btn{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.32,0.72,0,1)}
+        .z-glass::before,.glass-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.06) 18%,rgba(255,255,255,0.015) 45%,transparent 60%,rgba(255,255,255,0.025) 78%,rgba(255,255,255,0.09) 100%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.35),inset 0 -0.5px 0 rgba(255,255,255,0.06),inset 0.5px 0 0 rgba(255,255,255,0.05),inset -0.5px 0 0 rgba(255,255,255,0.05);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none;z-index:0}
+        .z-glass:hover::before,.glass-btn:hover::before{opacity:1}
+        .z-glass::after,.glass-btn::after{content:'';position:absolute;top:-35%;left:8%;width:84%;height:70%;border-radius:50%;background:radial-gradient(ellipse at 38% 35%,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.035) 32%,transparent 68%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none;z-index:0}
+        .z-glass:hover::after,.glass-btn:hover::after{opacity:1}
+        .z-glass:hover,.glass-btn:hover{background:rgba(255,255,255,0.065)!important;backdrop-filter:brightness(1.15) saturate(1.4);-webkit-backdrop-filter:brightness(1.15) saturate(1.4);box-shadow:0 0 0 0.5px rgba(255,255,255,0.13),0 1px 2px rgba(0,0,0,0.08),0 4px 16px rgba(0,0,0,0.06),0 8px 32px rgba(0,0,0,0.04);transform:translateY(-0.5px)}
+        .z-glass:active,.glass-btn:active{transform:scale(0.97) translateY(0);transition-duration:120ms}
+        .z-glass>*,.glass-btn>*{position:relative;z-index:1}
+        /* Accent variant */
+        .z-glass-accent{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.32,0.72,0,1)}
+        .z-glass-accent::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(74,144,255,0.2) 0%,rgba(74,144,255,0.06) 25%,transparent 55%,rgba(74,144,255,0.04) 80%,rgba(74,144,255,0.12) 100%);box-shadow:inset 0 0.5px 0 rgba(74,144,255,0.35),inset 0 -0.5px 0 rgba(74,144,255,0.08);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-accent::after{content:'';position:absolute;top:-35%;left:8%;width:84%;height:70%;border-radius:50%;background:radial-gradient(ellipse at 38% 35%,rgba(74,144,255,0.12) 0%,rgba(74,144,255,0.04) 32%,transparent 68%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-accent:hover::before,.z-glass-accent:hover::after{opacity:1}
+        .z-glass-accent:hover{background:rgba(74,144,255,0.10)!important;backdrop-filter:brightness(1.12) saturate(1.5);-webkit-backdrop-filter:brightness(1.12) saturate(1.5);box-shadow:0 0 0 0.5px rgba(74,144,255,0.2),0 1px 2px rgba(74,144,255,0.06),0 4px 16px rgba(0,0,0,0.06),0 0 24px rgba(74,144,255,0.04);transform:translateY(-0.5px)}
+        .z-glass-accent:active{transform:scale(0.97) translateY(0);transition-duration:120ms}
+        /* Danger variant */
+        .z-glass-danger{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.32,0.72,0,1)}
+        .z-glass-danger::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(239,68,68,0.18) 0%,rgba(239,68,68,0.05) 25%,transparent 55%,rgba(239,68,68,0.03) 80%,rgba(239,68,68,0.1) 100%);box-shadow:inset 0 0.5px 0 rgba(239,68,68,0.25),inset 0 -0.5px 0 rgba(239,68,68,0.06);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-danger::after{content:'';position:absolute;top:-35%;left:8%;width:84%;height:70%;border-radius:50%;background:radial-gradient(ellipse at 38% 35%,rgba(239,68,68,0.1) 0%,rgba(239,68,68,0.03) 32%,transparent 68%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-danger:hover::before,.z-glass-danger:hover::after{opacity:1}
+        .z-glass-danger:hover{background:rgba(239,68,68,0.12)!important;backdrop-filter:brightness(1.08) saturate(1.3);-webkit-backdrop-filter:brightness(1.08) saturate(1.3);box-shadow:0 0 0 0.5px rgba(239,68,68,0.2),0 1px 2px rgba(239,68,68,0.06),0 4px 16px rgba(0,0,0,0.06),0 0 16px rgba(239,68,68,0.03);transform:translateY(-0.5px)}
+        .z-glass-danger:active{transform:scale(0.97) translateY(0);transition-duration:120ms}
+        /* Solid accent button liquid glass (Upgrade to Pro, Save goal) */
+        .z-glass-solid{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.32,0.72,0,1)}
+        .z-glass-solid::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(255,255,255,0.25) 0%,rgba(255,255,255,0.08) 25%,transparent 55%,rgba(255,255,255,0.04) 80%,rgba(255,255,255,0.15) 100%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.4),inset 0 -0.5px 0 rgba(255,255,255,0.08);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-solid::after{content:'';position:absolute;top:-40%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 35% 30%,rgba(255,255,255,0.15) 0%,rgba(255,255,255,0.04) 35%,transparent 65%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-solid:hover::before,.z-glass-solid:hover::after{opacity:1}
+        .z-glass-solid:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(74,144,255,0.35),inset 0 1px 0 rgba(255,255,255,0.15)}
+        .z-glass-solid:active{transform:scale(0.97) translateY(0);transition-duration:120ms}
         .chat-row{position:relative;overflow:visible}
-        .chat-row::before{content:'';position:absolute;inset:0;border-radius:8px;opacity:0;background:linear-gradient(165deg,rgba(255,255,255,0.08) 0%,rgba(255,255,255,0.02) 40%,rgba(255,255,255,0.04) 100%);backdrop-filter:blur(24px) saturate(1.6);-webkit-backdrop-filter:blur(24px) saturate(1.6);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.1),0 2px 8px rgba(0,0,0,0.1);transition:opacity 180ms;pointer-events:none}
+        .chat-row::before{content:'';position:absolute;inset:0;border-radius:8px;opacity:0;background:linear-gradient(168deg,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.015) 50%,rgba(255,255,255,0.03) 75%,rgba(255,255,255,0.06) 100%);backdrop-filter:brightness(1.1) saturate(1.3);-webkit-backdrop-filter:brightness(1.1) saturate(1.3);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.2),0 0 0 0.5px rgba(255,255,255,0.06);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
         .chat-row:hover::before{opacity:1}
         .chat-row:hover .chat-dots{opacity:0.7!important}
         .chat-row:hover .chat-title{color:${C.text}!important}
-        .msg-actions{display:flex;align-items:center;gap:2px;margin-top:6px;opacity:0.55;transition:opacity 180ms}
+        .msg-actions{display:flex;align-items:center;gap:2px;margin-top:6px;opacity:0.55;transition:opacity 400ms cubic-bezier(0.32,0.72,0,1)}
         .msg-row:hover .msg-actions{opacity:1}
         .user-row .msg-actions{opacity:0}
         .user-row:hover .msg-actions{opacity:1}
         .user-row .msg-act{color:rgba(255,255,255,0.55)}
-        .msg-act{display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:8px;border:1px solid transparent;background:none;color:${C.textMuted};cursor:pointer;transition:all 200ms cubic-bezier(0.2,0,0,1);padding:0}
-        .msg-act:hover{background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.1);backdrop-filter:blur(40px) saturate(2);-webkit-backdrop-filter:blur(40px) saturate(2);box-shadow:inset 0 1px 0 rgba(255,255,255,0.18),inset 0 -0.5px 0 rgba(255,255,255,0.04),0 4px 16px rgba(0,0,0,0.2),0 0 0 0.5px rgba(255,255,255,0.06);color:${C.text};transform:translateY(-0.5px)}
-        .msg-act:active{transform:scale(0.9)}
+        .msg-act{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:8px;border:1px solid transparent;background:none;color:${C.textMuted};cursor:pointer;transition:all 500ms cubic-bezier(0.32,0.72,0,1);padding:0}
+        .msg-act::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.06) 18%,rgba(255,255,255,0.015) 45%,transparent 60%,rgba(255,255,255,0.025) 78%,rgba(255,255,255,0.09) 100%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.35),inset 0 -0.5px 0 rgba(255,255,255,0.06);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .msg-act::after{content:'';position:absolute;top:-35%;left:8%;width:84%;height:70%;border-radius:50%;background:radial-gradient(ellipse at 38% 35%,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.035) 32%,transparent 68%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .msg-act:hover{background:rgba(255,255,255,0.065);border-color:rgba(255,255,255,0.1);backdrop-filter:brightness(1.15) saturate(1.4);-webkit-backdrop-filter:brightness(1.15) saturate(1.4);box-shadow:0 0 0 0.5px rgba(255,255,255,0.13),0 1px 2px rgba(0,0,0,0.08),0 4px 16px rgba(0,0,0,0.06);color:${C.text};transform:translateY(-0.5px)}
+        .msg-act:hover::before,.msg-act:hover::after{opacity:1}
+        .msg-act:active{transform:scale(0.92) translateY(0);transition-duration:120ms}
         .msg-act svg{width:15px;height:15px}
         .user-time{font-size:11px;color:rgba(255,255,255,0.7);font-weight:500;letter-spacing:0.01em}
         .collapsed-avatar:hover .collapsed-reveal,.collapsed-reveal:hover{opacity:1!important;transform:translateX(0)!important;pointer-events:auto!important}
-        .drag-handle{width:8px;cursor:col-resize;background:transparent;transition:background 200ms;flex-shrink:0;position:relative;z-index:10;border-left:1px solid ${C.border}}
-        .drag-handle:hover{background:rgba(74,144,255,0.06);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+        .drag-handle{width:8px;cursor:col-resize;background:transparent;transition:all 500ms cubic-bezier(0.32,0.72,0,1);flex-shrink:0;position:relative;z-index:10;border-left:1px solid ${C.border}}
+        .drag-handle:hover{background:rgba(74,144,255,0.06);backdrop-filter:brightness(1.1) saturate(1.2);-webkit-backdrop-filter:brightness(1.1) saturate(1.2)}
         .drag-handle:active{background:rgba(74,144,255,0.1)}
-        .drag-handle::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:3px;height:48px;border-radius:3px;background:rgba(255,255,255,0.08);transition:all 200ms}
+        .drag-handle::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:3px;height:48px;border-radius:3px;background:rgba(255,255,255,0.08);transition:all 500ms cubic-bezier(0.32,0.72,0,1)}
         .drag-handle:hover::after{background:${C.accent};box-shadow:0 0 8px ${C.accent}40;height:64px}
         /* Premium hamburger button */
-        .burger-btn{width:36px;height:36px;position:relative;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:10px;cursor:pointer;transition:all 250ms cubic-bezier(0.2,0,0,1);flex-shrink:0}
-        .burger-btn:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.14);box-shadow:inset 0 1px 0 rgba(255,255,255,0.2),inset 0 -0.5px 0 rgba(255,255,255,0.04),0 4px 20px rgba(0,0,0,0.2),0 0 0 0.5px rgba(255,255,255,0.06),0 0 30px rgba(74,144,255,0.04);backdrop-filter:blur(40px) saturate(2);-webkit-backdrop-filter:blur(40px) saturate(2)}
-        .burger-btn:active{transform:scale(0.92);transition-duration:100ms}
-        .burger-line{position:absolute;height:1.5px;border-radius:1px;background:${C.textSec};transition:transform 0.4s cubic-bezier(0.77,0,0.18,1),opacity 0.3s ease,width 0.4s cubic-bezier(0.77,0,0.18,1),background 0.3s ease}
+        .burger-btn{width:36px;height:36px;position:relative;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:10px;cursor:pointer;transition:all 500ms cubic-bezier(0.32,0.72,0,1);flex-shrink:0;overflow:hidden}
+        .burger-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.06) 18%,rgba(255,255,255,0.015) 45%,transparent 60%,rgba(255,255,255,0.025) 78%,rgba(255,255,255,0.09) 100%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.35),inset 0 -0.5px 0 rgba(255,255,255,0.06);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .burger-btn::after{content:'';position:absolute;top:-35%;left:8%;width:84%;height:70%;border-radius:50%;background:radial-gradient(ellipse at 38% 35%,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.035) 32%,transparent 68%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .burger-btn:hover{background:rgba(255,255,255,0.065);border-color:rgba(255,255,255,0.14);backdrop-filter:brightness(1.15) saturate(1.4);-webkit-backdrop-filter:brightness(1.15) saturate(1.4);box-shadow:0 0 0 0.5px rgba(255,255,255,0.13),0 1px 2px rgba(0,0,0,0.08),0 4px 16px rgba(0,0,0,0.06),0 0 24px rgba(74,144,255,0.03)}
+        .burger-btn:hover::before,.burger-btn:hover::after{opacity:1}
+        .burger-btn:active{transform:scale(0.92) translateY(0);transition-duration:120ms}
+        .burger-line{position:absolute;height:1.5px;border-radius:1px;background:${C.textSec};transition:transform 0.5s cubic-bezier(0.32,0.72,0,1),opacity 0.4s ease,width 0.5s cubic-bezier(0.32,0.72,0,1),background 0.4s ease}
         .burger-btn:hover .burger-line{background:${C.text}}
         .burger-top{width:16px;transform:translateY(-5px)}
         .burger-mid{width:12px}
@@ -1590,30 +1613,22 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {/* SIDEBAR */}
-        <aside style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, borderRight: sidebarOpen ? `1px solid ${C.border}` : "none", background: C.bg, transition: "all 300ms cubic-bezier(0.2,0,0,1)", overflow: "hidden", display: "flex", flexDirection: "column", position: isMobile ? "fixed" : "absolute", top: isMobile ? 0 : -81, bottom: 0, left: 0, paddingTop: isMobile ? 60 : 81, zIndex: 20 }}>
-          <div style={{ padding: 10, opacity: sidebarOpen ? 1 : 0, transition: "opacity 200ms" }}>
+        <aside style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, borderRight: sidebarOpen ? `1px solid ${C.border}` : "none", background: C.bg, transition: "all 500ms cubic-bezier(0.32,0.72,0,1)", overflow: "hidden", display: "flex", flexDirection: "column", position: isMobile ? "fixed" : "absolute", top: isMobile ? 0 : -81, bottom: 0, left: 0, paddingTop: isMobile ? 60 : 81, zIndex: 20 }}>
+          <div style={{ padding: 10, opacity: sidebarOpen ? 1 : 0, transition: "opacity 400ms cubic-bezier(0.32,0.72,0,1)" }}>
             {/* New Business button */}
-            <button onClick={createNewChat} type="button" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 0", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer", transition: "all 150ms" }}
-              onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
-              onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
+            <button onClick={createNewChat} type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 0", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
               <Ic n="briefcase" className="h-4 w-4" /> New Business
             </button>
 
             {/* Tool buttons */}
             <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
-              <button type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer", transition: "all 150ms" }}
-                onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
-                onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
+              <button type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="calendar" style={{ width: 15, height: 15, color: "#10B981" }} /> Weekly Summaries
               </button>
-              <button type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer", transition: "all 150ms" }}
-                onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
-                onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
+              <button type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="analytics" style={{ width: 15, height: 15, color: "#8B5CF6" }} /> Business Analytics
               </button>
-              <button type="button" onClick={() => { if (userGoal) setGoalDraft({ text: userGoal.text, target: userGoal.target, deadline: userGoal.deadline }); else setGoalDraft({ text: "", target: "", deadline: "" }); setGoalModalOpen(true); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer", transition: "all 150ms" }}
-                onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
-                onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
+              <button type="button" className="z-glass" onClick={() => { if (userGoal) setGoalDraft({ text: userGoal.text, target: userGoal.target, deadline: userGoal.deadline }); else setGoalDraft({ text: "", target: "", deadline: "" }); setGoalModalOpen(true); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? C.accent : "#F59E0B" }} /> {userGoal ? "My Goal" : "Set Goal"}
               </button>
             </div>
@@ -1633,20 +1648,20 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               const bizPhase = detectPhase(c.messages); const bizName = getBusinessName(c.messages);
               const createdDate = c.id.includes("_") ? new Date(parseInt(c.id.split("_").pop() || "0", 16)).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
               return (
-                <div key={c.id} style={{ marginBottom: 2, borderRadius: 10, overflow: "hidden", border: isA ? `1px solid rgba(255,255,255,0.06)` : "1px solid transparent", background: isA ? "rgba(255,255,255,0.04)" : "transparent", transition: "all 200ms" }}>
+                <div key={c.id} style={{ marginBottom: 2, borderRadius: 10, overflow: "hidden", border: isA ? `1px solid rgba(255,255,255,0.06)` : "1px solid transparent", background: isA ? "rgba(255,255,255,0.04)" : "transparent", transition: "all 500ms cubic-bezier(0.32,0.72,0,1)" }}>
                   {/* Business row */}
-                  <div className="chat-row" style={{ display: "flex", alignItems: "center", padding: "7px 8px", cursor: "pointer", transition: "background 150ms" }}
+                  <div className="chat-row" style={{ display: "flex", alignItems: "center", padding: "7px 8px", cursor: "pointer", transition: "background 500ms cubic-bezier(0.32,0.72,0,1)" }}
                     onMouseEnter={(e) => { if (!isA) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
                     <button onClick={() => { setActiveChatId(c.id); router.push(`/chat/${c.id}`, { scroll: false }); if (isMobile) setSidebarOpen(false); }} type="button" style={{ flex: 1, textAlign: "left", background: "none", border: "none", cursor: "pointer", color: C.text, padding: 0, overflow: "hidden" }}>
                       {isR ? (
                         <input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") { setRenamingChatId(null); setRenameValue(""); } }} onBlur={commitRename} autoFocus style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: `1px solid ${C.border}`, borderRadius: 6, padding: "3px 8px", color: C.text, fontSize: 12, outline: "none" }} />
                       ) : (
-                        <div className="chat-title" style={{ fontSize: 12, color: isA ? C.text : C.textSec, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 170, fontWeight: isA ? 600 : 400, transition: "color 150ms" }}>{c.title || "New business"}</div>
+                        <div className="chat-title" style={{ fontSize: 12, color: isA ? C.text : C.textSec, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 170, fontWeight: isA ? 600 : 400, transition: "color 500ms cubic-bezier(0.32,0.72,0,1)" }}>{c.title || "New business"}</div>
                       )}
                     </button>
                     {!isR && (
-                      <HBtn onMouseDown={(e: React.MouseEvent) => e.stopPropagation()} onClick={(e: React.MouseEvent) => { e.stopPropagation(); setExpandedBizId(isExp ? null : c.id); }} className="chat-dots" style={{ width: 26, height: 26, color: C.textMuted, opacity: isA || isExp ? 0.8 : 0, marginLeft: 2, transition: "all 200ms" }}>
+                      <HBtn onMouseDown={(e: React.MouseEvent) => e.stopPropagation()} onClick={(e: React.MouseEvent) => { e.stopPropagation(); setExpandedBizId(isExp ? null : c.id); }} className="chat-dots" style={{ width: 26, height: 26, color: C.textMuted, opacity: isA || isExp ? 0.8 : 0, marginLeft: 2, transition: "all 500ms cubic-bezier(0.32,0.72,0,1)" }}>
                         <Ic n="chevdown" style={{ width: 14, height: 14, transition: "transform 200ms", transform: isExp ? "rotate(180deg)" : "rotate(0deg)" }} />
                       </HBtn>
                     )}
@@ -1654,7 +1669,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   {/* Expanded details */}
                   {isExp && (
                     <div style={{ padding: "2px 10px 10px", animation: "bizExpand 200ms ease" }}>
-                      <style>{`@keyframes bizExpand{from{opacity:0;max-height:0}to{opacity:1;max-height:200px}}`}</style>
+                      <style>{`@keyframes bizExpand{from{opacity:0;max-height:0;transform:translateY(-4px)}to{opacity:1;max-height:200px;transform:translateY(0)}}`}</style>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 8 }}>
                         <div style={{ padding: "6px 8px", borderRadius: 7, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
                           <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Created</div>
@@ -1674,14 +1689,10 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 4 }}>
-                        <button onClick={() => startRename(c.id)} type="button" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 7, border: "none", background: "rgba(255,255,255,0.03)", color: C.textSec, fontSize: 11, fontWeight: 500, cursor: "pointer", transition: "all 180ms" }}
-                          onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.08)"; s.backdropFilter = "blur(20px) saturate(1.8)"; (s as any).webkitBackdropFilter = "blur(20px) saturate(1.8)"; s.boxShadow = "inset 0 0.5px 0 rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.15)"; }}
-                          onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.03)"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}>
+                        <button onClick={() => startRename(c.id)} type="button" className="z-glass" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 7, border: "none", background: "rgba(255,255,255,0.03)", color: C.textSec, fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
                           <Ic n="pencil" style={{ width: 11, height: 11 }} /> Rename
                         </button>
-                        <button onClick={() => { deleteChat(c.id); setExpandedBizId(null); }} type="button" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 7, border: "none", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 11, fontWeight: 500, cursor: "pointer", transition: "all 180ms" }}
-                          onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(239,68,68,0.12)"; s.backdropFilter = "blur(20px) saturate(1.8)"; (s as any).webkitBackdropFilter = "blur(20px) saturate(1.8)"; s.boxShadow = "inset 0 0.5px 0 rgba(239,68,68,0.15), 0 2px 8px rgba(0,0,0,0.15)"; }}
-                          onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "rgba(239,68,68,0.06)"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}>
+                        <button onClick={() => { deleteChat(c.id); setExpandedBizId(null); }} type="button" className="z-glass-danger" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 7, border: "none", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
                           <Ic n="trash" style={{ width: 11, height: 11 }} /> Delete
                         </button>
                       </div>
@@ -1693,22 +1704,18 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           </div>
           <div style={{ borderTop: `1px solid ${C.border}`, padding: 8 }}>
             {isSignedIn && clerkUser ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, cursor: "default", transition: "all 200ms", position: "relative" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 10px", borderRadius: 10, cursor: "default", transition: "all 500ms cubic-bezier(0.32,0.72,0,1)", position: "relative" }}>
                 <img src={clerkUser.imageUrl} alt="" style={{ width: 32, height: 32, borderRadius: 999, border: `1.5px solid ${C.border}`, flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0, opacity: sidebarOpen ? 1 : 0, transition: "opacity 200ms" }}>
+                <div style={{ flex: 1, minWidth: 0, opacity: sidebarOpen ? 1 : 0, transition: "opacity 400ms cubic-bezier(0.32,0.72,0,1)" }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, letterSpacing: "0.03em", marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" onClick={() => setSettingsOpen(true)} title="Settings" style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 220ms cubic-bezier(0.2,0,0,1)", opacity: sidebarOpen ? 1 : 0 }}
-                  onMouseEnter={(e) => { const s = e.currentTarget.style; s.color = C.text; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
-                  onMouseLeave={(e) => { const s = e.currentTarget.style; s.color = C.textMuted; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
+                <button type="button" onClick={() => setSettingsOpen(true)} title="Settings" className="z-glass" style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: sidebarOpen ? 1 : 0 }}>
                   <Ic n="settings" style={{ width: 20, height: 20 }} />
                 </button>
               </div>
             ) : (
-              <button type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", transition: "all 150ms" }}
-                onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; }}
-                onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; }}
+              <button type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer" }}
                 onClick={() => { window.location.href = "/sign-in"; }}>
                 <Ic n="signin" className="h-4 w-4" /> Sign in
               </button>
@@ -1721,14 +1728,12 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           <div className="collapsed-avatar-wrap" style={{ position: "fixed", bottom: 20, left: 10, zIndex: 21 }}>
             <div className="collapsed-avatar" style={{ position: "relative", cursor: "pointer" }}>
               <img src={clerkUser.imageUrl} alt="" style={{ width: 32, height: 32, borderRadius: 999, border: `1.5px solid ${C.border}`, display: "block" }} />
-              <div className="collapsed-reveal" style={{ position: "absolute", left: 38, top: -4, display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "rgba(10,15,26,0.92)", border: `1px solid ${C.border}`, backdropFilter: "blur(32px) saturate(1.6)", WebkitBackdropFilter: "blur(32px) saturate(1.6)", boxShadow: "0 8px 32px rgba(0,0,0,0.4)", whiteSpace: "nowrap", opacity: 0, transform: "translateX(-6px)", transition: "all 220ms cubic-bezier(0.2,0,0,1)", pointerEvents: "none" }}>
+              <div className="collapsed-reveal" style={{ position: "absolute", left: 38, top: -4, display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "rgba(10,15,26,0.92)", border: `1px solid ${C.border}`, backdropFilter: "blur(32px) saturate(1.6)", WebkitBackdropFilter: "blur(32px) saturate(1.6)", boxShadow: "0 8px 32px rgba(0,0,0,0.4)", whiteSpace: "nowrap", opacity: 0, transform: "translateX(-6px)", transition: "all 500ms cubic-bezier(0.32,0.72,0,1)", pointerEvents: "none" }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" onClick={() => setSettingsOpen(true)} title="Settings" style={{ width: 30, height: 30, borderRadius: 7, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 220ms cubic-bezier(0.2,0,0,1)" }}
-                  onMouseEnter={(e) => { const s = e.currentTarget.style; s.color = C.text; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.08)"; s.transform = "translateY(-0.5px)"; }}
-                  onMouseLeave={(e) => { const s = e.currentTarget.style; s.color = C.textMuted; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.transform = "none"; }}>
+                <button type="button" onClick={() => setSettingsOpen(true)} title="Settings" className="z-glass" style={{ width: 30, height: 30, borderRadius: 7, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Ic n="settings" style={{ width: 18, height: 18 }} />
                 </button>
               </div>
@@ -1737,7 +1742,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {/* CHAT */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 280, transition: dragRef.current ? "none" : "all 300ms ease", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 280, transition: dragRef.current ? "none" : "all 500ms cubic-bezier(0.32,0.72,0,1)", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0 }}>
           <div style={{ flex: 1, overflowY: "auto", padding: previewOpen ? "16px 12px" : "16px 16px" }}>
             <div style={{ maxWidth: previewOpen ? "100%" : 820, margin: "0 auto" }}>
               {!hasMessages ? (
@@ -1807,22 +1812,22 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             {!surveyData && !showSurvey && activeChat?.pendingSurvey && (
               <div style={{ maxWidth: previewOpen ? "100%" : 820, margin: "0 auto 10px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, position: "relative", zIndex: 2 }}>
                 <div style={{ fontSize: 12, color: C.textSec }}>Survey paused. Continue to finish your website build.</div>
-                <button type="button" onClick={() => { setSurveyDismissed(false); setShowSurvey(true); }} style={{ padding: "6px 12px", borderRadius: 999, border: `1px solid ${C.accent}55`, background: `${C.accent}18`, color: C.accent, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Continue survey</button>
+                <button type="button" onClick={() => { setSurveyDismissed(false); setShowSurvey(true); }} className="z-glass-accent" style={{ padding: "6px 12px", borderRadius: 999, border: `1px solid ${C.accent}55`, background: `${C.accent}18`, color: C.accent, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Continue survey</button>
               </div>
             )}
             <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 24, background: "linear-gradient(to bottom, rgba(6,9,15,0), rgba(6,9,15,0.9))", pointerEvents: "none" }} />
-            <div className={inputFocused ? "input-box input-focus-glow" : "input-box"} style={{ position: "relative", zIndex: 1, maxWidth: previewOpen ? "100%" : 820, margin: "0 auto", borderRadius: draftAttachments.length ? 18 : 999, border: `1px solid ${inputFocused ? C.borderHover : C.border}`, background: C.bgInput, boxShadow: `0 4px 24px rgba(0,0,0,0.3)`, transition: "border-color 200ms, box-shadow 200ms" }}>
+            <div className={inputFocused ? "input-box input-focus-glow" : "input-box"} style={{ position: "relative", zIndex: 1, maxWidth: previewOpen ? "100%" : 820, margin: "0 auto", borderRadius: draftAttachments.length ? 18 : 999, border: `1px solid ${inputFocused ? C.borderHover : C.border}`, background: C.bgInput, boxShadow: `0 4px 24px rgba(0,0,0,0.3)`, transition: "border-color 500ms cubic-bezier(0.32,0.72,0,1), box-shadow 500ms cubic-bezier(0.32,0.72,0,1)" }}>
               <style>{`
                 .input-focus-glow {
-                  animation: inputRingIn 400ms cubic-bezier(0.16,1,0.3,1) forwards, inputRingOut 400ms cubic-bezier(0.4,0,0.2,1) 350ms forwards;
+                  animation: inputRingIn 600ms cubic-bezier(0.32,0.72,0,1) forwards, inputRingOut 600ms cubic-bezier(0.32,0.72,0,1) 500ms forwards;
                 }
                 @keyframes inputRingIn {
                   0% { border-color: rgba(255,255,255,0.07); box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 0px rgba(74,144,255,0), 0 0 0px rgba(74,144,255,0); }
-                  60% { border-color: #5BA0FF; box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 3px rgba(74,144,255,0.4), 0 0 32px rgba(74,144,255,0.18); }
-                  100% { border-color: #4A90FF; box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 2.5px rgba(74,144,255,0.3), 0 0 24px rgba(74,144,255,0.12); }
+                  60% { border-color: #5BA0FF; box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 3px rgba(74,144,255,0.35), 0 0 32px rgba(74,144,255,0.15); }
+                  100% { border-color: #4A90FF; box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 2.5px rgba(74,144,255,0.25), 0 0 20px rgba(74,144,255,0.10); }
                 }
                 @keyframes inputRingOut {
-                  0% { border-color: #4A90FF; box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 2.5px rgba(74,144,255,0.3), 0 0 24px rgba(74,144,255,0.12); }
+                  0% { border-color: #4A90FF; box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 2.5px rgba(74,144,255,0.25), 0 0 20px rgba(74,144,255,0.10); }
                   100% { border-color: rgba(255,255,255,0.14); box-shadow: 0 4px 24px rgba(0,0,0,0.3), 0 0 0 0px rgba(74,144,255,0), 0 0 0px rgba(74,144,255,0); }
                 }
               `}</style>
@@ -1843,8 +1848,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <HBtn onClick={() => setAttachMenuOpen((v) => !v)} style={{ width: 38, height: 38, color: C.textMuted }}><Ic n="plus" style={{ width: 20, height: 20 }} /></HBtn>
                   {attachMenuOpen && (
                     <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "absolute", left: 0, bottom: 42, zIndex: 50, width: 140, borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 12px 36px rgba(0,0,0,0.5)", overflow: "hidden" }}>
-                      <button type="button" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} style={{ width: "100%", padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", textAlign: "left", transition: "all 180ms" }} onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), 0 4px 16px rgba(0,0,0,0.15)"; }} onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}>Add images</button>
-                      <button type="button" onClick={() => { setAttachMenuOpen(false); fileInputRef.current?.click(); }} style={{ width: "100%", padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", textAlign: "left", transition: "all 180ms" }} onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.09)"; s.backdropFilter = "blur(40px) saturate(2)"; (s as any).webkitBackdropFilter = "blur(40px) saturate(2)"; s.boxShadow = "inset 0 1px 0 rgba(255,255,255,0.18), 0 4px 16px rgba(0,0,0,0.15)"; }} onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "none"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}>Add files</button>
+                      <button type="button" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} className="z-glass" style={{ width: "100%", padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", textAlign: "left" }}>Add images</button>
+                      <button type="button" onClick={() => { setAttachMenuOpen(false); fileInputRef.current?.click(); }} className="z-glass" style={{ width: "100%", padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", textAlign: "left" }}>Add files</button>
                     </div>
                   )}
                 </div>
@@ -1913,19 +1918,24 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         {/* GOAL MODAL */}
         {/* ─── FULL-SCREEN SETTINGS ─────────────────────────── */}
         {settingsOpen && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.95)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", animation: "stgFadeIn 250ms cubic-bezier(0.16,1,0.3,1)" }}>
+          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.95)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", animation: "stgFadeIn 400ms cubic-bezier(0.32,0.72,0,1)" }}>
             <style>{`
-              @keyframes stgFadeIn { from { opacity: 0; } to { opacity: 1; } }
-              .stg-tab { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 10px; border: none; background: none; color: ${C.textSec}; font-size: 13px; font-weight: 500; cursor: pointer; width: 100%; text-align: left; transition: all 220ms cubic-bezier(0.2,0,0,1); }
-              .stg-tab:hover { background: rgba(255,255,255,0.04); backdrop-filter: blur(20px) saturate(1.8); -webkit-backdrop-filter: blur(20px) saturate(1.8); box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.08), 0 2px 8px rgba(0,0,0,0.1); }
+              @keyframes stgFadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+              .stg-tab { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 10px; border: none; background: none; color: ${C.textSec}; font-size: 13px; font-weight: 500; cursor: pointer; width: 100%; text-align: left; transition: all 500ms cubic-bezier(0.32,0.72,0,1); }
+              .stg-tab::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0; background:linear-gradient(168deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.06) 18%,rgba(255,255,255,0.015) 45%,transparent 60%,rgba(255,255,255,0.025) 78%,rgba(255,255,255,0.09) 100%); box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.3),inset 0 -0.5px 0 rgba(255,255,255,0.05); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
+              .stg-tab::after { content:''; position:absolute; top:-35%; left:8%; width:84%; height:70%; border-radius:50%; background:radial-gradient(ellipse at 38% 35%,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.035) 32%,transparent 68%); opacity:0; transition:opacity 600ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
+              .stg-tab:hover { background: rgba(255,255,255,0.065); backdrop-filter: brightness(1.15) saturate(1.4); -webkit-backdrop-filter: brightness(1.15) saturate(1.4); box-shadow: 0 0 0 0.5px rgba(255,255,255,0.13), 0 1px 2px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06); }
+              .stg-tab:hover::before, .stg-tab:hover::after { opacity: 1; }
+              .stg-tab:active { transform: scale(0.98); transition-duration: 120ms; }
               .stg-tab-active { background: rgba(74,144,255,0.08) !important; color: ${C.accent} !important; font-weight: 600; box-shadow: inset 0 0.5px 0 rgba(74,144,255,0.12) !important; }
               .stg-input { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.025); color: ${C.text}; font-size: 14px; font-family: inherit; outline: none; transition: all 250ms; }
               .stg-input:focus { border-color: rgba(74,144,255,0.4); box-shadow: 0 0 0 3px rgba(74,144,255,0.08), 0 0 16px rgba(74,144,255,0.05); }
-              .stg-toggle { position: relative; width: 40px; height: 22px; border-radius: 11px; border: none; cursor: pointer; transition: all 200ms; flex-shrink: 0; }
-              .stg-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 9px; background: white; transition: all 200ms cubic-bezier(0.2,0,0,1); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+              .stg-toggle { position: relative; width: 40px; height: 22px; border-radius: 11px; border: none; cursor: pointer; transition: all 500ms cubic-bezier(0.32,0.72,0,1); flex-shrink: 0; }
+              .stg-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 9px; background: white; transition: all 500ms cubic-bezier(0.32,0.72,0,1); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
               .stg-toggle.stg-on { background: ${C.accent}; }
               .stg-toggle.stg-on::after { transform: translateX(18px); }
               .stg-toggle.stg-off { background: rgba(255,255,255,0.1); }
+              .stg-toggle:active { transform: scale(0.92); transition-duration: 120ms; }
               .stg-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
               .stg-row:last-child { border-bottom: none; }
               .stg-section { margin-bottom: 32px; }
@@ -1969,9 +1979,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   {settingsTab === "features" && "Zelrex Features"}
                   {settingsTab === "notifications" && "Notifications"}
                 </div>
-                <button onClick={() => setSettingsOpen(false)} style={{ width: 36, height: 36, borderRadius: 10, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.03)", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 200ms" }}
-                  onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.08)"; s.backdropFilter = "blur(20px) saturate(1.8)"; (s as any).webkitBackdropFilter = "blur(20px) saturate(1.8)"; s.boxShadow = "inset 0 0.5px 0 rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.1)"; s.color = C.text; }}
-                  onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.03)"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; s.color = C.textMuted; }}>
+                <button onClick={() => setSettingsOpen(false)} className="z-glass" style={{ width: 36, height: 36, borderRadius: 10, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.03)", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Ic n="close" style={{ width: 16, height: 16 }} />
                 </button>
               </div>
@@ -1999,18 +2007,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                         <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center" }}><Ic n="globe" style={{ width: 16, height: 16, color: C.textSec }} /></div>
                         <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Stripe</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Accept payments on your website</div></div>
                       </div>
-                      <button style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
-                        onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.07)"; s.backdropFilter = "blur(20px) saturate(1.8)"; (s as any).webkitBackdropFilter = "blur(20px) saturate(1.8)"; s.boxShadow = "inset 0 0.5px 0 rgba(255,255,255,0.1), 0 2px 8px rgba(0,0,0,0.12)"; }}
-                        onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.025)"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}>Connect</button>
+                      <button className="z-glass" style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Connect</button>
                     </div>
                     <div className="stg-row">
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                         <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center" }}><Ic n="chart" style={{ width: 16, height: 16, color: C.textSec }} /></div>
                         <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Google Analytics</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Track your website visitors</div></div>
                       </div>
-                      <button style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
-                        onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.07)"; s.backdropFilter = "blur(20px) saturate(1.8)"; (s as any).webkitBackdropFilter = "blur(20px) saturate(1.8)"; s.boxShadow = "inset 0 0.5px 0 rgba(255,255,255,0.1), 0 2px 8px rgba(0,0,0,0.12)"; }}
-                        onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.025)"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}>Connect</button>
+                      <button className="z-glass" style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Connect</button>
                     </div>
                   </div>
                   <div className="stg-section">
@@ -2027,14 +2031,10 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div className="stg-section">
                     <div className="stg-section-title" style={{ color: "#EF4444" }}>Danger Zone</div>
                     <div className="stg-row"><div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Sign out</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Sign out of your Zelrex account</div></div>
-                      <button onClick={() => { setSettingsOpen(false); signOut(); }} style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
-                        onMouseEnter={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.07)"; s.backdropFilter = "blur(20px) saturate(1.8)"; (s as any).webkitBackdropFilter = "blur(20px) saturate(1.8)"; s.boxShadow = "inset 0 0.5px 0 rgba(255,255,255,0.1), 0 2px 8px rgba(0,0,0,0.12)"; }}
-                        onMouseLeave={(e) => { const s = e.currentTarget.style; s.background = "rgba(255,255,255,0.025)"; s.backdropFilter = "none"; (s as any).webkitBackdropFilter = "none"; s.boxShadow = "none"; }}>Sign out</button>
+                      <button onClick={() => { setSettingsOpen(false); signOut(); }} className="z-glass" style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Sign out</button>
                     </div>
                     <div className="stg-row" style={{ borderBottom: "none" }}><div><div style={{ fontSize: 13, fontWeight: 500, color: "#EF4444" }}>Delete account</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Permanently delete your account and all data</div></div>
-                      <button style={{ padding: "7px 16px", borderRadius: 9, border: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 12, fontWeight: 600, cursor: "pointer", transition: "all 200ms" }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.12)"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239,68,68,0.06)"; }}>Delete</button>
+                      <button className="z-glass-danger" style={{ padding: "7px 16px", borderRadius: 9, border: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Delete</button>
                     </div>
                   </div>
                 </>)}
@@ -2068,9 +2068,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                           <div key={f} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.textSec }}><span style={{ color: "#10B981" }}>✓</span> {f}</div>
                         ))}
                       </div>
-                      <button style={{ width: "100%", padding: "12px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: `0 6px 24px ${C.accent}30, inset 0 1px 0 rgba(255,255,255,0.1)`, transition: "all 220ms cubic-bezier(0.2,0,0,1)" }}
-                        onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 8px 32px ${C.accent}40`; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.boxShadow = `0 6px 24px ${C.accent}30`; e.currentTarget.style.transform = "none"; }}>
+                      <button className="z-glass-solid" style={{ width: "100%", padding: "12px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: `0 6px 24px ${C.accent}30, inset 0 1px 0 rgba(255,255,255,0.1)` }}>
                         Upgrade to Pro
                       </button>
                     </div>

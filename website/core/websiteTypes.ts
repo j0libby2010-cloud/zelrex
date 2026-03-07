@@ -57,7 +57,15 @@ export interface ZelrexWebsite {
     pricing: string;
   };
 
-  // Optional publishing fields (Step 4)
+  // Stripe Connect: payment links for each pricing tier
+  // Format: { "starter": "https://buy.stripe.com/xxx", "standard": "...", "premium": "..." }
+  // Injected after Stripe products are created. If empty/undefined, CTAs fall back to contact page.
+  stripeCheckoutUrls?: Record<string, string>;
+
+  // Whether this user has Stripe connected
+  stripeConnected?: boolean;
+
+  // Optional publishing fields
   previewUrl?: string;
   customDomain?: string;
 }
