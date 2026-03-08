@@ -472,6 +472,7 @@ export async function POST(req: Request) {
       console.log("[ZELREX] Entering website build path");
 
       const surveyInput: SurveyData | undefined = body.surveyData;
+      const stripePreference = surveyInput?.stripeCheckout || "none";
 
       let businessType = "";
       if (surveyInput) {
@@ -488,6 +489,50 @@ export async function POST(req: Request) {
         });
       }
 
+      // ─── STRIPE CHECK: If user wants checkout, verify Stripe is connected BEFORE building ───
+      if (stripePreference !== "none" && stripeService && userId !== "anonymous") {
+        try {
+          const stripeStatus = await stripeService.getAccountStatus(userId);
+
+          if (!stripeStatus.connected || !stripeStatus.chargesEnabled) {
+            // User wants Stripe but hasn't connected yet — send them to onboard FIRST
+            console.log("[ZELREX] User wants Stripe but not connected — sending onboarding link");
+            const userEmail = body.userEmail || "user@example.com";
+            const businessName = surveyInput?.businessName || "";
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://zelrex.ai';
+
+            const { onboardingUrl } = await stripeService.createConnectedAccount(
+              userId,
+              userEmail,
+              businessName,
+              `${baseUrl}/api/stripe/callback?user_id=${userId}`
+            );
+
+            if (onboardingUrl) {
+              return NextResponse.json({
+                reply: [
+                  "Before I build your website, let's connect your Stripe account so I can add live payment buttons to your pricing tiers.",
+                  "",
+                  "This takes about 2 minutes — Stripe will ask for your basic info and bank details. Zelrex never touches your money — payments go directly from your clients to your bank account.",
+                  "",
+                  `**[Connect your Stripe account](${onboardingUrl})**`,
+                  "",
+                  "Once you're done, come back here and say **build my website** — I'll have everything saved and ready to go.",
+                ].join("\n"),
+                stripeOnboardingUrl: onboardingUrl,
+                // Save the survey data so it persists — the user won't have to fill it out again
+                pendingSurveyData: surveyInput,
+                sessionState,
+              });
+            }
+          }
+        } catch (stripeCheckError) {
+          console.error("[ZELREX] Stripe pre-check failed (non-fatal, proceeding with build):", stripeCheckError);
+          // Don't block the website build — just continue without Stripe
+        }
+      }
+
+      // ─── BUILD THE WEBSITE ─────────────────────────────────────
       let website;
       try {
         if (surveyInput) {
@@ -529,10 +574,9 @@ export async function POST(req: Request) {
       console.log("ZELREX: website build completed", website.id);
       try { await saveWebsite(website); } catch (e) { console.warn("ZELREX: saveWebsite skipped:", (e as Error).message); }
 
-      // ─── AUTO STRIPE: Create checkout + inject into website ────
+      // ─── STRIPE: Create checkout + inject into website (if connected) ────
       let stripeCheckoutUrls: Record<string, string> = {};
       let stripeMessage = "";
-      const stripePreference = body.surveyData?.stripeCheckout || "auto";
 
       if (stripePreference !== "none" && stripeService && userId !== "anonymous") {
         try {
@@ -563,36 +607,35 @@ export async function POST(req: Request) {
                 stripeCheckoutUrls = await stripeService.createPaymentLinks(userId);
                 console.log(`[ZELREX] Created ${products.length} products, ${Object.keys(stripeCheckoutUrls).length} payment links`);
 
-                // Only inject into website if user chose "auto" (not "link-only")
                 if (stripePreference === "auto") {
                   (website as any).stripeCheckoutUrls = stripeCheckoutUrls;
                   (website as any).stripeConnected = true;
-                  stripeMessage = "\n\nYour Stripe checkout is live. Each pricing tier has its own payment link — when clients click a tier on your site, they'll go straight to a Stripe checkout page. Money goes directly to your bank account.";
+                  stripeMessage = "\n\nYour Stripe checkout is live. Each pricing tier on your site now has a real payment button — when clients click it, they go straight to Stripe checkout. Money goes directly to your bank account.";
                 } else {
-                  // link-only: don't inject into website, just include links in chat
-                  stripeMessage = "\n\nYour Stripe payment links are ready. I've included them below — you can share them directly with clients or add them to your site wherever you like.";
+                  stripeMessage = "\n\nYour Stripe payment links are ready. I've included them below — share them directly with clients or add them wherever you like.";
                 }
               }
             }
           } else if (stripeStatus.connected && !stripeStatus.chargesEnabled) {
-            stripeMessage = "\n\nYour Stripe account is connected but not fully set up yet. Finish your Stripe onboarding to enable payments on your site.";
-          } else {
-            stripeMessage = "\n\nWant to accept payments directly on your site? Connect your Stripe account and I'll add checkout buttons to every pricing tier automatically. Just say **connect Stripe**.";
+            stripeMessage = "\n\nYour Stripe account is connected but not fully verified yet. Once Stripe finishes verifying your account, say **build my website** again and I'll add the checkout buttons.";
           }
+          // If not connected at this point, they either chose "none" or the pre-check
+          // already sent them to onboard. No message needed.
         } catch (stripeError) {
           console.error("[ZELREX] Stripe integration failed (non-fatal):", stripeError);
-          stripeMessage = "\n\nI wasn't able to set up payments automatically. You can connect Stripe later — just say **connect Stripe** when you're ready.";
+          stripeMessage = "\n\nI wasn't able to set up payments automatically this time. You can try again later — just say **connect Stripe**.";
         }
       }
 
       const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(req.url).origin;
 
+      // Build checkout links message for chat
       let checkoutLinksMessage = "";
       if (Object.keys(stripeCheckoutUrls).length > 0) {
         const linkLines = Object.entries(stripeCheckoutUrls).map(
           ([tier, url]) => `- **${tier.charAt(0).toUpperCase() + tier.slice(1).replace(/_/g, ' ')}**: ${url}`
         );
-        checkoutLinksMessage = `\n\nHere are your direct payment links if you want to share them separately:\n${linkLines.join("\n")}`;
+        checkoutLinksMessage = `\n\nYour direct payment links (share these anywhere):\n${linkLines.join("\n")}`;
       }
 
       return NextResponse.json({
@@ -817,7 +860,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
-
-
-
