@@ -75,7 +75,7 @@ const memoryService = MemoryServiceClass ? new MemoryServiceClass(supabase) : nu
 // ─── Stripe service (safe load) ─────────────────────────────────
 let stripeService: any = null;
 try {
-  const { StripeService: SC } = require('@/lib/stripe');
+  const { StripeService: SC } = require('@/lib/stripe-service');
   stripeService = new SC(supabase);
   console.log('[ZELREX BOOT] StripeService loaded');
 } catch (e) {
