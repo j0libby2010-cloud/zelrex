@@ -1361,7 +1361,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         }),
       });
       const raw = await res.text();
-      let result: { reply?: string; previewUrl?: string; websiteData?: any } = {};
+      let result: { reply?: string; previewUrl?: string; websiteData?: any; stripeCheckoutUrls?: any; stripeOnboardingUrl?: string; pendingSurveyData?: any } = {};
       try { result = JSON.parse(raw); } catch {}
       console.log("FULL API RESPONSE:", result);
       if (result.websiteData) {
@@ -1464,7 +1464,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       const requestBody: any = { messages: [...activeChat.messages, userMsg], userId: clerkUser?.id, userEmail: clerkUser?.primaryEmailAddress?.emailAddress };
       if (isBuild && surveyData) { requestBody.surveyData = surveyData; requestBody.action = "buildWebsite"; }
       const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(requestBody) });
-      const raw = await res.text(); let data: { reply?: string; previewUrl?: string; websiteData?: any } = {}; try { data = JSON.parse(raw); } catch {}
+      const raw = await res.text(); let data: { reply?: string; previewUrl?: string; websiteData?: any; stripeCheckoutUrls?: any } = {}; try { data = JSON.parse(raw); } catch {}
       if (data.websiteData) {
         // Enrich with survey data if available
         const enriched = surveyData ? {

@@ -75,7 +75,7 @@ const memoryService = MemoryServiceClass ? new MemoryServiceClass(supabase) : nu
 // ─── Stripe service (safe load) ─────────────────────────────────
 let stripeService: any = null;
 try {
-  const { StripeService: SC } = require('@/lib/stripe-service');
+  const { StripeService: SC } = require('@/lib/stripe');
   stripeService = new SC(supabase);
   console.log('[ZELREX BOOT] StripeService loaded');
 } catch (e) {
@@ -490,6 +490,7 @@ export async function POST(req: Request) {
       }
 
       // ─── STRIPE CHECK: If user wants checkout, verify Stripe is connected BEFORE building ───
+      console.log(`[ZELREX] Stripe check: preference=${stripePreference}, stripeService=${!!stripeService}, userId=${userId}`);
       if (stripePreference !== "none" && stripeService && userId !== "anonymous") {
         try {
           const stripeStatus = await stripeService.getAccountStatus(userId);
