@@ -849,6 +849,29 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
     // ── PRICING PAGE — structurally different per template ──
     const tiers = c.pricing?.pricing?.tiers || [];
+    const stripeUrls: Record<string, string> = site.stripeCheckoutUrls || {};
+
+    // Helper: resolve CTA for a tier — Stripe checkout if available, else contact nav
+    function tierCta(tier: any, extraStyle: string = ""): string {
+      const key = (tier.name || "").toLowerCase().replace(/[^a-z0-9]/g, "_");
+      // Try exact key match, then try all keys for a partial match
+      let url = stripeUrls[key];
+      if (!url) {
+        for (const [k, v] of Object.entries(stripeUrls)) {
+          if (k.toLowerCase().includes(key) || key.includes(k.toLowerCase())) { url = v as string; break; }
+        }
+      }
+      // If only one Stripe URL exists and only one tier, use it
+      if (!url && tiers.length === 1 && Object.keys(stripeUrls).length === 1) {
+        url = Object.values(stripeUrls)[0] as string;
+      }
+      const ctaText = url ? `Get ${tier.name || "Started"}` : (c.pricing?.cta?.cta?.text || "Get started");
+      if (url) {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="btn-primary" style="cursor:pointer;display:block;text-align:center;text-decoration:none;${extraStyle}">${ctaText}</a>`;
+      }
+      return `<span class="btn-primary" data-nav="contact" style="cursor:pointer;display:block;text-align:center;${extraStyle}">${ctaText}</span>`;
+    }
+
     const tiersHtml = (() => {
       if (isEditorial) {
         return tiers.map((tier: any) => `
@@ -862,7 +885,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <span style="position:absolute;left:0;color:${accent}">—</span> ${f}
                 </div>`).join("")}
             </div>
-            <span class="btn-primary" data-nav="contact" style="cursor:pointer;display:block;text-align:center;margin-top:28px;${tier.highlighted ? "" : `background:transparent;border:2px solid ${border};color:${text};`}text-transform:uppercase;letter-spacing:0.04em;font-size:13px">${c.pricing?.cta?.cta?.text || "Get started"}</span>
+            ${tierCta(tier, `margin-top:28px;${tier.highlighted ? "" : `background:transparent;border:2px solid ${border};color:${text};`}text-transform:uppercase;letter-spacing:0.04em;font-size:13px`)}
           </div>`).join("");
       }
       if (isBold) {
@@ -878,7 +901,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <span style="color:${accent};font-size:18px;font-weight:bold">✓</span> ${f}
                 </div>`).join("")}
             </div>
-            <span class="btn-primary" data-nav="contact" style="cursor:pointer;display:block;text-align:center;margin-top:28px;font-size:16px;padding:16px;${tier.highlighted ? "" : `background:transparent;border:2px solid ${border};color:${text};`}">${c.pricing?.cta?.cta?.text || "Get started"}</span>
+            ${tierCta(tier, `margin-top:28px;font-size:16px;padding:16px;${tier.highlighted ? "" : `background:transparent;border:2px solid ${border};color:${text};`}`)}
           </div>`).join("");
       }
       return tiers.map((tier: any) => `
@@ -892,7 +915,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 <span style="color:${accent}">✓</span> ${f}
               </div>`).join("")}
           </div>
-          <span class="btn-primary" data-nav="contact" style="cursor:pointer;display:block;text-align:center;margin-top:24px;${tier.highlighted ? "" : `background:transparent;border:1px solid ${border};color:${text};`}">${c.pricing?.cta?.cta?.text || "Get started"}</span>
+          ${tierCta(tier, `margin-top:24px;${tier.highlighted ? "" : `background:transparent;border:1px solid ${border};color:${text};`}`)}
         </div>`).join("");
     })();
 

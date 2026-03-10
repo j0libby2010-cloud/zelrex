@@ -370,19 +370,54 @@ function renderInline(text: string): React.ReactNode {
     }
 
     switch (matchType) {
-      case "bold":
-        tokens.push(
-          <strong key={key++} className="font-semibold text-white">
-            {matchData.content}
-          </strong>
-        );
+      case "bold": {
+        const actionPhrases = ["build my website", "connect stripe", "deploy", "go live", "evaluate my market"];
+        const isAction = actionPhrases.some(p => matchData.content.toLowerCase() === p);
+        if (isAction) {
+          tokens.push(
+            <button
+              key={key++}
+              onClick={() => {
+                // Find the chat input and set its value, then trigger send
+                const input = document.querySelector('textarea') as HTMLTextAreaElement | null;
+                if (input) {
+                  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+                  nativeInputValueSetter?.call(input, matchData.content);
+                  input.dispatchEvent(new Event('input', { bubbles: true }));
+                  // Find and click the send button
+                  setTimeout(() => {
+                    const sendBtn = input.closest('div')?.parentElement?.querySelector('button[aria-label="Send"]') as HTMLButtonElement | null;
+                    if (sendBtn) sendBtn.click();
+                  }, 50);
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[13px] font-semibold cursor-pointer transition-all duration-150"
+              style={{
+                background: 'rgba(74,144,255,0.12)',
+                border: '1px solid rgba(74,144,255,0.25)',
+                color: '#6B9FFF',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(74,144,255,0.2)'; e.currentTarget.style.borderColor = 'rgba(74,144,255,0.4)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(74,144,255,0.12)'; e.currentTarget.style.borderColor = 'rgba(74,144,255,0.25)'; }}
+            >
+              {matchData.content} →
+            </button>
+          );
+        } else {
+          tokens.push(
+            <strong key={key++} className="font-semibold text-white">
+              {renderInline(matchData.content)}
+            </strong>
+          );
+        }
         remaining = remaining.slice(matchData.end);
         continue;
+      }
 
       case "italic":
         tokens.push(
           <em key={key++} className="italic text-white/65">
-            {matchData.content}
+            {renderInline(matchData.content)}
           </em>
         );
         remaining = remaining.slice(matchData.end);
