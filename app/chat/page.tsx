@@ -29,9 +29,29 @@ function safeJson<T>(v: string | null, f: T): T { if (!v) return f; try { return
 function cx(...xs: Array<string | false | undefined | null>) { return xs.filter(Boolean).join(" "); }
 
 function makeTitle(text: string) {
-  const w = text.trim().replace(/\s+/g, " ").replace(/[^\w\s'-]/g, "").split(" ").filter(Boolean).slice(0, 5);
+  const w = text.trim().replace(/\s+/g, " ").replace(/[^\w\s'-]/g, "").split(" ").filter(Boolean).slice(0, 4);
   const t = w.map((s) => (s.length <= 2 ? s.toLowerCase() : s[0].toUpperCase() + s.slice(1))).join(" ");
-  return t.length > 30 ? t.slice(0, 30).trim() + "\u2026" : t || "New business";
+  return t.length > 24 ? t.slice(0, 24).trim() + "\u2026" : t || "New business";
+}
+
+// Derive a concise chat title from the assistant's first reply
+function autoTitleFromReply(userText: string, replyText: string): string {
+  // Try to extract a business name from bold text in reply
+  const boldMatch = replyText.match(/\*\*([^*]{3,30})\*\*/);
+  if (boldMatch) {
+    const name = boldMatch[1].replace(/[!.]+$/, "").trim();
+    if (name.length >= 3 && name.length <= 28 && !/^(your|the|this|here|step|next|let)\b/i.test(name)) {
+      return name.length > 24 ? name.slice(0, 24).trim() + "\u2026" : name;
+    }
+  }
+  // Try to find a quoted name
+  const quoteMatch = replyText.match(/[\u201c"']([^\u201d"']{3,28})[\u201d"']/);
+  if (quoteMatch) {
+    const name = quoteMatch[1].trim();
+    if (name.length >= 3) return name.length > 24 ? name.slice(0, 24).trim() + "\u2026" : name;
+  }
+  // Fall back to making a title from the user's text
+  return makeTitle(userText);
 }
 
 function detectPhase(msgs: Msg[]): BusinessPhase {
@@ -226,7 +246,7 @@ function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal, onAdd
           <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 600, color: C.accent, letterSpacing: "0.04em", textTransform: "uppercase", maxWidth: 160, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userGoal.text}</span>
         </div>
       ) : (
-        <button type="button" onClick={onAddGoal} className="z-glass-accent" style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: isMobile ? 9 : 10, fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+        <button type="button" onClick={onAddGoal} className="z-glass-accent" style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: isMobile ? 9 : 10, fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", textTransform: "uppercase" }}>
           <span style={{ fontSize: 11, lineHeight: 1 }}>+</span> Goal
         </button>
       )}
@@ -281,7 +301,7 @@ function WelcomeScreen({ onAction }: { onAction: (t: string) => void }) {
       <div className="welcome-grid" style={{ marginTop: 36, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, width: "100%", maxWidth: 540 }}>
         {cards.map((c) => (
           <button key={c.title} type="button" onClick={() => onAction(c.action)} className="z-glass"
-            style={{ textAlign: "left", padding: "20px 16px", borderRadius: 14, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)", cursor: "pointer", color: C.text }}>
+            style={{ textAlign: "left", padding: "20px 16px", borderRadius: 12, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)", cursor: "pointer", color: C.text }}>
             <Ic n={c.icon} className="h-5 w-5" style={{ color: C.accent }} />
             <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>{c.title}</div>
             <div style={{ marginTop: 4, fontSize: 12, color: C.textMuted, lineHeight: 1.4 }}>{c.sub}</div>
@@ -295,7 +315,7 @@ function WelcomeScreen({ onAction }: { onAction: (t: string) => void }) {
 function ActionPill({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className="z-glass-accent"
-      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, border: `1px solid ${C.accent}40`, background: `${C.accent}15`, color: C.accent, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+      style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 12, border: `1px solid ${C.accent}40`, background: `${C.accent}15`, color: C.accent, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
       {label} &rarr;
     </button>
   );
@@ -305,7 +325,7 @@ function ActionPill({ label, onClick }: { label: string; onClick: () => void }) 
 function HBtn({ children, onClick, style, className, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { style?: React.CSSProperties }) {
   return (
     <button type="button" onClick={onClick} className={cx("z-glass", className)} {...rest}
-      style={{ background: "none", border: "none", cursor: "pointer", borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", ...style }}>
+      style={{ background: "none", border: "none", cursor: "pointer", borderRadius: 12, display: "inline-flex", alignItems: "center", justifyContent: "center", ...style }}>
       {children}
     </button>
   );
@@ -474,7 +494,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   }, [isSignedIn, clerkUser?.id]);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const filteredChats = useMemo(() => { const q = searchQuery.trim().toLowerCase(); if (!q) return chats; return chats.filter((c) => c.title?.toLowerCase().includes(q) || c.messages.some((m) => m.content.toLowerCase().includes(q))); }, [chats, searchQuery]);
+  const filteredChats = useMemo(() => { const sorted = [...chats].sort((a, b) => b.updatedAt - a.updatedAt); const q = searchQuery.trim().toLowerCase(); if (!q) return sorted; return sorted.filter((c) => c.title?.toLowerCase().includes(q) || c.messages.some((m) => m.content.toLowerCase().includes(q))); }, [chats, searchQuery]);
 
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -1206,16 +1226,21 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       );
     });
   }, [chats, dataLoaded, dbUserId]);
-  useEffect(() => { if (!activeChatId && chats[0]?.id) setActiveChatId(chats[0].id); if (activeChatId && !chats.some((c) => c.id === activeChatId) && chats[0]?.id) setActiveChatId(chats[0].id); }, [activeChatId, chats]);
+  // Only fix activeChatId if it points to a deleted chat
+  useEffect(() => { if (activeChatId && !chats.some((c) => c.id === activeChatId)) { const latest = [...chats].sort((a, b) => b.updatedAt - a.updatedAt)[0]; if (latest?.id) { setActiveChatId(latest.id); router.replace(`/chat/${latest.id}`, { scroll: false }); } } }, [chats]);
   // Select chat from URL param on mount
   useEffect(() => { if (initialChatId && chats.some(c => c.id === initialChatId)) { setActiveChatId(initialChatId); } }, [initialChatId]);
-  // Redirect bare /chat to most recent chat
-  useEffect(() => { if (!initialChatId && chats.length > 0 && dataLoaded) { const latest = [...chats].sort((a, b) => b.updatedAt - a.updatedAt)[0]; if (latest?.id) router.replace(`/chat/${latest.id}`, { scroll: false }); } }, [initialChatId, chats.length, dataLoaded]);
+  // Redirect bare /chat to most recent chat (only once on initial load)
+  const didInitRedirect = useRef(false);
+  useEffect(() => { if (didInitRedirect.current) return; if (!initialChatId && chats.length > 0 && dataLoaded) { didInitRedirect.current = true; const latest = [...chats].sort((a, b) => b.updatedAt - a.updatedAt)[0]; if (latest?.id) { setActiveChatId(latest.id); router.replace(`/chat/${latest.id}`, { scroll: false }); } } }, [initialChatId, chats.length, dataLoaded]);
   useEffect(() => { listEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [activeChat?.messages.length, isSending]);
   useEffect(() => { const el = textareaRef.current; if (!el) return; el.style.height = "42px"; if (input) { el.style.height = `${Math.max(42, Math.min(180, el.scrollHeight))}px`; } }, [input]);
   useEffect(() => { const el = textareaRef.current; if (el) { el.style.height = "42px"; } }, []);
   useEffect(() => { const h = () => { setOpenChatMenuId(null); setOpenMsgMenuId(null); setAttachMenuOpen(false); setNotifOpen(false); setNotifClosing(false); }; window.addEventListener("mousedown", h); return () => window.removeEventListener("mousedown", h); }, []);
   useEffect(() => { if (previewOpen) setSidebarOpen(false); }, [previewOpen]);
+
+  // Derived: only treat preview as "showing" when data exists
+  const showPreview = previewOpen && !!websiteData;
 
   // ─── Helper: push an assistant message into the active chat ────────
   function pushAssistantMsg(content: string) {
@@ -1500,7 +1525,10 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         saveWebsiteData(enriched);
       }
       const reply = data.reply?.trim() || "Something went wrong. Please try again.";
-      setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, messages: [...c.messages, { id: uid("m"), role: "assistant" as const, content: reply, createdAt: Date.now(), previewUrl: data.previewUrl || undefined }], updatedAt: Date.now() } : c));
+      // Auto-title: if this is the first assistant reply, derive a title from the reply
+      const shouldAutoTitle = activeChat.messages.length <= 1 || activeChat.title === "New business";
+      const newTitle = shouldAutoTitle ? autoTitleFromReply(text, reply) : undefined;
+      setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, ...(newTitle ? { title: newTitle } : {}), messages: [...c.messages, { id: uid("m"), role: "assistant" as const, content: reply, createdAt: Date.now(), previewUrl: data.previewUrl || undefined }], updatedAt: Date.now() } : c));
       if (data.previewUrl) { setTimeout(() => fireConfetti(), 300); }
     } catch { setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, messages: [...c.messages, { id: uid("m"), role: "assistant" as const, content: "Something went wrong. Please try again.", createdAt: Date.now() }], updatedAt: Date.now() } : c)); }
     finally { setIsSending(false); setBuildStage(""); }
@@ -1534,33 +1562,33 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         textarea::placeholder{color:${C.textMuted}}
         /* ── Apple Liquid Glass ─────────────────────────────── */
         .z-glass,.glass-btn{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.32,0.72,0,1)}
-        .z-glass::before,.glass-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.06) 18%,rgba(255,255,255,0.015) 45%,transparent 60%,rgba(255,255,255,0.025) 78%,rgba(255,255,255,0.09) 100%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.35),inset 0 -0.5px 0 rgba(255,255,255,0.06),inset 0.5px 0 0 rgba(255,255,255,0.05),inset -0.5px 0 0 rgba(255,255,255,0.05);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none;z-index:0}
+        .z-glass::before,.glass-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.08) 12%,rgba(255,255,255,0.02) 40%,transparent 55%,rgba(255,255,255,0.03) 75%,rgba(255,255,255,0.12) 100%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.4),inset 0 -0.5px 0 rgba(255,255,255,0.06),inset 0.5px 0 0 rgba(255,255,255,0.06),inset -0.5px 0 0 rgba(255,255,255,0.06);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none;z-index:0}
         .z-glass:hover::before,.glass-btn:hover::before{opacity:1}
-        .z-glass::after,.glass-btn::after{content:'';position:absolute;top:-35%;left:8%;width:84%;height:70%;border-radius:50%;background:radial-gradient(ellipse at 38% 35%,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.035) 32%,transparent 68%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none;z-index:0}
+        .z-glass::after,.glass-btn::after{content:'';position:absolute;top:-40%;left:6%;width:88%;height:75%;border-radius:50%;background:radial-gradient(ellipse at 36% 32%,rgba(255,255,255,0.14) 0%,rgba(255,255,255,0.04) 30%,transparent 65%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none;z-index:0}
         .z-glass:hover::after,.glass-btn:hover::after{opacity:1}
-        .z-glass:hover,.glass-btn:hover{background:rgba(255,255,255,0.065)!important;backdrop-filter:brightness(1.15) saturate(1.4);-webkit-backdrop-filter:brightness(1.15) saturate(1.4);box-shadow:0 0 0 0.5px rgba(255,255,255,0.13),0 1px 2px rgba(0,0,0,0.08),0 4px 16px rgba(0,0,0,0.06),0 8px 32px rgba(0,0,0,0.04);transform:translateY(-0.5px)}
+        .z-glass:hover,.glass-btn:hover{background:rgba(255,255,255,0.08)!important;backdrop-filter:brightness(1.2) saturate(1.5);-webkit-backdrop-filter:brightness(1.2) saturate(1.5);box-shadow:0 0 0 0.5px rgba(255,255,255,0.16),0 1px 3px rgba(0,0,0,0.10),0 4px 20px rgba(0,0,0,0.06),0 8px 40px rgba(0,0,0,0.04);transform:translateY(-0.5px)}
         .z-glass:active,.glass-btn:active{transform:scale(0.97) translateY(0);transition-duration:120ms}
         .z-glass>*,.glass-btn>*{position:relative;z-index:1}
         /* Accent variant */
         .z-glass-accent{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.32,0.72,0,1)}
-        .z-glass-accent::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(74,144,255,0.2) 0%,rgba(74,144,255,0.06) 25%,transparent 55%,rgba(74,144,255,0.04) 80%,rgba(74,144,255,0.12) 100%);box-shadow:inset 0 0.5px 0 rgba(74,144,255,0.35),inset 0 -0.5px 0 rgba(74,144,255,0.08);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .z-glass-accent::after{content:'';position:absolute;top:-35%;left:8%;width:84%;height:70%;border-radius:50%;background:radial-gradient(ellipse at 38% 35%,rgba(74,144,255,0.12) 0%,rgba(74,144,255,0.04) 32%,transparent 68%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-accent::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(74,144,255,0.24) 0%,rgba(74,144,255,0.08) 20%,transparent 50%,rgba(74,144,255,0.04) 78%,rgba(74,144,255,0.16) 100%);box-shadow:inset 0 0.5px 0 rgba(74,144,255,0.4),inset 0 -0.5px 0 rgba(74,144,255,0.08);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-accent::after{content:'';position:absolute;top:-40%;left:6%;width:88%;height:75%;border-radius:50%;background:radial-gradient(ellipse at 36% 32%,rgba(74,144,255,0.16) 0%,rgba(74,144,255,0.04) 30%,transparent 65%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
         .z-glass-accent:hover::before,.z-glass-accent:hover::after{opacity:1}
-        .z-glass-accent:hover{background:rgba(74,144,255,0.10)!important;backdrop-filter:brightness(1.12) saturate(1.5);-webkit-backdrop-filter:brightness(1.12) saturate(1.5);box-shadow:0 0 0 0.5px rgba(74,144,255,0.2),0 1px 2px rgba(74,144,255,0.06),0 4px 16px rgba(0,0,0,0.06),0 0 24px rgba(74,144,255,0.04);transform:translateY(-0.5px)}
+        .z-glass-accent:hover{background:rgba(74,144,255,0.12)!important;backdrop-filter:brightness(1.15) saturate(1.5);-webkit-backdrop-filter:brightness(1.15) saturate(1.5);box-shadow:0 0 0 0.5px rgba(74,144,255,0.22),0 1px 3px rgba(74,144,255,0.08),0 4px 20px rgba(0,0,0,0.06),0 0 28px rgba(74,144,255,0.05);transform:translateY(-0.5px)}
         .z-glass-accent:active{transform:scale(0.97) translateY(0);transition-duration:120ms}
         /* Danger variant */
         .z-glass-danger{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.32,0.72,0,1)}
-        .z-glass-danger::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(239,68,68,0.18) 0%,rgba(239,68,68,0.05) 25%,transparent 55%,rgba(239,68,68,0.03) 80%,rgba(239,68,68,0.1) 100%);box-shadow:inset 0 0.5px 0 rgba(239,68,68,0.25),inset 0 -0.5px 0 rgba(239,68,68,0.06);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .z-glass-danger::after{content:'';position:absolute;top:-35%;left:8%;width:84%;height:70%;border-radius:50%;background:radial-gradient(ellipse at 38% 35%,rgba(239,68,68,0.1) 0%,rgba(239,68,68,0.03) 32%,transparent 68%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-danger::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(239,68,68,0.22) 0%,rgba(239,68,68,0.06) 20%,transparent 50%,rgba(239,68,68,0.03) 78%,rgba(239,68,68,0.14) 100%);box-shadow:inset 0 0.5px 0 rgba(239,68,68,0.3),inset 0 -0.5px 0 rgba(239,68,68,0.06);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-danger::after{content:'';position:absolute;top:-40%;left:6%;width:88%;height:75%;border-radius:50%;background:radial-gradient(ellipse at 36% 32%,rgba(239,68,68,0.12) 0%,rgba(239,68,68,0.03) 30%,transparent 65%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
         .z-glass-danger:hover::before,.z-glass-danger:hover::after{opacity:1}
-        .z-glass-danger:hover{background:rgba(239,68,68,0.12)!important;backdrop-filter:brightness(1.08) saturate(1.3);-webkit-backdrop-filter:brightness(1.08) saturate(1.3);box-shadow:0 0 0 0.5px rgba(239,68,68,0.2),0 1px 2px rgba(239,68,68,0.06),0 4px 16px rgba(0,0,0,0.06),0 0 16px rgba(239,68,68,0.03);transform:translateY(-0.5px)}
+        .z-glass-danger:hover{background:rgba(239,68,68,0.14)!important;backdrop-filter:brightness(1.1) saturate(1.4);-webkit-backdrop-filter:brightness(1.1) saturate(1.4);box-shadow:0 0 0 0.5px rgba(239,68,68,0.22),0 1px 3px rgba(239,68,68,0.08),0 4px 20px rgba(0,0,0,0.06),0 0 20px rgba(239,68,68,0.04);transform:translateY(-0.5px)}
         .z-glass-danger:active{transform:scale(0.97) translateY(0);transition-duration:120ms}
         /* Solid accent button liquid glass (Upgrade to Pro, Save goal) */
         .z-glass-solid{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.32,0.72,0,1)}
-        .z-glass-solid::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(255,255,255,0.25) 0%,rgba(255,255,255,0.08) 25%,transparent 55%,rgba(255,255,255,0.04) 80%,rgba(255,255,255,0.15) 100%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.4),inset 0 -0.5px 0 rgba(255,255,255,0.08);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .z-glass-solid::after{content:'';position:absolute;top:-40%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 35% 30%,rgba(255,255,255,0.15) 0%,rgba(255,255,255,0.04) 35%,transparent 65%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-solid::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(255,255,255,0.28) 0%,rgba(255,255,255,0.10) 18%,transparent 50%,rgba(255,255,255,0.04) 78%,rgba(255,255,255,0.18) 100%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.45),inset 0 -0.5px 0 rgba(255,255,255,0.08);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-solid::after{content:'';position:absolute;top:-40%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 35% 30%,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.05) 32%,transparent 62%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
         .z-glass-solid:hover::before,.z-glass-solid:hover::after{opacity:1}
-        .z-glass-solid:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(74,144,255,0.35),inset 0 1px 0 rgba(255,255,255,0.15)}
+        .z-glass-solid:hover{transform:translateY(-1px);box-shadow:0 8px 36px rgba(74,144,255,0.38),inset 0 1px 0 rgba(255,255,255,0.18)}
         .z-glass-solid:active{transform:scale(0.97) translateY(0);transition-duration:120ms}
         .chat-row{position:relative;overflow:visible}
         .chat-row::before{content:'';position:absolute;inset:0;border-radius:8px;opacity:0;background:linear-gradient(168deg,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.015) 50%,rgba(255,255,255,0.03) 75%,rgba(255,255,255,0.06) 100%);backdrop-filter:brightness(1.1) saturate(1.3);-webkit-backdrop-filter:brightness(1.1) saturate(1.3);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.2),0 0 0 0.5px rgba(255,255,255,0.06);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
@@ -1572,7 +1600,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .user-row .msg-actions{opacity:0}
         .user-row:hover .msg-actions{opacity:1}
         .user-row .msg-act{color:rgba(255,255,255,0.55)}
-        .msg-act{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:8px;border:1px solid transparent;background:none;color:${C.textMuted};cursor:pointer;transition:all 500ms cubic-bezier(0.32,0.72,0,1);padding:0}
+        .msg-act{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:12px;border:1px solid transparent;background:none;color:${C.textMuted};cursor:pointer;transition:all 500ms cubic-bezier(0.32,0.72,0,1);padding:0}
         .msg-act::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.06) 18%,rgba(255,255,255,0.015) 45%,transparent 60%,rgba(255,255,255,0.025) 78%,rgba(255,255,255,0.09) 100%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.35),inset 0 -0.5px 0 rgba(255,255,255,0.06);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
         .msg-act::after{content:'';position:absolute;top:-35%;left:8%;width:84%;height:70%;border-radius:50%;background:radial-gradient(ellipse at 38% 35%,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.035) 32%,transparent 68%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
         .msg-act:hover{background:rgba(255,255,255,0.065);border-color:rgba(255,255,255,0.1);backdrop-filter:brightness(1.15) saturate(1.4);-webkit-backdrop-filter:brightness(1.15) saturate(1.4);box-shadow:0 0 0 0.5px rgba(255,255,255,0.13),0 1px 2px rgba(0,0,0,0.08),0 4px 16px rgba(0,0,0,0.06);color:${C.text};transform:translateY(-0.5px)}
@@ -1630,17 +1658,17 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 8 }}>
             {websiteData && (
-              <HBtn onClick={() => setPreviewOpen(!previewOpen)} style={{ padding: isMobile ? "5px 8px" : "5px 12px", border: `1px solid ${previewOpen ? C.accent + "40" : C.border}`, background: previewOpen ? C.accentSoft : "transparent", color: previewOpen ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
+              <HBtn onClick={() => setPreviewOpen(!previewOpen)} style={{ padding: isMobile ? "5px 8px" : "5px 12px", borderRadius: 12, border: `1px solid ${previewOpen ? C.accent + "40" : C.border}`, background: previewOpen ? C.accentSoft : "transparent", color: previewOpen ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
                 <Ic n="preview" className="h-3.5 w-3.5" />{!isMobile && " Preview"}
               </HBtn>
             )}
             {websiteData && (
-              <HBtn onClick={handleDeploy} style={{ padding: isMobile ? "5px 8px" : "5px 12px", border: `1px solid ${deployData?.url ? "#10B98140" : C.border}`, background: deployData?.url ? "rgba(16,185,129,0.08)" : "transparent", color: deployData?.url ? "#10B981" : C.textSec, fontSize: 12, fontWeight: 500, gap: 5, opacity: isDeploying ? 0.5 : 1 }}>
+              <HBtn onClick={handleDeploy} style={{ padding: isMobile ? "5px 8px" : "5px 12px", borderRadius: 12, border: `1px solid ${deployData?.url ? "#10B98140" : C.border}`, background: deployData?.url ? "rgba(16,185,129,0.08)" : "transparent", color: deployData?.url ? "#10B981" : C.textSec, fontSize: 12, fontWeight: 500, gap: 5, opacity: isDeploying ? 0.5 : 1 }}>
                 <Ic n="send" className="h-3.5 w-3.5" />{!isMobile && (isDeploying ? " Deploying..." : deployData?.url ? " Redeploy" : " Deploy")}
               </HBtn>
             )}
             {!isMobile && !isSignedIn && (
-              <HBtn onClick={() => { window.location.href = "/sign-in"; }} style={{ padding: "5px 12px", border: `1px solid ${C.border}`, color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
+              <HBtn onClick={() => { window.location.href = "/sign-in"; }} style={{ padding: "5px 12px", borderRadius: 12, border: `1px solid ${C.border}`, color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
                 <Ic n="signin" className="h-3.5 w-3.5" /> Sign in
               </HBtn>
             )}
@@ -1654,7 +1682,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 )}
               </HBtn>
               {(notifOpen || notifClosing) && (
-                <div style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 300, borderRadius: 14, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.92)", backdropFilter: "blur(40px) saturate(1.6)", WebkitBackdropFilter: "blur(40px) saturate(1.6)", boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", overflow: "hidden", transformOrigin: "top right", animation: `${notifClosing ? "dropdownZoomOut" : "dropdownZoomIn"} 300ms cubic-bezier(0.32,0.72,0,1) forwards` }}>
+                <div style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 300, borderRadius: 12, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.92)", backdropFilter: "blur(40px) saturate(1.6)", WebkitBackdropFilter: "blur(40px) saturate(1.6)", boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", overflow: "hidden", transformOrigin: "top right", animation: `${notifClosing ? "dropdownZoomOut" : "dropdownZoomIn"} 300ms cubic-bezier(0.32,0.72,0,1) forwards` }}>
                   <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Notifications</span>
                     {notifications.length > 0 && <button onClick={() => { setNotifications(ns => ns.map(n => ({ ...n, read: true }))); db.markNotificationsRead(); }} style={{ background: "none", border: "none", color: C.accent, fontSize: 11, cursor: "pointer", fontWeight: 600 }}>Mark all read</button>}
@@ -1696,25 +1724,25 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         <aside style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, borderRight: sidebarOpen ? `1px solid ${C.border}` : "none", background: C.bg, transition: "all 500ms cubic-bezier(0.32,0.72,0,1)", overflow: "hidden", display: "flex", flexDirection: "column", position: isMobile ? "fixed" : "absolute", top: isMobile ? 0 : -81, bottom: 0, left: 0, paddingTop: isMobile ? 60 : 81, zIndex: 20 }}>
           <div style={{ padding: 10, opacity: sidebarOpen ? 1 : 0, transition: "opacity 400ms cubic-bezier(0.32,0.72,0,1)" }}>
             {/* New Business button */}
-            <button onClick={createNewChat} type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 0", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+            <button onClick={createNewChat} type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 0", borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
               <Ic n="briefcase" className="h-4 w-4" /> New Business
             </button>
 
             {/* Tool buttons */}
             <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
-              <button type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+              <button type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 12, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="calendar" style={{ width: 15, height: 15, color: "#10B981" }} /> Weekly Summaries
               </button>
-              <button type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+              <button type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 12, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="analytics" style={{ width: 15, height: 15, color: "#8B5CF6" }} /> Business Analytics
               </button>
-              <button type="button" className="z-glass" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+              <button type="button" className="z-glass" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 12, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? C.accent : "#F59E0B" }} /> {userGoal ? "My Goal" : "Set Goal"}
               </button>
             </div>
 
             {/* Search */}
-            <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
+            <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", borderRadius: 12, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
               <Ic n="search" className="h-3.5 w-3.5" style={{ color: C.textMuted }} />
               <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search businesses..." style={{ flex: 1, background: "none", border: "none", outline: "none", color: C.text, fontSize: 12 }} />
               {searchQuery && <HBtn onClick={() => setSearchQuery("")} style={{ width: 20, height: 20, color: C.textMuted }}><Ic n="close" className="h-3 w-3" /></HBtn>}
@@ -1751,28 +1779,28 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                     <div style={{ padding: "2px 10px 10px", animation: "bizExpand 200ms ease" }}>
                       <style>{`@keyframes bizExpand{from{opacity:0;max-height:0;transform:translateY(-4px)}to{opacity:1;max-height:200px;transform:translateY(0)}}`}</style>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 8 }}>
-                        <div style={{ padding: "6px 8px", borderRadius: 7, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
+                        <div style={{ padding: "6px 8px", borderRadius: 10, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
                           <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Created</div>
                           <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>{createdDate}</div>
                         </div>
-                        <div style={{ padding: "6px 8px", borderRadius: 7, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
+                        <div style={{ padding: "6px 8px", borderRadius: 10, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
                           <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Type</div>
                           <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>{bizName ? "Freelance" : "—"}</div>
                         </div>
-                        <div style={{ padding: "6px 8px", borderRadius: 7, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
+                        <div style={{ padding: "6px 8px", borderRadius: 10, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
                           <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Website</div>
                           <div style={{ fontSize: 11, color: bizPhase === "building" || bizPhase === "live" ? "#10B981" : C.textSec, marginTop: 2 }}>{bizPhase === "live" ? "Live" : bizPhase === "building" ? "Building" : "Not started"}</div>
                         </div>
-                        <div style={{ padding: "6px 8px", borderRadius: 7, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
+                        <div style={{ padding: "6px 8px", borderRadius: 10, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
                           <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Progress</div>
                           <div style={{ fontSize: 11, color: bizPhase === "live" ? "#10B981" : bizPhase === "evaluating" ? "#F59E0B" : C.textSec, marginTop: 2, textTransform: "capitalize" }}>{bizPhase}</div>
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 4 }}>
-                        <button onClick={() => startRename(c.id)} type="button" className="z-glass" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 7, border: "none", background: "rgba(255,255,255,0.03)", color: C.textSec, fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
+                        <button onClick={() => startRename(c.id)} type="button" className="z-glass" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 12, border: "none", background: "rgba(255,255,255,0.03)", color: C.textSec, fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
                           <Ic n="pencil" style={{ width: 11, height: 11 }} /> Rename
                         </button>
-                        <button onClick={() => { deleteChat(c.id); setExpandedBizId(null); }} type="button" className="z-glass-danger" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 7, border: "none", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
+                        <button onClick={() => { deleteChat(c.id); setExpandedBizId(null); }} type="button" className="z-glass-danger" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 12, border: "none", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
                           <Ic n="trash" style={{ width: 11, height: 11 }} /> Delete
                         </button>
                       </div>
@@ -1790,12 +1818,12 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, letterSpacing: "0.03em", marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" onClick={openSettings} title="Settings" className="z-glass" style={{ width: 32, height: 32, borderRadius: 8, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: sidebarOpen ? 1 : 0 }}>
+                <button type="button" onClick={openSettings} title="Settings" className="z-glass" style={{ width: 32, height: 32, borderRadius: 12, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: sidebarOpen ? 1 : 0 }}>
                   <Ic n="settings" style={{ width: 20, height: 20 }} />
                 </button>
               </div>
             ) : (
-              <button type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer" }}
+              <button type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 12, background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer" }}
                 onClick={() => { window.location.href = "/sign-in"; }}>
                 <Ic n="signin" className="h-4 w-4" /> Sign in
               </button>
@@ -1813,7 +1841,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" onClick={openSettings} title="Settings" className="z-glass" style={{ width: 30, height: 30, borderRadius: 7, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <button type="button" onClick={openSettings} title="Settings" className="z-glass" style={{ width: 30, height: 30, borderRadius: 12, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Ic n="settings" style={{ width: 18, height: 18 }} />
                 </button>
               </div>
@@ -1823,8 +1851,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
         {/* CHAT */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 280, transition: dragRef.current ? "none" : "all 500ms cubic-bezier(0.32,0.72,0,1)", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0 }}>
-          <div style={{ flex: 1, overflowY: "auto", padding: previewOpen ? "16px 12px" : "16px 16px" }}>
-            <div style={{ maxWidth: previewOpen ? "100%" : 820, margin: "0 auto" }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: showPreview ? "16px 12px" : "16px 16px" }}>
+            <div style={{ maxWidth: showPreview ? "100%" : 820, margin: "0 auto" }}>
               {!hasMessages ? (
                 <WelcomeScreen onAction={sendViaCard} />
               ) : (
@@ -1834,7 +1862,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                     return (
                       <div key={m.id} className={isUser ? "user-row" : "msg-row"} style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 16, gap: 10 }}>
                         {!isUser && <div style={{ width: 26, height: 26, flexShrink: 0, marginTop: 2 }}><ZelrexZIcon size={26} /></div>}
-                        <div style={{ maxWidth: previewOpen ? "100%" : 700 }}>
+                        <div style={{ maxWidth: showPreview ? "100%" : 700 }}>
                           <div style={{
                             ...(isUser ? { display: "inline-block", padding: "8px 14px", borderRadius: 16, background: C.userBubble, border: `1px solid ${C.userBorder}` } : { padding: "4px 0 4px 14px", borderLeft: `2px solid ${C.accent}18` }),
                           }}>
@@ -1843,7 +1871,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                                 {shouldAnimate(m, activeChat) && !animatedIds.includes(m.id) ? (
                                   <Typewriter text={m.content} speed={6} onFinish={() => setAnimatedIds((p) => p.includes(m.id) ? p : [...p, m.id])} />
                                 ) : ( <div>{formatMessage(m.content)}</div> )}
-                                {m.previewUrl && <div style={{ marginTop: 14 }}><ActionPill label="Open website preview" onClick={() => setPreviewOpen(true)} /></div>}
+                                {m.previewUrl && websiteData && <div style={{ marginTop: 14 }}><ActionPill label="Open website preview" onClick={() => setPreviewOpen(true)} /></div>}
                                 <div className="msg-actions">
                                   <button className="msg-act" title="Copy" onClick={() => { navigator.clipboard.writeText(m.content); setCopiedMsgId(m.id); setTimeout(() => setCopiedMsgId(null), 1200); }}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
@@ -1888,15 +1916,15 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           </div>
 
           {/* INPUT */}
-          <div style={{ padding: isMobile ? "6px 8px 10px" : (previewOpen ? "8px 12px 14px" : "8px 16px 18px"), position: "relative" }}>
+          <div style={{ padding: isMobile ? "6px 8px 10px" : (showPreview ? "8px 12px 14px" : "8px 16px 18px"), position: "relative" }}>
             {!surveyData && !showSurvey && activeChat?.pendingSurvey && (
-              <div style={{ maxWidth: previewOpen ? "100%" : 820, margin: "0 auto 10px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, position: "relative", zIndex: 2 }}>
+              <div style={{ maxWidth: showPreview ? "100%" : 820, margin: "0 auto 10px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.bg, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, position: "relative", zIndex: 2 }}>
                 <div style={{ fontSize: 12, color: C.textSec }}>Survey paused. Continue to finish your website build.</div>
-                <button type="button" onClick={() => { setSurveyDismissed(false); setShowSurvey(true); }} className="z-glass-accent" style={{ padding: "6px 12px", borderRadius: 999, border: `1px solid ${C.accent}55`, background: `${C.accent}18`, color: C.accent, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Continue survey</button>
+                <button type="button" onClick={() => { setSurveyDismissed(false); setShowSurvey(true); }} className="z-glass-accent" style={{ padding: "6px 12px", borderRadius: 12, border: `1px solid ${C.accent}55`, background: `${C.accent}18`, color: C.accent, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Continue survey</button>
               </div>
             )}
             <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 24, background: "linear-gradient(to bottom, rgba(6,9,15,0), rgba(6,9,15,0.9))", pointerEvents: "none" }} />
-            <div className={inputFocused ? "input-box input-focus-glow" : "input-box"} style={{ position: "relative", zIndex: 1, maxWidth: previewOpen ? "100%" : 820, margin: "0 auto", borderRadius: draftAttachments.length ? 18 : 999, border: `1px solid ${inputFocused ? C.borderHover : C.border}`, background: C.bgInput, boxShadow: `0 4px 24px rgba(0,0,0,0.3)`, transition: "border-color 500ms cubic-bezier(0.32,0.72,0,1), box-shadow 500ms cubic-bezier(0.32,0.72,0,1)" }}>
+            <div className={inputFocused ? "input-box input-focus-glow" : "input-box"} style={{ position: "relative", zIndex: 1, maxWidth: showPreview ? "100%" : 820, margin: "0 auto", borderRadius: draftAttachments.length ? 18 : 999, border: `1px solid ${inputFocused ? C.borderHover : C.border}`, background: C.bgInput, boxShadow: `0 4px 24px rgba(0,0,0,0.3)`, transition: "border-color 500ms cubic-bezier(0.32,0.72,0,1), box-shadow 500ms cubic-bezier(0.32,0.72,0,1)" }}>
               <style>{`
                 .input-focus-glow {
                   animation: inputRingIn 600ms cubic-bezier(0.32,0.72,0,1) forwards, inputRingOut 600ms cubic-bezier(0.32,0.72,0,1) 500ms forwards;
@@ -2087,14 +2115,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                     <div className="stg-section-title">Connected Accounts</div>
                     <div className="stg-row">
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center" }}><Ic n="globe" style={{ width: 16, height: 16, color: C.textSec }} /></div>
+                        <div style={{ width: 32, height: 32, borderRadius: 12, background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center" }}><Ic n="globe" style={{ width: 16, height: 16, color: C.textSec }} /></div>
                         <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Stripe</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Accept payments on your website</div></div>
                       </div>
                       <button className="z-glass" style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Connect</button>
                     </div>
                     <div className="stg-row">
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center" }}><Ic n="chart" style={{ width: 16, height: 16, color: C.textSec }} /></div>
+                        <div style={{ width: 32, height: 32, borderRadius: 12, background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center" }}><Ic n="chart" style={{ width: 16, height: 16, color: C.textSec }} /></div>
                         <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Google Analytics</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Track your website visitors</div></div>
                       </div>
                       <button className="z-glass" style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Connect</button>
