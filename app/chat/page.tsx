@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import { useUser, useClerk, RedirectToSignIn } from "@clerk/nextjs";
 import { formatMessage } from "./formatMessage";
 import { WebsiteSurvey, SurveyData } from "@/website/pages/components/Websitesurvey";
+import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
 
 type Role = "user" | "assistant";
 type Msg = { id: string; role: Role; content: string; createdAt: number; previewUrl?: string };
-type Chat = { id: string; title: string; messages: Msg[]; updatedAt: number; pendingSurvey?: boolean; websiteData?: any; deployData?: any; surveyData?: any };
+type Chat = { id: string; title: string; messages: Msg[]; updatedAt: number; pendingSurvey?: boolean; websiteData?: any; deployData?: any };
 type DraftAttachment = { id: string; file: File; kind: "image" | "file"; previewUrl?: string };
 type BusinessPhase = "ready" | "intake" | "evaluating" | "building" | "live";
 
@@ -397,6 +398,10 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [settingsClosing, setSettingsClosing] = useState(false);
   const [goalClosing, setGoalClosing] = useState(false);
   const [notifClosing, setNotifClosing] = useState(false);
+  const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  const [analyticsClosing, setAnalyticsClosing] = useState(false);
+  const [analyticsTooltip, setAnalyticsTooltip] = useState(false);
+  const analyticsOriginRef = useRef<{ x: number; y: number } | null>(null);
   const settingsOriginRef = useRef<{ x: number; y: number } | null>(null);
   const goalOriginRef = useRef<{ x: number; y: number } | null>(null);
   const notifOriginRef = useRef<{ x: number; y: number } | null>(null);
@@ -440,11 +445,10 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [activeChatId, setActiveChatId] = useState(() => chats[0]?.id ?? "");
   const activeChat = useMemo(() => chats.find((c) => c.id === activeChatId) ?? chats[0], [chats, activeChatId]);
 
-  // Sync websiteData/deployData/surveyData from active chat when switching chats
+  // Sync websiteData/deployData from active chat when switching chats
   useEffect(() => {
     if (activeChat?.websiteData) { setWebsiteData(activeChat.websiteData); } else { setWebsiteData(null); setPreviewOpen(false); }
     if (activeChat?.deployData) { setDeployData(activeChat.deployData); } else { setDeployData(null); }
-    if ((activeChat as any)?.surveyData) { setSurveyData((activeChat as any).surveyData); } else { setSurveyData(null); }
   }, [activeChatId]);
 
   // Helper: save websiteData to both state and active chat
@@ -461,40 +465,6 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [animatedIds, setAnimatedIds] = useState<string[]>([]);
   useEffect(() => { const s = localStorage.getItem("zelrex_animated_ids"); if (s) try { setAnimatedIds(JSON.parse(s)); } catch {} }, []);
   useEffect(() => { localStorage.setItem("zelrex_animated_ids", JSON.stringify(animatedIds)); }, [animatedIds]);
-
-  // ─── Handle Stripe callback redirect (?stripe=connected) ─────
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const stripeStatus = params.get("stripe");
-    if (stripeStatus === "connected" && activeChat) {
-      // Clean URL
-      window.history.replaceState({}, "", window.location.pathname);
-      // If we have survey data saved on the chat, auto-trigger the build
-      const savedSurvey = (activeChat as any)?.surveyData;
-      if (savedSurvey) {
-        setSurveyData(savedSurvey);
-        // Small delay to let state settle, then trigger build
-        setTimeout(() => {
-          const fakeInput = "build my website";
-          setInput(fakeInput);
-          // The sendMessage function will pick up surveyData and send it
-          setTimeout(() => {
-            const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
-            if (textarea) {
-              textarea.dispatchEvent(new Event("input", { bubbles: true }));
-              const form = textarea.closest("div")?.parentElement;
-              const sendBtn = form?.querySelector('button[aria-label="Send"]') as HTMLButtonElement;
-              if (sendBtn) sendBtn.click();
-            }
-          }, 100);
-        }, 500);
-      }
-    } else if (stripeStatus === "incomplete") {
-      window.history.replaceState({}, "", window.location.pathname);
-    } else if (stripeStatus === "error") {
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  }, []);
 
   // ─── Load user data from Supabase ────────────────────────────────
   useEffect(() => {
@@ -1423,7 +1393,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     setShowSurvey(false);
     setSurveyDismissed(false);
     if (activeChat?.id) {
-      setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, pendingSurvey: false, surveyData: data, updatedAt: Date.now() } : c));
+      setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, pendingSurvey: false, updatedAt: Date.now() } : c));
     }
     setIsSending(true);
     setBuildStage("Building your website with your details...");
@@ -1771,9 +1741,33 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               <button type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="calendar" style={{ width: 15, height: 15, color: "#10B981" }} /> Weekly Summaries
               </button>
-              <button type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
-                <Ic n="analytics" style={{ width: 15, height: 15, color: "#8B5CF6" }} /> Business Analytics
-              </button>
+              <div style={{ position: "relative" }}>
+                <button type="button" className="z-glass" onClick={(e) => {
+                  if (deployData?.url) {
+                    analyticsOriginRef.current = { x: e.clientX, y: e.clientY };
+                    setAnalyticsOpen(true);
+                    if (isMobile) setSidebarOpen(false);
+                  } else {
+                    setAnalyticsTooltip(true);
+                    setTimeout(() => setAnalyticsTooltip(false), 3000);
+                  }
+                }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+                  <Ic n="analytics" style={{ width: 15, height: 15, color: "#8B5CF6" }} /> Business Analytics
+                </button>
+                {analyticsTooltip && !deployData?.url && (
+                  <div style={{
+                    position: "absolute", left: "calc(100% + 8px)", top: "50%", transform: "translateY(-50%)",
+                    padding: "8px 14px", borderRadius: 12, whiteSpace: "nowrap",
+                    background: "rgba(12,16,24,0.95)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+                    border: `1px solid ${C.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                    fontSize: 12, color: C.textSec, zIndex: 100,
+                    animation: "tooltipIn 200ms ease",
+                  }}>
+                    No deployed business yet. Deploy your site first.
+                    <style>{`@keyframes tooltipIn { from { opacity: 0; transform: translateY(-50%) translateX(-4px); } to { opacity: 1; transform: translateY(-50%) translateX(0); } }`}</style>
+                  </div>
+                )}
+              </div>
               <button type="button" className="z-glass" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? C.accent : "#F59E0B" }} /> {userGoal ? "My Goal" : "Set Goal"}
               </button>
@@ -2066,6 +2060,36 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {/* GOAL MODAL */}
+        {/* ─── ANALYTICS DASHBOARD ─────────────────────────── */}
+        {(analyticsOpen || analyticsClosing) && (
+          <div style={{
+            position: "fixed", inset: 0, zIndex: 9550,
+            transformOrigin: analyticsOriginRef.current ? `${analyticsOriginRef.current.x}px ${analyticsOriginRef.current.y}px` : "center center",
+            animation: `${analyticsClosing ? "analyticsSuckOut" : "analyticsSuckIn"} 300ms cubic-bezier(0.2,0.8,0.2,1) forwards`,
+            pointerEvents: analyticsClosing ? "none" : undefined,
+          }}>
+            <AnalyticsDashboard
+              userId={clerkUser?.id || ""}
+              onClose={() => {
+                setAnalyticsClosing(true);
+                setTimeout(() => { setAnalyticsOpen(false); setAnalyticsClosing(false); }, 300);
+              }}
+            />
+          </div>
+        )}
+        <style>{`
+          @keyframes analyticsSuckIn {
+            0% { opacity: 0; transform: scale(0.3) rotate(-2deg); filter: blur(12px) brightness(1.5); }
+            40% { opacity: 0.8; transform: scale(1.02) rotate(0.3deg); filter: blur(1px) brightness(1.05); }
+            100% { opacity: 1; transform: scale(1) rotate(0deg); filter: blur(0px) brightness(1); }
+          }
+          @keyframes analyticsSuckOut {
+            0% { opacity: 1; transform: scale(1) rotate(0deg); filter: blur(0px) brightness(1); }
+            60% { opacity: 0.6; transform: scale(0.85) rotate(-1deg); filter: blur(3px) brightness(1.2); }
+            100% { opacity: 0; transform: scale(0.15) rotate(-4deg); filter: blur(16px) brightness(2); }
+          }
+        `}</style>
+
         {/* ─── FULL-SCREEN SETTINGS ─────────────────────────── */}
         {(settingsOpen || settingsClosing) && (
           <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.95)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", transformOrigin: settingsOriginRef.current ? `${settingsOriginRef.current.x}px ${settingsOriginRef.current.y}px` : "center center", animation: `${settingsClosing ? "overlayZoomOut" : "overlayZoomIn"} 420ms cubic-bezier(0.32,0.72,0,1) forwards`, pointerEvents: settingsClosing ? "none" : undefined }}>
