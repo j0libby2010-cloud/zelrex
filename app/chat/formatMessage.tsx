@@ -400,15 +400,16 @@ function renderInline(text: string): React.ReactNode {
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1 text-[13px] font-semibold cursor-pointer transition-all duration-150"
               style={{
-                background: 'rgba(74,144,255,0.08)',
-                border: '1px solid rgba(74,144,255,0.22)',
+                background: 'rgba(74,144,255,0.06)',
+                border: '1px solid rgba(74,144,255,0.15)',
                 color: '#6B9FFF',
                 borderRadius: 999,
-                backdropFilter: 'blur(20px) brightness(1.2) saturate(1.6)',
-                WebkitBackdropFilter: 'blur(20px) brightness(1.2) saturate(1.6)',
+                backdropFilter: 'blur(12px) brightness(1.08) saturate(1.3)',
+                WebkitBackdropFilter: 'blur(12px) brightness(1.08) saturate(1.3)',
+                boxShadow: '0 0 0 0.5px rgba(74,144,255,0.10), inset 0 1px 0 rgba(74,144,255,0.20)',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(74,144,255,0.12)'; e.currentTarget.style.borderColor = 'rgba(74,144,255,0.35)'; e.currentTarget.style.boxShadow = '0 0 0 0.5px rgba(74,144,255,0.25), 0 2px 8px rgba(74,144,255,0.06)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(74,144,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(74,144,255,0.22)'; e.currentTarget.style.boxShadow = 'none'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(74,144,255,0.10)'; e.currentTarget.style.borderColor = 'rgba(74,144,255,0.30)'; e.currentTarget.style.boxShadow = '0 0 0 0.5px rgba(74,144,255,0.25), 0 2px 8px rgba(74,144,255,0.06), 0 0 20px rgba(74,144,255,0.04), inset 0 1px 0 rgba(74,144,255,0.35)'; e.currentTarget.style.backdropFilter = 'blur(20px) brightness(1.18) saturate(1.6)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(74,144,255,0.06)'; e.currentTarget.style.borderColor = 'rgba(74,144,255,0.15)'; e.currentTarget.style.boxShadow = '0 0 0 0.5px rgba(74,144,255,0.10), inset 0 1px 0 rgba(74,144,255,0.20)'; e.currentTarget.style.backdropFilter = 'blur(12px) brightness(1.08) saturate(1.3)'; }}
             >
               {matchData.content} →
             </button>

@@ -75,7 +75,7 @@ export const db = {
     return res?.chat ?? null;
   },
 
-  async updateChat(chatId: string, data: { title?: string; messages?: any[]; pendingSurvey?: boolean }) {
+  async updateChat(chatId: string, data: { title?: string; messages?: any[]; pendingSurvey?: boolean; websiteData?: any; deployData?: any; surveyData?: any }) {
     const res = await api("update_chat", { chatId, ...data });
     return res?.chat ?? null;
   },
