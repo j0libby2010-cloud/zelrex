@@ -10,7 +10,7 @@ import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
 type Role = "user" | "assistant";
 type Msg = { id: string; role: Role; content: string; createdAt: number; previewUrl?: string };
-type Chat = { id: string; title: string; messages: Msg[]; updatedAt: number; pendingSurvey?: boolean; websiteData?: any; deployData?: any };
+type Chat = { id: string; title: string; messages: Msg[]; updatedAt: number; pendingSurvey?: boolean; websiteData?: any; deployData?: any; surveyData?: any };
 type DraftAttachment = { id: string; file: File; kind: "image" | "file"; previewUrl?: string };
 type BusinessPhase = "ready" | "intake" | "evaluating" | "building" | "live";
 
@@ -440,10 +440,11 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [activeChatId, setActiveChatId] = useState(() => chats[0]?.id ?? "");
   const activeChat = useMemo(() => chats.find((c) => c.id === activeChatId) ?? chats[0], [chats, activeChatId]);
 
-  // Sync websiteData/deployData from active chat when switching chats
+  // Sync websiteData/deployData/surveyData from active chat when switching chats
   useEffect(() => {
     if (activeChat?.websiteData) { setWebsiteData(activeChat.websiteData); } else { setWebsiteData(null); setPreviewOpen(false); }
     if (activeChat?.deployData) { setDeployData(activeChat.deployData); } else { setDeployData(null); }
+    if ((activeChat as any)?.surveyData) { setSurveyData((activeChat as any).surveyData); } else { setSurveyData(null); }
   }, [activeChatId]);
 
   // Helper: save websiteData to both state and active chat
@@ -460,6 +461,40 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [animatedIds, setAnimatedIds] = useState<string[]>([]);
   useEffect(() => { const s = localStorage.getItem("zelrex_animated_ids"); if (s) try { setAnimatedIds(JSON.parse(s)); } catch {} }, []);
   useEffect(() => { localStorage.setItem("zelrex_animated_ids", JSON.stringify(animatedIds)); }, [animatedIds]);
+
+  // ─── Handle Stripe callback redirect (?stripe=connected) ─────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const stripeStatus = params.get("stripe");
+    if (stripeStatus === "connected" && activeChat) {
+      // Clean URL
+      window.history.replaceState({}, "", window.location.pathname);
+      // If we have survey data saved on the chat, auto-trigger the build
+      const savedSurvey = (activeChat as any)?.surveyData;
+      if (savedSurvey) {
+        setSurveyData(savedSurvey);
+        // Small delay to let state settle, then trigger build
+        setTimeout(() => {
+          const fakeInput = "build my website";
+          setInput(fakeInput);
+          // The sendMessage function will pick up surveyData and send it
+          setTimeout(() => {
+            const textarea = document.querySelector("textarea") as HTMLTextAreaElement;
+            if (textarea) {
+              textarea.dispatchEvent(new Event("input", { bubbles: true }));
+              const form = textarea.closest("div")?.parentElement;
+              const sendBtn = form?.querySelector('button[aria-label="Send"]') as HTMLButtonElement;
+              if (sendBtn) sendBtn.click();
+            }
+          }, 100);
+        }, 500);
+      }
+    } else if (stripeStatus === "incomplete") {
+      window.history.replaceState({}, "", window.location.pathname);
+    } else if (stripeStatus === "error") {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   // ─── Load user data from Supabase ────────────────────────────────
   useEffect(() => {
@@ -1388,7 +1423,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     setShowSurvey(false);
     setSurveyDismissed(false);
     if (activeChat?.id) {
-      setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, pendingSurvey: false, updatedAt: Date.now() } : c));
+      setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, pendingSurvey: false, surveyData: data, updatedAt: Date.now() } : c));
     }
     setIsSending(true);
     setBuildStage("Building your website with your details...");
