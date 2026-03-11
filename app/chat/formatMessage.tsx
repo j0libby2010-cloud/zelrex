@@ -371,18 +371,25 @@ function renderInline(text: string): React.ReactNode {
 
     switch (matchType) {
       case "bold": {
-        const actionPhrases = ["build my website", "connect stripe", "deploy", "go live", "evaluate my market"];
+        const actionPhrases = ["build my website", "connect stripe", "deploy", "go live", "evaluate my market", "preview"];
         const isAction = actionPhrases.some(p => matchData.content.toLowerCase() === p);
         if (isAction) {
+          const actionText = matchData.content;
+          const isPreview = actionText.toLowerCase() === "preview";
           tokens.push(
             <button
               key={key++}
               onClick={() => {
+                if (isPreview) {
+                  // Dispatch custom event to open preview panel
+                  window.dispatchEvent(new CustomEvent("zelrex-preview"));
+                  return;
+                }
                 // Find the chat input and set its value, then trigger send
                 const input = document.querySelector('textarea') as HTMLTextAreaElement | null;
                 if (input) {
                   const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
-                  nativeInputValueSetter?.call(input, matchData.content);
+                  nativeInputValueSetter?.call(input, actionText);
                   input.dispatchEvent(new Event('input', { bubbles: true }));
                   // Find and click the send button
                   setTimeout(() => {
@@ -391,14 +398,17 @@ function renderInline(text: string): React.ReactNode {
                   }, 50);
                 }
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[13px] font-semibold cursor-pointer transition-all duration-150"
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-[13px] font-semibold cursor-pointer transition-all duration-150"
               style={{
-                background: 'rgba(74,144,255,0.12)',
-                border: '1px solid rgba(74,144,255,0.25)',
+                background: 'rgba(74,144,255,0.08)',
+                border: '1px solid rgba(74,144,255,0.22)',
                 color: '#6B9FFF',
+                borderRadius: 999,
+                backdropFilter: 'blur(20px) brightness(1.2) saturate(1.6)',
+                WebkitBackdropFilter: 'blur(20px) brightness(1.2) saturate(1.6)',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(74,144,255,0.2)'; e.currentTarget.style.borderColor = 'rgba(74,144,255,0.4)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(74,144,255,0.12)'; e.currentTarget.style.borderColor = 'rgba(74,144,255,0.25)'; }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(74,144,255,0.12)'; e.currentTarget.style.borderColor = 'rgba(74,144,255,0.35)'; e.currentTarget.style.boxShadow = '0 0 0 0.5px rgba(74,144,255,0.25), 0 2px 8px rgba(74,144,255,0.06)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(74,144,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(74,144,255,0.22)'; e.currentTarget.style.boxShadow = 'none'; }}
             >
               {matchData.content} →
             </button>
