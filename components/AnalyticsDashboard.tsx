@@ -73,9 +73,11 @@ const liquidGlassPill = {
 export function AnalyticsDashboard({
   userId,
   onClose,
+  deployed = false,
 }: {
   userId: string;
   onClose: () => void;
+  deployed?: boolean;
 }) {
   const [range, setRange] = useState<TimeRange>("30d");
   const [data, setData] = useState<AnalyticsData | null>(null);
@@ -83,6 +85,7 @@ export function AnalyticsDashboard({
   const [activeChart, setActiveChart] = useState<"traffic" | "revenue">("traffic");
 
   const fetchData = useCallback(async () => {
+    if (!deployed) { setLoading(false); return; }
     setLoading(true);
     try {
       const res = await fetch(`/api/z/dash?userId=${userId}&range=${range}`);
@@ -93,7 +96,7 @@ export function AnalyticsDashboard({
     } finally {
       setLoading(false);
     }
-  }, [userId, range]);
+  }, [userId, range, deployed]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -200,7 +203,25 @@ export function AnalyticsDashboard({
 
       {/* ─── Content ────────────────────────────────────────── */}
       <div className="glass-scroll" style={{ flex: 1, overflow: "auto", padding: 20 }}>
-        {loading && !data ? (
+        {!deployed ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: G.textSec }}>
+            <div style={{ textAlign: "center", maxWidth: 400 }}>
+              <div style={{
+                width: 64, height: 64, borderRadius: 20, margin: "0 auto 20px",
+                background: `linear-gradient(135deg, ${G.purpleGlow}, transparent)`,
+                border: `1px solid rgba(139,92,246,0.15)`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke={G.purple} strokeWidth="1.4" />
+                  <path d="M8 14l2.5-3 2.5 1.5L16 9" stroke={G.purple} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: G.text, marginBottom: 8 }}>No business deployed yet</div>
+              <div style={{ fontSize: 14, lineHeight: 1.6 }}>Build and deploy your website first. Once it's live, analytics will start tracking visitors, clicks, and revenue automatically.</div>
+            </div>
+          </div>
+        ) : loading && !data ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: G.textSec }}>
             <div style={{ textAlign: "center" }}>
               <div style={{
@@ -266,7 +287,7 @@ export function AnalyticsDashboard({
                         </linearGradient>
                       </defs>
                       <XAxis dataKey="date" tick={{ fill: G.textMuted, fontSize: 11 }} tickLine={false} axisLine={false}
-                        tickFormatter={(v: string) => { const d = new Date(v); return `${d.getMonth() + 1}/${d.getDate()}`; }} />
+                        tickFormatter={(v) => { const d = new Date(v); return `${d.getMonth() + 1}/${d.getDate()}`; }} />
                       <YAxis tick={{ fill: G.textMuted, fontSize: 11 }} tickLine={false} axisLine={false} width={40} />
                       <Tooltip content={<CustomTooltip />} />
                       <Area type="monotone" dataKey="pageviews" stroke={G.chartLine1} strokeWidth={2} fill="url(#gradViews)" name="Pageviews" dot={false} />
@@ -276,9 +297,9 @@ export function AnalyticsDashboard({
                   ) : (
                     <BarChart data={data.revenue.dailyRevenue}>
                       <XAxis dataKey="date" tick={{ fill: G.textMuted, fontSize: 11 }} tickLine={false} axisLine={false}
-                        tickFormatter={(v: string) => { const d = new Date(v); return `${d.getMonth() + 1}/${d.getDate()}`; }} />
+                        tickFormatter={(v) => { const d = new Date(v); return `${d.getMonth() + 1}/${d.getDate()}`; }} />
                       <YAxis tick={{ fill: G.textMuted, fontSize: 11 }} tickLine={false} axisLine={false} width={50}
-                        tickFormatter={(v: number) => `$${(v / 100).toFixed(0)}`} />
+                        tickFormatter={(v) => `$${(v / 100).toFixed(0)}`} />
                       <Tooltip content={<RevenueTooltip />} />
                       <Bar dataKey="amount" fill={G.purple} radius={[6, 6, 0, 0]} name="Revenue"
                         fillOpacity={0.8} />

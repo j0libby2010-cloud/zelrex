@@ -1118,17 +1118,15 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   ${isEditorial ? '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">' : ""}
   <script>
   (function(){
-    var U="${clerkUser?.id || ''}";
-    if(!U)return;
-    var API="https://zelrex.ai/api/z/ev";
-    var vid;try{vid=sessionStorage.getItem('z_vid');if(!vid){vid='v_'+Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('z_vid',vid)}}catch(e){vid='v_'+Math.random().toString(36).slice(2)}
-    var dev=window.innerWidth<768?'mobile':window.innerWidth<1024?'tablet':'desktop';
-    function send(t,d){try{var p=Object.assign({user_id:U,event_type:t,visitor_id:vid,referrer:document.referrer||'',device_type:dev,page_path:location.pathname},d||{});if(navigator.sendBeacon)navigator.sendBeacon(API,JSON.stringify(p));else{var x=new XMLHttpRequest();x.open('POST',API);x.setRequestHeader('Content-Type','application/json');x.send(JSON.stringify(p))}}catch(e){}}
-    send('pageview');
-    var sm={25:0,50:0,75:0,100:0};
-    window.addEventListener('scroll',function(){var h=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight)-window.innerHeight;if(h<=0)return;var p=Math.round(window.scrollY/h*100);[25,50,75,100].forEach(function(m){if(p>=m&&!sm[m]){sm[m]=1;send('scroll_depth',{metadata:JSON.stringify({depth:m})})}})},{passive:true});
-    document.addEventListener('click',function(e){var el=e.target;while(el&&el!==document.body){if(el.tagName==='A'||el.tagName==='BUTTON'||el.tagName==='SPAN'){var hr=el.getAttribute('href')||'';var tx=(el.textContent||'').trim().slice(0,100);var id=el.getAttribute('id')||el.getAttribute('data-nav')||'';if(hr.indexOf('stripe.com')>-1||hr.indexOf('buy.stripe.com')>-1){send('checkout_start',{element_id:id,element_text:tx,metadata:JSON.stringify({href:hr})})}else if(el.classList.contains('btn-primary')||el.classList.contains('btn-secondary')||id){send('cta_click',{element_id:id||'btn',element_text:tx,metadata:JSON.stringify({href:hr})})}break}el=el.parentElement}});
-    var st=Date.now();window.addEventListener('beforeunload',function(){send('time_on_page',{metadata:JSON.stringify({seconds:Math.round((Date.now()-st)/1000)})})});
+    var U="${clerkUser?.id || ''}";if(!U)return;
+    var H="https://zelrex.ai/api/z/px";
+    var vid;try{vid=sessionStorage.getItem('_zv');if(!vid){vid=Math.random().toString(36).slice(2,10);sessionStorage.setItem('_zv',vid)}}catch(e){vid=Math.random().toString(36).slice(2,10)}
+    var dv=window.innerWidth<768?'m':window.innerWidth<1024?'t':'d';
+    function px(t,x){new Image().src=H+'?u='+U+'&t='+t+'&v='+vid+'&p='+encodeURIComponent(location.pathname)+'&r='+encodeURIComponent(document.referrer)+'&d='+dv+(x?'&x='+encodeURIComponent(x):'')}
+    px('pv');
+    var sm={};
+    window.addEventListener('scroll',function(){var h=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight)-window.innerHeight;if(h<=0)return;var p=Math.round(window.scrollY/h*100);[25,50,75,100].forEach(function(m){if(p>=m&&!sm[m]){sm[m]=1;px('sd',m)}})},{passive:true});
+    document.addEventListener('click',function(e){var el=e.target;while(el&&el!==document.body){if(el.tagName==='A'||el.tagName==='BUTTON'||el.tagName==='SPAN'){var hr=el.getAttribute('href')||'';var tx=(el.textContent||'').trim().slice(0,60);var id=el.getAttribute('id')||el.getAttribute('data-nav')||'';if(hr.indexOf('stripe.com')>-1){px('cs',tx)}else if(el.classList.contains('btn-primary')||el.classList.contains('btn-secondary')||id){px('cc',id||tx)}break}el=el.parentElement}});
   })();
   </script>
   <style>
@@ -1772,12 +1770,30 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               </button>
               <div style={{ position: "relative" }}>
                 <button type="button" className="z-glass" onClick={(e) => {
-                  analyticsOriginRef.current = { x: e.clientX, y: e.clientY };
-                  setAnalyticsOpen(true);
-                  if (isMobile) setSidebarOpen(false);
+                  if (deployData?.url) {
+                    analyticsOriginRef.current = { x: e.clientX, y: e.clientY };
+                    setAnalyticsOpen(true);
+                    if (isMobile) setSidebarOpen(false);
+                  } else {
+                    setAnalyticsTooltip(true);
+                    setTimeout(() => setAnalyticsTooltip(false), 3000);
+                  }
                 }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                   <Ic n="analytics" style={{ width: 15, height: 15, color: "#8B5CF6" }} /> Business Analytics
                 </button>
+                {analyticsTooltip && !deployData?.url && (
+                  <div style={{
+                    position: "absolute", left: "calc(100% + 8px)", top: "50%", transform: "translateY(-50%)",
+                    padding: "8px 14px", borderRadius: 12, whiteSpace: "nowrap",
+                    background: "rgba(12,16,24,0.95)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+                    border: `1px solid ${C.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+                    fontSize: 12, color: C.textSec, zIndex: 100,
+                    animation: "tooltipIn 200ms ease",
+                  }}>
+                    No deployed business yet. Deploy your site first.
+                    <style>{`@keyframes tooltipIn { from { opacity: 0; transform: translateY(-50%) translateX(-4px); } to { opacity: 1; transform: translateY(-50%) translateX(0); } }`}</style>
+                  </div>
+                )}
               </div>
               <button type="button" className="z-glass" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? C.accent : "#F59E0B" }} /> {userGoal ? "My Goal" : "Set Goal"}
@@ -2081,6 +2097,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           }}>
             <AnalyticsDashboard
               userId={clerkUser?.id || ""}
+              deployed={!!(deployData?.url)}
               onClose={() => {
                 setAnalyticsClosing(true);
                 setTimeout(() => { setAnalyticsOpen(false); setAnalyticsClosing(false); }, 300);
