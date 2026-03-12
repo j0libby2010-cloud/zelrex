@@ -85,7 +85,7 @@ export function AnalyticsDashboard({
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/analytics/dashboard?userId=${userId}&range=${range}`);
+      const res = await fetch(`/api/z/dash?userId=${userId}&range=${range}`);
       const json = await res.json();
       if (json.pageviews !== undefined) setData(json);
     } catch (e) {

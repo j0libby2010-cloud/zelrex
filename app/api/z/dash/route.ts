@@ -10,7 +10,7 @@ const supabase = createClient(
 const analyticsService = new AnalyticsService(supabase);
 
 /**
- * GET /api/analytics/dashboard?userId=xxx&range=7d
+ * GET /api/z/dash?userId=xxx&range=7d
  * 
  * Returns aggregated analytics data for the dashboard.
  */
