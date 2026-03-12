@@ -1120,7 +1120,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   (function(){
     var U="${clerkUser?.id || ''}";
     if(!U)return;
-    var API="${typeof window!=='undefined'?window.location.origin:'https://zelrex.ai'}/api/analytics/track";
+    var API="https://zelrex.ai/api/analytics/track";
     var vid;try{vid=sessionStorage.getItem('z_vid');if(!vid){vid='v_'+Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('z_vid',vid)}}catch(e){vid='v_'+Math.random().toString(36).slice(2)}
     var dev=window.innerWidth<768?'mobile':window.innerWidth<1024?'tablet':'desktop';
     function send(t,d){try{var p=Object.assign({user_id:U,event_type:t,visitor_id:vid,referrer:document.referrer||'',device_type:dev,page_path:location.pathname},d||{});if(navigator.sendBeacon)navigator.sendBeacon(API,JSON.stringify(p));else{var x=new XMLHttpRequest();x.open('POST',API);x.setRequestHeader('Content-Type','application/json');x.send(JSON.stringify(p))}}catch(e){}}
