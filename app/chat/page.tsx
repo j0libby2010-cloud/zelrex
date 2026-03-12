@@ -1116,6 +1116,21 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='${encodeURIComponent(accent)}'/><text x='16' y='22' text-anchor='middle' fill='white' font-family='system-ui,sans-serif' font-weight='700' font-size='18'>${encodeURIComponent((name || 'Z')[0].toUpperCase())}</text></svg>" type="image/svg+xml">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   ${isEditorial ? '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">' : ""}
+  <script>
+  (function(){
+    var U="${clerkUser?.id || ''}";
+    if(!U)return;
+    var API="${typeof window!=='undefined'?window.location.origin:'https://zelrex.ai'}/api/analytics/track";
+    var vid;try{vid=sessionStorage.getItem('z_vid');if(!vid){vid='v_'+Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('z_vid',vid)}}catch(e){vid='v_'+Math.random().toString(36).slice(2)}
+    var dev=window.innerWidth<768?'mobile':window.innerWidth<1024?'tablet':'desktop';
+    function send(t,d){try{var p=Object.assign({user_id:U,event_type:t,visitor_id:vid,referrer:document.referrer||'',device_type:dev,page_path:location.pathname},d||{});if(navigator.sendBeacon)navigator.sendBeacon(API,JSON.stringify(p));else{var x=new XMLHttpRequest();x.open('POST',API);x.setRequestHeader('Content-Type','application/json');x.send(JSON.stringify(p))}}catch(e){}}
+    send('pageview');
+    var sm={25:0,50:0,75:0,100:0};
+    window.addEventListener('scroll',function(){var h=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight)-window.innerHeight;if(h<=0)return;var p=Math.round(window.scrollY/h*100);[25,50,75,100].forEach(function(m){if(p>=m&&!sm[m]){sm[m]=1;send('scroll_depth',{metadata:JSON.stringify({depth:m})})}})},{passive:true});
+    document.addEventListener('click',function(e){var el=e.target;while(el&&el!==document.body){if(el.tagName==='A'||el.tagName==='BUTTON'||el.tagName==='SPAN'){var hr=el.getAttribute('href')||'';var tx=(el.textContent||'').trim().slice(0,100);var id=el.getAttribute('id')||el.getAttribute('data-nav')||'';if(hr.indexOf('stripe.com')>-1||hr.indexOf('buy.stripe.com')>-1){send('checkout_start',{element_id:id,element_text:tx,metadata:JSON.stringify({href:hr})})}else if(el.classList.contains('btn-primary')||el.classList.contains('btn-secondary')||id){send('cta_click',{element_id:id||'btn',element_text:tx,metadata:JSON.stringify({href:hr})})}break}el=el.parentElement}});
+    var st=Date.now();window.addEventListener('beforeunload',function(){send('time_on_page',{metadata:JSON.stringify({seconds:Math.round((Date.now()-st)/1000)})})});
+  })();
+  </script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', -apple-system, sans-serif; background: ${bg}; color: ${text}; -webkit-font-smoothing: antialiased; }

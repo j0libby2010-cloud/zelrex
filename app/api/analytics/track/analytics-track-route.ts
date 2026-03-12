@@ -8,37 +8,32 @@ const supabase = createClient(
 
 const VALID_EVENTS = ['pageview', 'cta_click', 'checkout_start', 'scroll_depth', 'time_on_page'];
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
 /**
  * POST /api/analytics/track
- * 
- * Receives tracking events from deployed freelancer websites.
- * Called by the injected tracker script via sendBeacon or XHR.
- * 
- * CORS is open since this needs to be called from any deployed domain.
  */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // Validate required fields
     if (!body.user_id || !body.event_type) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400, headers: CORS_HEADERS });
     }
 
     if (!VALID_EVENTS.includes(body.event_type)) {
-      return NextResponse.json({ error: 'Invalid event type' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid event type' }, { status: 400, headers: CORS_HEADERS });
     }
 
-    // Rate limit: max 100 events per visitor per session (prevent abuse)
-    // For v1, we'll just insert. Add rate limiting later if needed.
-
-    // Parse metadata if it's a string
     let metadata = body.metadata || {};
     if (typeof metadata === 'string') {
       try { metadata = JSON.parse(metadata); } catch { metadata = {}; }
     }
 
-    // Get approximate country from headers (Vercel provides this)
     const country = req.headers.get('x-vercel-ip-country') || 
                     req.headers.get('cf-ipcountry') || 
                     'unknown';
@@ -59,27 +54,22 @@ export async function POST(req: Request) {
 
     if (error) {
       console.error('[Analytics] Insert failed:', error);
-      return NextResponse.json({ ok: false }, { status: 500 });
+      return NextResponse.json({ ok: false }, { status: 500, headers: CORS_HEADERS });
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true }, { headers: CORS_HEADERS });
   } catch (e) {
     console.error('[Analytics] Error:', e);
-    return NextResponse.json({ ok: false }, { status: 500 });
+    return NextResponse.json({ ok: false }, { status: 500, headers: CORS_HEADERS });
   }
 }
 
 /**
- * OPTIONS — CORS preflight for cross-origin requests from deployed sites
+ * OPTIONS — CORS preflight
  */
 export async function OPTIONS() {
   return new NextResponse(null, {
     status: 204,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-      'Access-Control-Max-Age': '86400',
-    },
+    headers: CORS_HEADERS,
   });
 }
