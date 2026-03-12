@@ -415,7 +415,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const closeSettings = () => {
     if (settingsClosing) return;
     setSettingsClosing(true);
-    setTimeout(() => { setSettingsOpen(false); setSettingsClosing(false); }, 500);
+    setTimeout(() => { setSettingsOpen(false); setSettingsClosing(false); }, 300);
   };
   const openGoalModal = (e: React.MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -427,7 +427,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const closeGoalModal = () => {
     if (goalClosing) return;
     setGoalClosing(true);
-    setTimeout(() => { setGoalModalOpen(false); setGoalClosing(false); }, 500);
+    setTimeout(() => { setGoalModalOpen(false); setGoalClosing(false); }, 300);
   };
   const openNotif = (e: React.MouseEvent) => {
     if (notifOpen) { closeNotif(); return; }
@@ -438,7 +438,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const closeNotif = () => {
     if (notifClosing) return;
     setNotifClosing(true);
-    setTimeout(() => { setNotifOpen(false); setNotifClosing(false); }, 500);
+    setTimeout(() => { setNotifOpen(false); setNotifClosing(false); }, 300);
   };
 
   const [chats, setChats] = useState<Chat[]>([{ id: uid("chat"), title: "New business", messages: [], updatedAt: Date.now() }]);
@@ -1651,39 +1651,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .burger-top.open{width:18px;transform:rotate(45deg)}
         .burger-mid.open{width:0;opacity:0}
         .burger-bot.open{width:18px;transform:rotate(-45deg)}
-        /* ── Tail-from-button overlay animations (0.5 s) ───── */
-        @keyframes vacuumIn{
-          0%{opacity:0;transform:scale(0.04,0.02);filter:blur(16px);border-radius:50%}
-          15%{opacity:0.6;transform:scale(0.10,0.06);filter:blur(12px);border-radius:44%}
-          35%{opacity:0.85;transform:scale(0.32,0.22);filter:blur(6px);border-radius:32%}
-          55%{opacity:0.95;transform:scale(0.62,0.55);filter:blur(2px);border-radius:16%}
-          75%{opacity:1;transform:scale(0.88,0.86);filter:blur(0.5px);border-radius:4%}
-          100%{opacity:1;transform:scale(1,1);filter:blur(0);border-radius:0%}
-        }
-        @keyframes vacuumOut{
-          0%{opacity:1;transform:scale(1,1);filter:blur(0);border-radius:0%}
-          25%{opacity:1;transform:scale(0.88,0.86);filter:blur(0.5px);border-radius:4%}
-          45%{opacity:0.95;transform:scale(0.62,0.55);filter:blur(2px);border-radius:16%}
-          65%{opacity:0.85;transform:scale(0.32,0.22);filter:blur(6px);border-radius:32%}
-          85%{opacity:0.6;transform:scale(0.10,0.06);filter:blur(12px);border-radius:44%}
-          100%{opacity:0;transform:scale(0.04,0.02);filter:blur(16px);border-radius:50%}
-        }
+        /* ── Tail-from-button overlay animations (0.3 s) ───── */
+        @keyframes vacuumIn{0%{opacity:0;transform:scale(0.04,0.02);filter:blur(16px);border-radius:50%}100%{opacity:1;transform:scale(1,1);filter:blur(0);border-radius:0%}}
+        @keyframes vacuumOut{0%{opacity:1;transform:scale(1,1);filter:blur(0);border-radius:0%}100%{opacity:0;transform:scale(0.04,0.02);filter:blur(16px);border-radius:50%}}
         @keyframes backdropFadeIn{from{opacity:0}to{opacity:1}}
         @keyframes backdropFadeOut{from{opacity:1}to{opacity:0}}
-        @keyframes dropdownVacuumIn{
-          0%{opacity:0;transform:scale(0.06,0.03) translateY(-2px);filter:blur(12px);border-radius:50%}
-          20%{opacity:0.7;transform:scale(0.18,0.12) translateY(-1px);filter:blur(8px);border-radius:40%}
-          45%{opacity:0.9;transform:scale(0.52,0.45) translateY(0);filter:blur(3px);border-radius:20%}
-          70%{opacity:1;transform:scale(0.88,0.86) translateY(0);filter:blur(0.5px);border-radius:8%}
-          100%{opacity:1;transform:scale(1,1) translateY(0);filter:blur(0);border-radius:inherit}
-        }
-        @keyframes dropdownVacuumOut{
-          0%{opacity:1;transform:scale(1,1) translateY(0);filter:blur(0);border-radius:inherit}
-          30%{opacity:1;transform:scale(0.88,0.86) translateY(0);filter:blur(0.5px);border-radius:8%}
-          55%{opacity:0.9;transform:scale(0.52,0.45) translateY(0);filter:blur(3px);border-radius:20%}
-          80%{opacity:0.7;transform:scale(0.18,0.12) translateY(-1px);filter:blur(8px);border-radius:40%}
-          100%{opacity:0;transform:scale(0.06,0.03) translateY(-2px);filter:blur(12px);border-radius:50%}
-        }
+        @keyframes dropdownVacuumIn{0%{opacity:0;transform:scale(0.06,0.03) translateY(-2px);filter:blur(12px);border-radius:50%}100%{opacity:1;transform:scale(1,1) translateY(0);filter:blur(0);border-radius:inherit}}
+        @keyframes dropdownVacuumOut{0%{opacity:1;transform:scale(1,1) translateY(0);filter:blur(0);border-radius:inherit}100%{opacity:0;transform:scale(0.06,0.03) translateY(-2px);filter:blur(12px);border-radius:50%}}
         @media(max-width:768px){
           .hide-mobile{display:none!important}
           .welcome-h1{font-size:28px!important}
@@ -1730,7 +1704,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 )}
               </HBtn>
               {(notifOpen || notifClosing) && (
-                <div style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 300, borderRadius: 16, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.92)", backdropFilter: "blur(40px) saturate(1.6)", WebkitBackdropFilter: "blur(40px) saturate(1.6)", boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", overflow: "hidden", transformOrigin: "top right", animation: `${notifClosing ? "dropdownVacuumOut" : "dropdownVacuumIn"} 500ms cubic-bezier(0.16,1,0.3,1) forwards` }}>
+                <div style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 300, borderRadius: 16, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.92)", backdropFilter: "blur(40px) saturate(1.6)", WebkitBackdropFilter: "blur(40px) saturate(1.6)", boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", overflow: "hidden", transformOrigin: "top right", animation: `${notifClosing ? "dropdownVacuumOut" : "dropdownVacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards` }}>
                   <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Notifications</span>
                     {notifications.length > 0 && <button onClick={() => { setNotifications(ns => ns.map(n => ({ ...n, read: true }))); db.markNotificationsRead(); }} style={{ background: "none", border: "none", color: C.accent, fontSize: 11, cursor: "pointer", fontWeight: 600 }}>Mark all read</button>}
@@ -1783,30 +1757,12 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               </button>
               <div style={{ position: "relative" }}>
                 <button type="button" className="z-glass" onClick={(e) => {
-                  if (deployData?.url) {
-                    analyticsOriginRef.current = { x: e.clientX, y: e.clientY };
-                    setAnalyticsOpen(true);
-                    if (isMobile) setSidebarOpen(false);
-                  } else {
-                    setAnalyticsTooltip(true);
-                    setTimeout(() => setAnalyticsTooltip(false), 3000);
-                  }
+                  analyticsOriginRef.current = { x: e.clientX, y: e.clientY };
+                  setAnalyticsOpen(true);
+                  if (isMobile) setSidebarOpen(false);
                 }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                   <Ic n="analytics" style={{ width: 15, height: 15, color: "#8B5CF6" }} /> Business Analytics
                 </button>
-                {analyticsTooltip && !deployData?.url && (
-                  <div style={{
-                    position: "absolute", left: "calc(100% + 8px)", top: "50%", transform: "translateY(-50%)",
-                    padding: "8px 14px", borderRadius: 12, whiteSpace: "nowrap",
-                    background: "rgba(12,16,24,0.95)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-                    border: `1px solid ${C.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-                    fontSize: 12, color: C.textSec, zIndex: 100,
-                    animation: "tooltipIn 200ms ease",
-                  }}>
-                    No deployed business yet. Deploy your site first.
-                    <style>{`@keyframes tooltipIn { from { opacity: 0; transform: translateY(-50%) translateX(-4px); } to { opacity: 1; transform: translateY(-50%) translateX(0); } }`}</style>
-                  </div>
-                )}
               </div>
               <button type="button" className="z-glass" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? C.accent : "#F59E0B" }} /> {userGoal ? "My Goal" : "Set Goal"}
@@ -2105,14 +2061,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           <div style={{
             position: "fixed", inset: 0, zIndex: 9550,
             transformOrigin: analyticsOriginRef.current ? `${analyticsOriginRef.current.x}px ${analyticsOriginRef.current.y}px` : "center center",
-            animation: `${analyticsClosing ? "vacuumOut" : "vacuumIn"} 500ms cubic-bezier(0.16,1,0.3,1) forwards`,
+            animation: `${analyticsClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`,
             pointerEvents: analyticsClosing ? "none" : undefined,
           }}>
             <AnalyticsDashboard
               userId={clerkUser?.id || ""}
               onClose={() => {
                 setAnalyticsClosing(true);
-                setTimeout(() => { setAnalyticsOpen(false); setAnalyticsClosing(false); }, 500);
+                setTimeout(() => { setAnalyticsOpen(false); setAnalyticsClosing(false); }, 300);
               }}
             />
           </div>
@@ -2120,7 +2076,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
         {/* ─── FULL-SCREEN SETTINGS ─────────────────────────── */}
         {(settingsOpen || settingsClosing) && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.95)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", transformOrigin: settingsOriginRef.current ? `${settingsOriginRef.current.x}px ${settingsOriginRef.current.y}px` : "center center", animation: `${settingsClosing ? "vacuumOut" : "vacuumIn"} 500ms cubic-bezier(0.16,1,0.3,1) forwards`, pointerEvents: settingsClosing ? "none" : undefined }}>
+          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.95)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", transformOrigin: settingsOriginRef.current ? `${settingsOriginRef.current.x}px ${settingsOriginRef.current.y}px` : "center center", animation: `${settingsClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: settingsClosing ? "none" : undefined }}>
             <style>{`
               .stg-tab { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 10px; border: none; background: none; color: ${C.textSec}; font-size: 13px; font-weight: 500; cursor: pointer; width: 100%; text-align: left; transition: all 500ms cubic-bezier(0.32,0.72,0,1); }
               .stg-tab::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0; background:linear-gradient(168deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.06) 18%,rgba(255,255,255,0.015) 45%,transparent 60%,rgba(255,255,255,0.025) 78%,rgba(255,255,255,0.09) 100%); box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.3),inset 0 -0.5px 0 rgba(255,255,255,0.05); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
@@ -2377,7 +2333,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {(goalModalOpen || goalClosing) && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", transformOrigin: goalOriginRef.current ? `${goalOriginRef.current.x}px ${goalOriginRef.current.y}px` : "center center", animation: `${goalClosing ? "vacuumOut" : "vacuumIn"} 500ms cubic-bezier(0.16,1,0.3,1) forwards`, pointerEvents: goalClosing ? "none" : undefined }}>
+          <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", transformOrigin: goalOriginRef.current ? `${goalOriginRef.current.x}px ${goalOriginRef.current.y}px` : "center center", animation: `${goalClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: goalClosing ? "none" : undefined }}>
             <div onClick={closeGoalModal} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} />
             <div style={{ position: "relative", width: 420, maxWidth: "90vw", borderRadius: 20, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.88)", backdropFilter: "blur(40px) saturate(1.8)", WebkitBackdropFilter: "blur(40px) saturate(1.8)", boxShadow: "0 32px 80px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", padding: 0, overflow: "hidden" }}>
               {/* Glass header */}
