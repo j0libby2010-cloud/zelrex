@@ -415,7 +415,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const closeSettings = () => {
     if (settingsClosing) return;
     setSettingsClosing(true);
-    setTimeout(() => { setSettingsOpen(false); setSettingsClosing(false); }, 400);
+    setTimeout(() => { setSettingsOpen(false); setSettingsClosing(false); }, 560);
   };
   const openGoalModal = (e: React.MouseEvent) => {
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -427,7 +427,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const closeGoalModal = () => {
     if (goalClosing) return;
     setGoalClosing(true);
-    setTimeout(() => { setGoalModalOpen(false); setGoalClosing(false); }, 400);
+    setTimeout(() => { setGoalModalOpen(false); setGoalClosing(false); }, 560);
   };
   const openNotif = (e: React.MouseEvent) => {
     if (notifOpen) { closeNotif(); return; }
@@ -438,7 +438,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const closeNotif = () => {
     if (notifClosing) return;
     setNotifClosing(true);
-    setTimeout(() => { setNotifOpen(false); setNotifClosing(false); }, 400);
+    setTimeout(() => { setNotifOpen(false); setNotifClosing(false); }, 560);
   };
 
   const [chats, setChats] = useState<Chat[]>([{ id: uid("chat"), title: "New business", messages: [], updatedAt: Date.now() }]);
@@ -1581,26 +1581,26 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:3px}
         ::selection{background:${C.accent}40}
         textarea::placeholder{color:${C.textMuted}}
-        /* ── Apple Liquid Glass — always-on refraction ────── */
-        .z-glass,.glass-btn{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.32,0.72,0,1);backdrop-filter:blur(12px) brightness(1.08) saturate(1.25);-webkit-backdrop-filter:blur(12px) brightness(1.08) saturate(1.25);box-shadow:0 0 0 0.5px rgba(255,255,255,0.10),inset 0 1px 0 rgba(255,255,255,0.25),inset 0 -0.5px 0 rgba(255,255,255,0.03)}
-        .z-glass::before,.glass-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0.35;background:linear-gradient(160deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.04) 15%,transparent 42%,transparent 58%,rgba(255,255,255,0.03) 80%,rgba(255,255,255,0.12) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -0.5px 0 rgba(255,255,255,0.04),inset 0.5px 0 0 rgba(255,255,255,0.04),inset -0.5px 0 0 rgba(255,255,255,0.04);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none;z-index:0}
+        /* ── Apple Liquid Glass — hover-only refraction ────── */
+        .z-glass,.glass-btn{position:relative;overflow:hidden;transition:all 560ms cubic-bezier(0.32,0.72,0,1);backdrop-filter:blur(0px) brightness(1) saturate(1);-webkit-backdrop-filter:blur(0px) brightness(1) saturate(1);box-shadow:0 0 0 0.5px rgba(255,255,255,0.10),inset 0 1px 0 rgba(255,255,255,0.08),inset 0 -0.5px 0 rgba(255,255,255,0.02)}
+        .z-glass::before,.glass-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(160deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.04) 15%,transparent 42%,transparent 58%,rgba(255,255,255,0.03) 80%,rgba(255,255,255,0.12) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -0.5px 0 rgba(255,255,255,0.04),inset 0.5px 0 0 rgba(255,255,255,0.04),inset -0.5px 0 0 rgba(255,255,255,0.04);transition:opacity 560ms cubic-bezier(0.32,0.72,0,1);pointer-events:none;z-index:0}
         .z-glass:hover::before,.glass-btn:hover::before{opacity:1}
-        .z-glass::after,.glass-btn::after{content:'';position:absolute;top:-50%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 40% 25%,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.02) 35%,transparent 70%);opacity:0.3;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none;z-index:0}
+        .z-glass::after,.glass-btn::after{content:'';position:absolute;top:-50%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 40% 25%,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.02) 35%,transparent 70%);opacity:0;transition:opacity 560ms cubic-bezier(0.32,0.72,0,1);pointer-events:none;z-index:0}
         .z-glass:hover::after,.glass-btn:hover::after{opacity:1}
         .z-glass:hover,.glass-btn:hover{background:rgba(255,255,255,0.05)!important;backdrop-filter:blur(20px) brightness(1.22) saturate(1.6);-webkit-backdrop-filter:blur(20px) brightness(1.22) saturate(1.6);box-shadow:0 0 0 0.5px rgba(255,255,255,0.18),0 2px 8px rgba(0,0,0,0.08),0 8px 32px rgba(0,0,0,0.04),inset 0 1px 0 rgba(255,255,255,0.45);transform:translateY(-0.5px)}
         .z-glass:active,.glass-btn:active{transform:scale(0.97) translateY(0);transition-duration:120ms}
         .z-glass>*,.glass-btn>*{position:relative;z-index:1}
         /* Accent variant */
-        .z-glass-accent{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.32,0.72,0,1);backdrop-filter:blur(12px) brightness(1.06) saturate(1.3);-webkit-backdrop-filter:blur(12px) brightness(1.06) saturate(1.3);box-shadow:0 0 0 0.5px rgba(74,144,255,0.12),inset 0 1px 0 rgba(74,144,255,0.25),inset 0 -0.5px 0 rgba(74,144,255,0.04)}
-        .z-glass-accent::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0.35;background:linear-gradient(160deg,rgba(74,144,255,0.24) 0%,rgba(74,144,255,0.04) 18%,transparent 48%,transparent 58%,rgba(74,144,255,0.03) 82%,rgba(74,144,255,0.16) 100%);box-shadow:inset 0 1px 0 rgba(74,144,255,0.4),inset 0 -0.5px 0 rgba(74,144,255,0.05);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .z-glass-accent::after{content:'';position:absolute;top:-50%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 40% 25%,rgba(74,144,255,0.15) 0%,rgba(74,144,255,0.02) 35%,transparent 70%);opacity:0.3;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-accent{position:relative;overflow:hidden;transition:all 560ms cubic-bezier(0.32,0.72,0,1);backdrop-filter:blur(0px) brightness(1) saturate(1);-webkit-backdrop-filter:blur(0px) brightness(1) saturate(1);box-shadow:0 0 0 0.5px rgba(74,144,255,0.12),inset 0 1px 0 rgba(74,144,255,0.08),inset 0 -0.5px 0 rgba(74,144,255,0.02)}
+        .z-glass-accent::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(160deg,rgba(74,144,255,0.24) 0%,rgba(74,144,255,0.04) 18%,transparent 48%,transparent 58%,rgba(74,144,255,0.03) 82%,rgba(74,144,255,0.16) 100%);box-shadow:inset 0 1px 0 rgba(74,144,255,0.4),inset 0 -0.5px 0 rgba(74,144,255,0.05);transition:opacity 560ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-accent::after{content:'';position:absolute;top:-50%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 40% 25%,rgba(74,144,255,0.15) 0%,rgba(74,144,255,0.02) 35%,transparent 70%);opacity:0;transition:opacity 560ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
         .z-glass-accent:hover::before,.z-glass-accent:hover::after{opacity:1}
         .z-glass-accent:hover{background:rgba(74,144,255,0.06)!important;backdrop-filter:blur(20px) brightness(1.18) saturate(1.6);-webkit-backdrop-filter:blur(20px) brightness(1.18) saturate(1.6);box-shadow:0 0 0 0.5px rgba(74,144,255,0.25),0 2px 8px rgba(74,144,255,0.06),0 8px 32px rgba(0,0,0,0.04),0 0 24px rgba(74,144,255,0.04),inset 0 1px 0 rgba(74,144,255,0.4);transform:translateY(-0.5px)}
         .z-glass-accent:active{transform:scale(0.97) translateY(0);transition-duration:120ms}
         /* Danger variant */
-        .z-glass-danger{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.32,0.72,0,1);backdrop-filter:blur(12px) brightness(1.05) saturate(1.25);-webkit-backdrop-filter:blur(12px) brightness(1.05) saturate(1.25);box-shadow:0 0 0 0.5px rgba(239,68,68,0.12),inset 0 1px 0 rgba(239,68,68,0.2),inset 0 -0.5px 0 rgba(239,68,68,0.03)}
-        .z-glass-danger::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0.35;background:linear-gradient(160deg,rgba(239,68,68,0.22) 0%,rgba(239,68,68,0.04) 18%,transparent 48%,transparent 58%,rgba(239,68,68,0.02) 82%,rgba(239,68,68,0.14) 100%);box-shadow:inset 0 1px 0 rgba(239,68,68,0.3),inset 0 -0.5px 0 rgba(239,68,68,0.04);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .z-glass-danger::after{content:'';position:absolute;top:-50%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 40% 25%,rgba(239,68,68,0.10) 0%,rgba(239,68,68,0.015) 35%,transparent 70%);opacity:0.3;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-danger{position:relative;overflow:hidden;transition:all 560ms cubic-bezier(0.32,0.72,0,1);backdrop-filter:blur(0px) brightness(1) saturate(1);-webkit-backdrop-filter:blur(0px) brightness(1) saturate(1);box-shadow:0 0 0 0.5px rgba(239,68,68,0.12),inset 0 1px 0 rgba(239,68,68,0.06),inset 0 -0.5px 0 rgba(239,68,68,0.02)}
+        .z-glass-danger::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(160deg,rgba(239,68,68,0.22) 0%,rgba(239,68,68,0.04) 18%,transparent 48%,transparent 58%,rgba(239,68,68,0.02) 82%,rgba(239,68,68,0.14) 100%);box-shadow:inset 0 1px 0 rgba(239,68,68,0.3),inset 0 -0.5px 0 rgba(239,68,68,0.04);transition:opacity 560ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .z-glass-danger::after{content:'';position:absolute;top:-50%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 40% 25%,rgba(239,68,68,0.10) 0%,rgba(239,68,68,0.015) 35%,transparent 70%);opacity:0;transition:opacity 560ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
         .z-glass-danger:hover::before,.z-glass-danger:hover::after{opacity:1}
         .z-glass-danger:hover{background:rgba(239,68,68,0.06)!important;backdrop-filter:blur(20px) brightness(1.12) saturate(1.5);-webkit-backdrop-filter:blur(20px) brightness(1.12) saturate(1.5);box-shadow:0 0 0 0.5px rgba(239,68,68,0.25),0 2px 8px rgba(239,68,68,0.06),0 8px 32px rgba(0,0,0,0.04),0 0 20px rgba(239,68,68,0.03),inset 0 1px 0 rgba(239,68,68,0.3);transform:translateY(-0.5px)}
         .z-glass-danger:active{transform:scale(0.97) translateY(0);transition-duration:120ms}
@@ -1621,9 +1621,9 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .user-row .msg-actions{opacity:0}
         .user-row:hover .msg-actions{opacity:1}
         .user-row .msg-act{color:rgba(255,255,255,0.55)}
-        .msg-act{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:999px;border:1px solid rgba(255,255,255,0.06);background:none;color:${C.textMuted};cursor:pointer;transition:all 500ms cubic-bezier(0.32,0.72,0,1);padding:0;backdrop-filter:blur(8px) brightness(1.05) saturate(1.15);-webkit-backdrop-filter:blur(8px) brightness(1.05) saturate(1.15);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.12)}
-        .msg-act::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0.25;background:linear-gradient(160deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.03) 15%,transparent 45%,transparent 55%,rgba(255,255,255,0.02) 80%,rgba(255,255,255,0.10) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.35),inset 0 -0.5px 0 rgba(255,255,255,0.03);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .msg-act::after{content:'';position:absolute;top:-50%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 40% 25%,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.02) 35%,transparent 70%);opacity:0.2;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .msg-act{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:999px;border:1px solid rgba(255,255,255,0.06);background:none;color:${C.textMuted};cursor:pointer;transition:all 560ms cubic-bezier(0.32,0.72,0,1);padding:0;backdrop-filter:blur(0px) brightness(1) saturate(1);-webkit-backdrop-filter:blur(0px) brightness(1) saturate(1);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.06)}
+        .msg-act::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(160deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.03) 15%,transparent 45%,transparent 55%,rgba(255,255,255,0.02) 80%,rgba(255,255,255,0.10) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.35),inset 0 -0.5px 0 rgba(255,255,255,0.03);transition:opacity 560ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
+        .msg-act::after{content:'';position:absolute;top:-50%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 40% 25%,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.02) 35%,transparent 70%);opacity:0;transition:opacity 560ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
         .msg-act:hover{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.12);backdrop-filter:blur(20px) brightness(1.22) saturate(1.6);-webkit-backdrop-filter:blur(20px) brightness(1.22) saturate(1.6);box-shadow:0 0 0 0.5px rgba(255,255,255,0.18),0 2px 8px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.35);color:${C.text};transform:translateY(-0.5px)}
         .msg-act:hover::before,.msg-act:hover::after{opacity:1}
         .msg-act:active{transform:scale(0.92) translateY(0);transition-duration:120ms}
@@ -1650,13 +1650,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .burger-top.open{width:18px;transform:rotate(45deg)}
         .burger-mid.open{width:0;opacity:0}
         .burger-bot.open{width:18px;transform:rotate(-45deg)}
-        /* ── Vacuum / smoke overlay animations (0.4 s) ───── */
-        @keyframes vacuumIn{0%{opacity:0;transform:scale(0.15) rotate(-4deg);filter:blur(18px) brightness(1.8)}40%{opacity:0.85;transform:scale(1.04) rotate(0.5deg);filter:blur(2px) brightness(1.08)}100%{opacity:1;transform:scale(1) rotate(0deg);filter:blur(0) brightness(1)}}
-        @keyframes vacuumOut{0%{opacity:1;transform:scale(1) rotate(0deg);filter:blur(0) brightness(1)}55%{opacity:0.45;transform:scale(0.75) rotate(-2deg);filter:blur(5px) brightness(1.35)}100%{opacity:0;transform:scale(0.08) rotate(-6deg);filter:blur(22px) brightness(2.2)}}
+        /* ── macOS-style smooth overlay animations (0.56 s) ───── */
+        @keyframes vacuumIn{0%{opacity:0;transform:scale(0.88);filter:blur(8px)}60%{opacity:1;transform:scale(1.012);filter:blur(0.5px)}100%{opacity:1;transform:scale(1);filter:blur(0)}}
+        @keyframes vacuumOut{0%{opacity:1;transform:scale(1);filter:blur(0)}40%{opacity:0.65;transform:scale(0.98);filter:blur(0.5px)}100%{opacity:0;transform:scale(0.88);filter:blur(8px)}}
         @keyframes backdropFadeIn{from{opacity:0}to{opacity:1}}
         @keyframes backdropFadeOut{from{opacity:1}to{opacity:0}}
-        @keyframes dropdownVacuumIn{0%{opacity:0;transform:scale(0.25) translateY(-6px) rotate(-2deg);filter:blur(14px) brightness(1.5)}45%{opacity:0.9;transform:scale(1.03) translateY(1px) rotate(0.3deg);filter:blur(1px) brightness(1.06)}100%{opacity:1;transform:scale(1) translateY(0) rotate(0deg);filter:blur(0) brightness(1)}}
-        @keyframes dropdownVacuumOut{0%{opacity:1;transform:scale(1) translateY(0) rotate(0deg);filter:blur(0) brightness(1)}50%{opacity:0.35;transform:scale(0.65) translateY(-5px) rotate(-1.5deg);filter:blur(5px) brightness(1.4)}100%{opacity:0;transform:scale(0.15) translateY(-10px) rotate(-5deg);filter:blur(18px) brightness(2)}}
+        @keyframes dropdownVacuumIn{0%{opacity:0;transform:scale(0.92) translateY(-4px);filter:blur(6px)}60%{opacity:1;transform:scale(1.008) translateY(0.5px);filter:blur(0)}100%{opacity:1;transform:scale(1) translateY(0);filter:blur(0)}}
+        @keyframes dropdownVacuumOut{0%{opacity:1;transform:scale(1) translateY(0);filter:blur(0)}40%{opacity:0.6;transform:scale(0.98) translateY(-1px);filter:blur(0.5px)}100%{opacity:0;transform:scale(0.92) translateY(-4px);filter:blur(6px)}}
         @media(max-width:768px){
           .hide-mobile{display:none!important}
           .welcome-h1{font-size:28px!important}
@@ -1703,7 +1703,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 )}
               </HBtn>
               {(notifOpen || notifClosing) && (
-                <div style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 300, borderRadius: 16, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.92)", backdropFilter: "blur(40px) saturate(1.6)", WebkitBackdropFilter: "blur(40px) saturate(1.6)", boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", overflow: "hidden", transformOrigin: "top right", animation: `${notifClosing ? "dropdownVacuumOut" : "dropdownVacuumIn"} 400ms cubic-bezier(0.22,0.68,0,1) forwards` }}>
+                <div style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 300, borderRadius: 16, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.92)", backdropFilter: "blur(40px) saturate(1.6)", WebkitBackdropFilter: "blur(40px) saturate(1.6)", boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", overflow: "hidden", transformOrigin: "top right", animation: `${notifClosing ? "dropdownVacuumOut" : "dropdownVacuumIn"} 560ms cubic-bezier(0.2,0.9,0.3,1) forwards` }}>
                   <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Notifications</span>
                     {notifications.length > 0 && <button onClick={() => { setNotifications(ns => ns.map(n => ({ ...n, read: true }))); db.markNotificationsRead(); }} style={{ background: "none", border: "none", color: C.accent, fontSize: 11, cursor: "pointer", fontWeight: 600 }}>Mark all read</button>}
@@ -2078,14 +2078,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           <div style={{
             position: "fixed", inset: 0, zIndex: 9550,
             transformOrigin: analyticsOriginRef.current ? `${analyticsOriginRef.current.x}px ${analyticsOriginRef.current.y}px` : "center center",
-            animation: `${analyticsClosing ? "vacuumOut" : "vacuumIn"} 400ms cubic-bezier(0.22,0.68,0,1) forwards`,
+            animation: `${analyticsClosing ? "vacuumOut" : "vacuumIn"} 560ms cubic-bezier(0.2,0.9,0.3,1) forwards`,
             pointerEvents: analyticsClosing ? "none" : undefined,
           }}>
             <AnalyticsDashboard
               userId={clerkUser?.id || ""}
               onClose={() => {
                 setAnalyticsClosing(true);
-                setTimeout(() => { setAnalyticsOpen(false); setAnalyticsClosing(false); }, 400);
+                setTimeout(() => { setAnalyticsOpen(false); setAnalyticsClosing(false); }, 560);
               }}
             />
           </div>
@@ -2093,7 +2093,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
         {/* ─── FULL-SCREEN SETTINGS ─────────────────────────── */}
         {(settingsOpen || settingsClosing) && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.95)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", transformOrigin: settingsOriginRef.current ? `${settingsOriginRef.current.x}px ${settingsOriginRef.current.y}px` : "center center", animation: `${settingsClosing ? "vacuumOut" : "vacuumIn"} 400ms cubic-bezier(0.22,0.68,0,1) forwards`, pointerEvents: settingsClosing ? "none" : undefined }}>
+          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.95)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", transformOrigin: settingsOriginRef.current ? `${settingsOriginRef.current.x}px ${settingsOriginRef.current.y}px` : "center center", animation: `${settingsClosing ? "vacuumOut" : "vacuumIn"} 560ms cubic-bezier(0.2,0.9,0.3,1) forwards`, pointerEvents: settingsClosing ? "none" : undefined }}>
             <style>{`
               .stg-tab { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 10px; border: none; background: none; color: ${C.textSec}; font-size: 13px; font-weight: 500; cursor: pointer; width: 100%; text-align: left; transition: all 500ms cubic-bezier(0.32,0.72,0,1); }
               .stg-tab::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0; background:linear-gradient(168deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.06) 18%,rgba(255,255,255,0.015) 45%,transparent 60%,rgba(255,255,255,0.025) 78%,rgba(255,255,255,0.09) 100%); box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.3),inset 0 -0.5px 0 rgba(255,255,255,0.05); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
@@ -2350,7 +2350,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {(goalModalOpen || goalClosing) && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", transformOrigin: goalOriginRef.current ? `${goalOriginRef.current.x}px ${goalOriginRef.current.y}px` : "center center", animation: `${goalClosing ? "vacuumOut" : "vacuumIn"} 400ms cubic-bezier(0.22,0.68,0,1) forwards`, pointerEvents: goalClosing ? "none" : undefined }}>
+          <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", transformOrigin: goalOriginRef.current ? `${goalOriginRef.current.x}px ${goalOriginRef.current.y}px` : "center center", animation: `${goalClosing ? "vacuumOut" : "vacuumIn"} 560ms cubic-bezier(0.2,0.9,0.3,1) forwards`, pointerEvents: goalClosing ? "none" : undefined }}>
             <div onClick={closeGoalModal} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} />
             <div style={{ position: "relative", width: 420, maxWidth: "90vw", borderRadius: 20, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.88)", backdropFilter: "blur(40px) saturate(1.8)", WebkitBackdropFilter: "blur(40px) saturate(1.8)", boxShadow: "0 32px 80px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", padding: 0, overflow: "hidden" }}>
               {/* Glass header */}
