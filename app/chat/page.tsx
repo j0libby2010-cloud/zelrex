@@ -1116,7 +1116,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='${encodeURIComponent(accent)}'/><text x='16' y='22' text-anchor='middle' fill='white' font-family='system-ui,sans-serif' font-weight='700' font-size='18'>${encodeURIComponent((name || 'Z')[0].toUpperCase())}</text></svg>" type="image/svg+xml">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   ${isEditorial ? '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">' : ""}
-  <script src="https://zelrex.ai/api/z/t.js?u=${clerkUser?.id || ''}" defer></script>
+  <script src="https://zelrex.ai/api/z/t?u=${clerkUser?.id || ''}" defer></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', -apple-system, sans-serif; background: ${bg}; color: ${text}; -webkit-font-smoothing: antialiased; }
