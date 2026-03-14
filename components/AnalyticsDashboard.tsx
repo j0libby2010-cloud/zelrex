@@ -80,6 +80,193 @@ const liquidPill: React.CSSProperties = {
 const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
 const EASE_SMOOTH = "cubic-bezier(0.25, 0.46, 0.45, 0.94)";
 
+/* ─── Sliding Glass Bubble ─────────────────────────────────── */
+function SlidingGlassPill<T extends string>({
+  items,
+  active,
+  onChange,
+  renderLabel,
+  pillStyle,
+  containerStyle,
+  itemStyle,
+  activeColor = G.accentSoft,
+  inactiveColor = G.textMuted,
+}: {
+  items: T[];
+  active: T;
+  onChange: (v: T) => void;
+  renderLabel: (v: T) => string;
+  pillStyle?: React.CSSProperties;
+  containerStyle?: React.CSSProperties;
+  itemStyle?: React.CSSProperties;
+  activeColor?: string;
+  inactiveColor?: string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Map<T, HTMLButtonElement>>(new Map());
+  const [bubble, setBubble] = useState({ left: 0, width: 0 });
+  const [ready, setReady] = useState(false);
+
+  const measure = useCallback(() => {
+    const container = containerRef.current;
+    const el = itemRefs.current.get(active);
+    if (!container || !el) return;
+    const cr = container.getBoundingClientRect();
+    const er = el.getBoundingClientRect();
+    setBubble({ left: er.left - cr.left, width: er.width });
+    if (!ready) setReady(true);
+  }, [active, ready]);
+
+  useEffect(() => { measure(); }, [measure]);
+  useEffect(() => {
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [measure]);
+
+  return (
+    <div ref={containerRef} style={{ display: "flex", position: "relative", gap: 2, padding: 3, ...containerStyle }}>
+      {/* Sliding liquid glass bubble */}
+      <div
+        style={{
+          position: "absolute",
+          top: 3, left: bubble.left, width: bubble.width,
+          height: "calc(100% - 6px)",
+          borderRadius: 999,
+          background: "linear-gradient(160deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.025) 25%, rgba(255,255,255,0.015) 60%, rgba(255,255,255,0.04) 100%)",
+          backdropFilter: "blur(20px) brightness(1.15) saturate(1.5)",
+          WebkitBackdropFilter: "blur(20px) brightness(1.15) saturate(1.5)",
+          boxShadow: `
+            0 0.5px 0 0 rgba(255,255,255,0.12) inset,
+            0 -0.5px 0 0 rgba(255,255,255,0.03) inset,
+            0 0 0 0.5px rgba(255,255,255,0.10),
+            0 2px 8px rgba(0,0,0,0.10),
+            0 4px 16px rgba(0,0,0,0.08)
+          `,
+          transition: ready
+            ? `left 500ms cubic-bezier(0.32, 0.72, 0, 1), width 500ms cubic-bezier(0.32, 0.72, 0, 1)`
+            : "none",
+          pointerEvents: "none",
+          zIndex: 0,
+          ...pillStyle,
+        }}
+      />
+      {items.map(item => (
+        <button
+          key={item}
+          ref={el => { if (el) itemRefs.current.set(item, el); }}
+          className="z-glass-tab"
+          onClick={() => onChange(item)}
+          style={{
+            position: "relative", zIndex: 1,
+            padding: "7px 15px", borderRadius: 999,
+            border: "none", cursor: "pointer",
+            background: "transparent",
+            color: active === item ? activeColor : inactiveColor,
+            fontSize: 12, fontWeight: 550, letterSpacing: "0.005em",
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif",
+            transition: `color 350ms cubic-bezier(0.32, 0.72, 0, 1)`,
+            ...itemStyle,
+          }}
+        >
+          {renderLabel(item)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Sliding Glass Tab Bar ────────────────────────────────── */
+function SlidingGlassTabBar<T extends string>({
+  items,
+  active,
+  onChange,
+  renderLabel,
+}: {
+  items: T[];
+  active: T;
+  onChange: (v: T) => void;
+  renderLabel: (v: T) => string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Map<T, HTMLDivElement>>(new Map());
+  const [bubble, setBubble] = useState({ left: 0, width: 0 });
+  const [ready, setReady] = useState(false);
+
+  const measure = useCallback(() => {
+    const container = containerRef.current;
+    const el = itemRefs.current.get(active);
+    if (!container || !el) return;
+    const cr = container.getBoundingClientRect();
+    const er = el.getBoundingClientRect();
+    setBubble({ left: er.left - cr.left, width: er.width });
+    if (!ready) setReady(true);
+  }, [active, ready]);
+
+  useEffect(() => { measure(); }, [measure]);
+  useEffect(() => {
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [measure]);
+
+  return (
+    <div ref={containerRef} style={{
+      display: "flex", position: "relative",
+      borderBottom: `0.5px solid ${G.glassBorder}`, padding: "0 24px",
+      background: "linear-gradient(180deg, rgba(255,255,255,0.012) 0%, transparent 100%)",
+    }}>
+      {/* Sliding liquid glass bubble behind active tab */}
+      <div style={{
+        position: "absolute",
+        bottom: -0.5, left: bubble.left, width: bubble.width,
+        height: 2,
+        borderRadius: 999,
+        background: `linear-gradient(90deg, transparent, ${G.accent}, transparent)`,
+        boxShadow: `0 0 8px ${G.accent}30, 0 0 16px ${G.accent}10`,
+        transition: ready
+          ? `left 500ms cubic-bezier(0.32, 0.72, 0, 1), width 400ms cubic-bezier(0.32, 0.72, 0, 1)`
+          : "none",
+        pointerEvents: "none",
+        zIndex: 2,
+      }}/>
+      {/* Glass highlight behind active tab */}
+      <div style={{
+        position: "absolute",
+        top: 4, left: bubble.left, width: bubble.width,
+        height: "calc(100% - 8px)",
+        borderRadius: 10,
+        background: "linear-gradient(160deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.01) 40%, transparent 70%)",
+        backdropFilter: "blur(12px) brightness(1.08)",
+        WebkitBackdropFilter: "blur(12px) brightness(1.08)",
+        boxShadow: `0 0.5px 0 0 rgba(255,255,255,0.06) inset`,
+        transition: ready
+          ? `left 500ms cubic-bezier(0.32, 0.72, 0, 1), width 400ms cubic-bezier(0.32, 0.72, 0, 1), opacity 300ms ease`
+          : "none",
+        pointerEvents: "none",
+        zIndex: 0,
+      }}/>
+      {items.map(item => (
+        <div
+          key={item}
+          ref={el => { if (el) itemRefs.current.set(item, el); }}
+          onClick={() => onChange(item)}
+          style={{
+            position: "relative", zIndex: 1,
+            padding: "15px 22px", fontSize: 13, fontWeight: 550,
+            textTransform: "capitalize", cursor: "pointer",
+            color: active === item ? G.accentSoft : G.textMuted,
+            letterSpacing: "0.005em",
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif",
+            transition: `color 350ms cubic-bezier(0.32, 0.72, 0, 1)`,
+            userSelect: "none",
+          }}
+        >
+          {renderLabel(item)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function AnalyticsDashboard({ userId, onClose, deployed = false }: { userId: string; onClose: () => void; deployed?: boolean }) {
   const [range, setRange] = useState<TimeRange>("30d");
   const [data, setData] = useState<AnalyticsData | null>(null);
@@ -114,9 +301,9 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9600,
-      background: "rgba(2,3,5,0.88)",
-      backdropFilter: "blur(40px) saturate(1.2)",
-      WebkitBackdropFilter: "blur(40px) saturate(1.2)",
+      background: "rgba(2,3,5,0.82)",
+      backdropFilter: "blur(72px) saturate(1.3) brightness(0.92)",
+      WebkitBackdropFilter: "blur(72px) saturate(1.3) brightness(0.92)",
       display: "flex", flexDirection: "column", overflow: "hidden",
       opacity: mounted ? 1 : 0,
       transition: `opacity 450ms ${EASE}`,
@@ -158,21 +345,85 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
         }
         .z-rb:hover { background: rgba(255,255,255,0.05) !important; }
         .z-rb:active { transform: scale(0.97); }
+        /* Liquid glass tab buttons (inside sliding pill) */
+        .z-glass-tab {
+          position: relative;
+          overflow: hidden;
+          transition: all 500ms cubic-bezier(0.32,0.72,0,1);
+        }
+        .z-glass-tab::before {
+          content: '';
+          position: absolute; inset: 0;
+          border-radius: inherit;
+          opacity: 0;
+          background: linear-gradient(160deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 15%, transparent 42%, transparent 58%, rgba(255,255,255,0.03) 80%, rgba(255,255,255,0.10) 100%);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -0.5px 0 rgba(255,255,255,0.03);
+          transition: opacity 500ms cubic-bezier(0.32,0.72,0,1);
+          pointer-events: none;
+          z-index: 0;
+        }
+        .z-glass-tab:hover::before { opacity: 1; }
+        .z-glass-tab::after {
+          content: '';
+          position: absolute;
+          top: -50%; left: 5%; width: 90%; height: 80%;
+          border-radius: 50%;
+          background: radial-gradient(ellipse at 40% 25%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 35%, transparent 70%);
+          opacity: 0;
+          transition: opacity 500ms cubic-bezier(0.32,0.72,0,1);
+          pointer-events: none;
+          z-index: 0;
+        }
+        .z-glass-tab:hover::after { opacity: 1; }
+        .z-glass-tab:hover {
+          background: rgba(255,255,255,0.04) !important;
+        }
+        .z-glass-tab:active { transform: scale(0.95); transition-duration: 120ms; }
+        .z-glass-tab > * { position: relative; z-index: 1; }
+        /* Apple liquid glass hover for close button */
+        .z-close {
+          position: relative;
+          overflow: hidden;
+          transition: all 500ms cubic-bezier(0.32,0.72,0,1) !important;
+          backdrop-filter: none;
+          -webkit-backdrop-filter: none;
+        }
+        .z-close::before {
+          content: '';
+          position: absolute; inset: 0;
+          border-radius: inherit;
+          opacity: 0;
+          background: linear-gradient(160deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 15%, transparent 42%, transparent 58%, rgba(255,255,255,0.03) 80%, rgba(255,255,255,0.12) 100%);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -0.5px 0 rgba(255,255,255,0.04);
+          transition: opacity 500ms cubic-bezier(0.32,0.72,0,1);
+          pointer-events: none;
+        }
+        .z-close::after {
+          content: '';
+          position: absolute;
+          top: -50%; left: 5%; width: 90%; height: 80%;
+          border-radius: 50%;
+          background: radial-gradient(ellipse at 40% 25%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 35%, transparent 70%);
+          opacity: 0;
+          transition: opacity 500ms cubic-bezier(0.32,0.72,0,1);
+          pointer-events: none;
+        }
+        .z-close:hover::before, .z-close:hover::after { opacity: 1; }
         .z-ct {
           transition: all 300ms ${EASE};
           cursor: pointer;
           position: relative;
         }
         .z-ct:hover { background: rgba(255,255,255,0.03) !important; }
-        .z-close {
-          transition: all 350ms ${EASE};
-        }
         .z-close:hover {
-          background: rgba(255,255,255,0.06) !important;
-          border-color: rgba(255,255,255,0.10) !important;
-          transform: scale(1.05);
+          background: rgba(255,255,255,0.05) !important;
+          border-color: rgba(255,255,255,0.12) !important;
+          backdrop-filter: blur(20px) brightness(1.22) saturate(1.6) !important;
+          -webkit-backdrop-filter: blur(20px) brightness(1.22) saturate(1.6) !important;
+          box-shadow: 0 0 0 0.5px rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.45) !important;
+          transform: translateY(-0.5px);
         }
-        .z-close:active { transform: scale(0.95); }
+        .z-close:active { transform: scale(0.92) translateY(0); transition-duration: 120ms; }
         .z-bar-glow {
           transition: height 300ms ${EASE}, opacity 300ms ${EASE};
         }
@@ -224,22 +475,13 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
             <div style={{ fontSize: 11.5, color: G.textMuted, marginTop: 1, letterSpacing: "0.01em" }}>Real-time performance</div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 3, padding: 3, ...liquidPill }}>
-          {ranges.map(r => (
-            <button key={r.key} className="z-rb" onClick={() => setRange(r.key)} style={{
-              padding: "7px 15px", borderRadius: 999, border: "none", cursor: "pointer",
-              background: range === r.key
-                ? `linear-gradient(135deg, rgba(59,130,246,0.14), rgba(59,130,246,0.06))`
-                : "transparent",
-              color: range === r.key ? G.accentSoft : G.textMuted,
-              fontSize: 12, fontWeight: 550, letterSpacing: "0.005em",
-              fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif",
-              boxShadow: range === r.key
-                ? `0 0 16px rgba(59,130,246,0.08), inset 0 0.5px 0 rgba(255,255,255,0.08)`
-                : "none",
-            }}>{r.label}</button>
-          ))}
-        </div>
+        <SlidingGlassPill
+          items={ranges.map(r => r.key)}
+          active={range}
+          onChange={setRange}
+          renderLabel={v => ranges.find(r => r.key === v)?.label || v}
+          containerStyle={{ ...liquidPill }}
+        />
         <button className="z-close" onClick={onClose} style={{
           width: 34, height: 34, borderRadius: 999,
           display: "flex", alignItems: "center", justifyContent: "center",
@@ -318,20 +560,12 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
               animation: `z-fadeUp 600ms ${EASE} ${280}ms both`,
               overflow: "hidden",
             }}>
-              <div style={{
-                display: "flex", borderBottom: `0.5px solid ${G.glassBorder}`, padding: "0 24px",
-                background: "linear-gradient(180deg, rgba(255,255,255,0.012) 0%, transparent 100%)",
-              }}>
-                {(["traffic", "revenue"] as const).map(tab => (
-                  <div key={tab} className="z-ct" onClick={() => setActiveChart(tab)} style={{
-                    padding: "15px 22px", fontSize: 13, fontWeight: 550, textTransform: "capitalize",
-                    color: activeChart === tab ? G.accentSoft : G.textMuted,
-                    borderBottom: activeChart === tab ? `1.5px solid ${G.accent}` : "1.5px solid transparent",
-                    letterSpacing: "0.005em",
-                    fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif",
-                  }}>{tab}</div>
-                ))}
-              </div>
+              <SlidingGlassTabBar
+                items={["traffic", "revenue"] as ("traffic" | "revenue")[]}
+                active={activeChart}
+                onChange={setActiveChart}
+                renderLabel={v => v}
+              />
               <div style={{ padding: "24px 24px 14px", height: 310 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   {activeChart === "traffic" ? (
