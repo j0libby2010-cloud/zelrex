@@ -1116,7 +1116,25 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='${encodeURIComponent(accent)}'/><text x='16' y='22' text-anchor='middle' fill='white' font-family='system-ui,sans-serif' font-weight='700' font-size='18'>${encodeURIComponent((name || 'Z')[0].toUpperCase())}</text></svg>" type="image/svg+xml">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   ${isEditorial ? '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">' : ""}
-  <script src="https://zelrex.ai/api/z/t?u=${clerkUser?.id || ''}" defer></script>
+  <script src="https://zelrex.ai/api/z/t.js?u=${clerkUser?.id || ''}" defer></script>
+  <script>
+  // Zelrex Analytics — inline backup (runs if external fails)
+  window.addEventListener('DOMContentLoaded',function(){
+    if(window._zpx)return; // external loaded, skip
+    window._zpx=1;
+    var U="${clerkUser?.id || ''}";if(!U)return;
+    var H="https://zelrex.ai/api/z/px";
+    var vid;try{vid=sessionStorage.getItem('_zv');if(!vid){vid=Math.random().toString(36).slice(2,10);sessionStorage.setItem('_zv',vid)}}catch(e){vid=Math.random().toString(36).slice(2,10)}
+    var dv=window.innerWidth<768?'m':window.innerWidth<1024?'t':'d';
+    var cp='home';
+    function px(t,x){try{new Image().src=H+'?u='+U+'&t='+t+'&v='+vid+'&p='+encodeURIComponent('/'+cp)+'&r='+encodeURIComponent(document.referrer||'')+'&d='+dv+(x?'&x='+encodeURIComponent(x):'')}catch(e){}}
+    px('pv');
+    var sm={};
+    window.addEventListener('scroll',function(){try{var h=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight)-window.innerHeight;if(h<=0)return;var p=Math.round(window.scrollY/h*100);[25,50,75,100].forEach(function(m){if(p>=m&&!sm[m]){sm[m]=1;px('sd',m)}})}catch(e){}},{passive:true});
+    document.addEventListener('click',function(e){try{var el=e.target;while(el&&el!==document.body){var nav=el.getAttribute&&el.getAttribute('data-nav');var hr=(el.getAttribute&&el.getAttribute('href'))||'';var tx=(el.textContent||'').trim().slice(0,60);var tag=el.tagName;if(nav){if(nav!==cp){cp=nav;sm={};setTimeout(function(){px('pv')},10)}if(el.classList&&el.classList.contains('btn-primary')){px('cc',nav+'|'+tx)}break}if(tag==='A'&&hr.indexOf('stripe.com')>-1){px('cs',tx);break}if(tag==='A'&&hr.indexOf('mailto:')>-1){px('cc','email|'+tx);break}if(el.classList&&(el.classList.contains('btn-primary')||el.classList.contains('btn-secondary'))){px('cc','btn|'+tx);break}el=el.parentElement}}catch(e){}},true);
+    var st=Date.now();window.addEventListener('beforeunload',function(){px('tp',Math.round((Date.now()-st)/1000))});
+  });
+  </script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', -apple-system, sans-serif; background: ${bg}; color: ${text}; -webkit-font-smoothing: antialiased; }
