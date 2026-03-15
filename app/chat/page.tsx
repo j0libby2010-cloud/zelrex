@@ -1119,16 +1119,32 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   <script>
   (function(){
     var U="${clerkUser?.id || ''}";if(!U)return;
-    var H="https://zelrex.ai/api/z/px";
+    var SB_URL="${process.env.NEXT_PUBLIC_SUPABASE_URL || ''}";
+    var SB_KEY="${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}";
+    if(!SB_URL||!SB_KEY)return;
     var vid;try{vid=sessionStorage.getItem('_zv');if(!vid){vid=Math.random().toString(36).slice(2,10);sessionStorage.setItem('_zv',vid)}}catch(e){vid=Math.random().toString(36).slice(2,10)}
     var dv=window.innerWidth<768?'m':window.innerWidth<1024?'t':'d';
     var cp='home';
-    function px(t,x){try{new Image().src=H+'?u='+U+'&t='+t+'&v='+vid+'&p='+encodeURIComponent('/'+cp)+'&r='+encodeURIComponent(document.referrer||'')+'&d='+dv+(x?'&x='+encodeURIComponent(x):'')}catch(e){}}
-    px('pv');
+    function send(t,x){
+      try{
+        var row={user_id:U,event_type:t,page_path:'/'+cp,visitor_id:vid,referrer:document.referrer||'',device_type:dv==='m'?'mobile':dv==='t'?'tablet':'desktop',country:'unknown',metadata:{}};
+        if(t==='scroll_depth')row.metadata={depth:parseInt(x)||0};
+        else if(t==='time_on_page')row.metadata={seconds:parseInt(x)||0};
+        else if(x){row.element_id=x.slice(0,200);row.element_text=x.slice(0,200);row.metadata={detail:x}}
+        var xhr=new XMLHttpRequest();
+        xhr.open('POST',SB_URL+'/rest/v1/site_analytics',true);
+        xhr.setRequestHeader('Content-Type','application/json');
+        xhr.setRequestHeader('apikey',SB_KEY);
+        xhr.setRequestHeader('Authorization','Bearer '+SB_KEY);
+        xhr.setRequestHeader('Prefer','return=minimal');
+        xhr.send(JSON.stringify(row));
+      }catch(e){}
+    }
+    send('pageview');
     var sm={};
-    window.addEventListener('scroll',function(){try{var h=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight)-window.innerHeight;if(h<=0)return;var p=Math.round(window.scrollY/h*100);[25,50,75,100].forEach(function(m){if(p>=m&&!sm[m]){sm[m]=1;px('sd',m)}})}catch(e){}},{passive:true});
-    document.addEventListener('click',function(e){try{var el=e.target;while(el&&el!==document.body){var nav=el.getAttribute&&el.getAttribute('data-nav');var hr=(el.getAttribute&&el.getAttribute('href'))||'';var tx=(el.textContent||'').trim().slice(0,60);var tag=el.tagName;if(nav){if(nav!==cp){cp=nav;sm={};setTimeout(function(){px('pv')},10)}if(el.classList&&el.classList.contains('btn-primary')){px('cc',nav+'|'+tx)}break}if(tag==='A'&&hr.indexOf('stripe.com')>-1){px('cs',tx);break}if(tag==='A'&&hr.indexOf('mailto:')>-1){px('cc','email|'+tx);break}if(el.classList&&(el.classList.contains('btn-primary')||el.classList.contains('btn-secondary'))){px('cc','btn|'+tx);break}el=el.parentElement}}catch(e){}},true);
-    var st=Date.now();window.addEventListener('beforeunload',function(){px('tp',Math.round((Date.now()-st)/1000))});
+    window.addEventListener('scroll',function(){try{var h=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight)-window.innerHeight;if(h<=0)return;var p=Math.round(window.scrollY/h*100);[25,50,75,100].forEach(function(m){if(p>=m&&!sm[m]){sm[m]=1;send('scroll_depth',''+m)}})}catch(e){}},{passive:true});
+    document.addEventListener('click',function(e){try{var el=e.target;while(el&&el!==document.body){var nav=el.getAttribute&&el.getAttribute('data-nav');var hr=(el.getAttribute&&el.getAttribute('href'))||'';var tx=(el.textContent||'').trim().slice(0,60);var tag=el.tagName;if(nav){if(nav!==cp){cp=nav;sm={};setTimeout(function(){send('pageview')},10)}if(el.classList&&el.classList.contains('btn-primary')){send('cta_click',nav+'|'+tx)}break}if(tag==='A'&&hr.indexOf('stripe.com')>-1){send('checkout_start',tx);break}if(tag==='A'&&hr.indexOf('mailto:')>-1){send('cta_click','email|'+tx);break}if(el.classList&&(el.classList.contains('btn-primary')||el.classList.contains('btn-secondary'))){send('cta_click','btn|'+tx);break}el=el.parentElement}}catch(e){}},true);
+    var st=Date.now();window.addEventListener('beforeunload',function(){send('time_on_page',''+Math.round((Date.now()-st)/1000))});
   })();
   </script>
   <style>
