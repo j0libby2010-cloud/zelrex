@@ -361,6 +361,10 @@ function PreviewFrame({ html }: { html: string }) {
 // MAIN
 // ═══════════════════════════════════════════════════════════════════════
 
+// Analytics env vars — must be at module level for Next.js to inline them
+const Z_SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const Z_SB_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
 export default function ChatPage({ initialChatId }: { initialChatId?: string } = {}) {
   // ─── Auth ──────────────────────────────────────────────────────────
   const { user: clerkUser, isLoaded: authLoaded, isSignedIn } = useUser();
@@ -1119,8 +1123,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   <script>
   (function(){
     var U="${clerkUser?.id || ''}";if(!U)return;
-    var SB_URL="${process.env.NEXT_PUBLIC_SUPABASE_URL || ''}";
-    var SB_KEY="${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}";
+    var SB_URL="${Z_SB_URL}";
+    var SB_KEY="${Z_SB_ANON}";
     if(!SB_URL||!SB_KEY)return;
     var vid;try{vid=sessionStorage.getItem('_zv');if(!vid){vid=Math.random().toString(36).slice(2,10);sessionStorage.setItem('_zv',vid)}}catch(e){vid=Math.random().toString(36).slice(2,10)}
     var dv=window.innerWidth<768?'m':window.innerWidth<1024?'t':'d';
