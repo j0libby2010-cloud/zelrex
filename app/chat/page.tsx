@@ -1123,9 +1123,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   <script>
   (function(){
     var U="${clerkUser?.id || ''}";if(!U)return;
-    var SB_URL="${Z_SB_URL}";
-    var SB_KEY="${Z_SB_ANON}";
-    if(!SB_URL||!SB_KEY)return;
+    var SB_URL="https://juxenowdpbrtoetxbcxm.supabase.co";
+    var SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1eGVub3dkcGJydG9ldHhiY3htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNzMzNTcsImV4cCI6MjA4Nzk0OTM1N30.irPMOgA0FQU4uJnSN41IrnE8qjWm3lcOkwOwNCTk7KA";
     var vid;try{vid=sessionStorage.getItem('_zv');if(!vid){vid=Math.random().toString(36).slice(2,10);sessionStorage.setItem('_zv',vid)}}catch(e){vid=Math.random().toString(36).slice(2,10)}
     var dv=window.innerWidth<768?'m':window.innerWidth<1024?'t':'d';
     var cp='home';
