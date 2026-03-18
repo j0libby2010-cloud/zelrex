@@ -6,6 +6,7 @@ import { useUser, useClerk, RedirectToSignIn } from "@clerk/nextjs";
 import { formatMessage } from "./formatMessage";
 import { WebsiteSurvey, SurveyData } from "@/website/pages/components/Websitesurvey";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
+import { WeeklySummaries } from "@/components/WeeklySummaries";
 import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
 
@@ -406,6 +407,9 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [analyticsClosing, setAnalyticsClosing] = useState(false);
   const [analyticsTooltip, setAnalyticsTooltip] = useState(false);
   const analyticsOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const [summariesOpen, setSummariesOpen] = useState(false);
+  const [summariesClosing, setSummariesClosing] = useState(false);
+  const summariesOriginRef = useRef<{ x: number; y: number } | null>(null);
   const settingsOriginRef = useRef<{ x: number; y: number } | null>(null);
   const goalOriginRef = useRef<{ x: number; y: number } | null>(null);
   const notifOriginRef = useRef<{ x: number; y: number } | null>(null);
@@ -1786,7 +1790,11 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
             {/* Tool buttons */}
             <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
-              <button type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+              <button type="button" className="z-glass" onClick={(e) => {
+                summariesOriginRef.current = { x: e.clientX, y: e.clientY };
+                setSummariesOpen(true);
+                if (isMobile) setSidebarOpen(false);
+              }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="calendar" style={{ width: 15, height: 15, color: "#10B981" }} /> Weekly Summaries
               </button>
               <div style={{ position: "relative" }}>
@@ -2108,6 +2116,24 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {/* GOAL MODAL */}
+        {/* ─── WEEKLY SUMMARIES ──────────────────────────────── */}
+        {(summariesOpen || summariesClosing) && (
+          <div style={{
+            position: "fixed", inset: 0, zIndex: 9560,
+            transformOrigin: summariesOriginRef.current ? `${summariesOriginRef.current.x}px ${summariesOriginRef.current.y}px` : "center center",
+            animation: `${summariesClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`,
+            pointerEvents: summariesClosing ? "none" : undefined,
+          }}>
+            <WeeklySummaries
+              userId={clerkUser?.id || ""}
+              onClose={() => {
+                setSummariesClosing(true);
+                setTimeout(() => { setSummariesOpen(false); setSummariesClosing(false); }, 300);
+              }}
+            />
+          </div>
+        )}
+
         {/* ─── ANALYTICS DASHBOARD ─────────────────────────── */}
         {(analyticsOpen || analyticsClosing) && (
           <div style={{
