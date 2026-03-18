@@ -20,34 +20,54 @@ interface ChatMsg {
   content: string;
 }
 
-// ─── Colors ─────────────────────────────────────────────────────
+// ─── Apple-grade design tokens (matching AnalyticsDashboard) ────
 const G = {
-  bg: "#06090F",
-  glass: "rgba(255,255,255,0.03)",
-  glassBorder: "rgba(255,255,255,0.06)",
-  glassBorderHover: "rgba(255,255,255,0.10)",
-  text: "rgba(255,255,255,0.88)",
-  textSec: "rgba(255,255,255,0.50)",
-  textMuted: "rgba(255,255,255,0.28)",
-  accent: "#4A90FF",
-  accentGlow: "rgba(74,144,255,0.15)",
-  green: "#10B981",
-  greenGlow: "rgba(16,185,129,0.15)",
-  amber: "#F59E0B",
-  purple: "#8B5CF6",
-  purpleGlow: "rgba(139,92,246,0.12)",
+  bg: "#050709",
+  glass: "rgba(255,255,255,0.025)",
+  glassBorder: "rgba(255,255,255,0.055)",
+  glassHighlight: "rgba(255,255,255,0.07)",
+  text: "rgba(255,255,255,0.92)",
+  textSec: "rgba(255,255,255,0.52)",
+  textMuted: "rgba(255,255,255,0.26)",
+  accent: "#3B82F6",
+  accentSoft: "#5B9BF7",
+  accentGlow: "rgba(59,130,246,0.12)",
+  green: "#34D399",
+  greenGlow: "rgba(52,211,153,0.10)",
+  amber: "#FBBF24",
+  amberGlow: "rgba(251,191,36,0.10)",
+  purple: "#A78BFA",
+  purpleGlow: "rgba(167,139,250,0.10)",
 };
 
-const glass: React.CSSProperties = {
-  background: "linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%)",
-  backdropFilter: "blur(40px) saturate(1.5)",
-  WebkitBackdropFilter: "blur(40px) saturate(1.5)",
-  border: `1px solid ${G.glassBorder}`,
-  boxShadow: "0 8px 32px rgba(0,0,0,0.3), inset 0 0.5px 0 rgba(255,255,255,0.08)",
-  borderRadius: 20,
+/* Apple Liquid Glass — layered depth, luminous edge, soft refraction */
+const liquidGlass: React.CSSProperties = {
+  background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.012) 50%, rgba(255,255,255,0.02) 100%)",
+  backdropFilter: "blur(64px) saturate(1.6) brightness(1.04)",
+  WebkitBackdropFilter: "blur(64px) saturate(1.6) brightness(1.04)",
+  border: `0.5px solid ${G.glassBorder}`,
+  boxShadow: `
+    0 0.5px 0 0 rgba(255,255,255,0.06) inset,
+    0 -0.5px 0 0 rgba(255,255,255,0.02) inset,
+    0 1px 3px rgba(0,0,0,0.12),
+    0 8px 40px rgba(0,0,0,0.22)
+  `,
+  borderRadius: 22,
 };
 
-const pill: React.CSSProperties = { ...glass, borderRadius: 999 };
+const liquidPill: React.CSSProperties = {
+  ...liquidGlass,
+  borderRadius: 999,
+  boxShadow: `
+    0 0.5px 0 0 rgba(255,255,255,0.06) inset,
+    0 1px 2px rgba(0,0,0,0.10),
+    0 4px 16px rgba(0,0,0,0.14)
+  `,
+};
+
+/* Smooth Apple-style spring easing */
+const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+const EASE_SPRING = "cubic-bezier(0.32, 0.72, 0, 1)";
 
 // ─── Main Component ─────────────────────────────────────────────
 export function WeeklySummaries({
@@ -228,45 +248,289 @@ export function WeeklySummaries({
     });
   };
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { requestAnimationFrame(() => setMounted(true)); }, []);
+
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9600,
-      background: "rgba(3,5,8,0.94)",
-      backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
+      background: "rgba(2,3,5,0.82)",
+      backdropFilter: "blur(72px) saturate(1.3) brightness(0.92)",
+      WebkitBackdropFilter: "blur(72px) saturate(1.3) brightness(0.92)",
       display: "flex", overflow: "hidden",
+      opacity: mounted ? 1 : 0,
+      transition: `opacity 450ms ${EASE}`,
     }}>
       <style>{`
-        @keyframes spin{to{transform:rotate(360deg)}}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-        .zs-card{transition:all 200ms ease}
-        .zs-card:hover{background:rgba(255,255,255,0.04)!important;border-color:rgba(255,255,255,0.10)!important;transform:translateY(-1px)}
-        .zs-btn{transition:all 200ms ease;cursor:pointer}
-        .zs-btn:hover{background:rgba(255,255,255,0.06)!important;transform:translateY(-1px)}
-        .zs-gs::-webkit-scrollbar{width:5px}
-        .zs-gs::-webkit-scrollbar-track{background:transparent}
-        .zs-gs::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:999px}
-        .zs-gs::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.15)}
-        .zs-chat-input:focus{outline:none;border-color:${G.accent}40!important;box-shadow:0 0 0 3px ${G.accent}10}
+        @keyframes zs-spin { to { transform: rotate(360deg) } }
+        @keyframes zs-fadeUp {
+          from { opacity: 0; transform: translateY(8px) scale(0.98); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes zs-fadeIn {
+          from { opacity: 0; }
+          to   { opacity: 1; }
+        }
+        @keyframes zs-pulse {
+          0%, 100% { opacity: 0.3; transform: scale(0.8); }
+          50%      { opacity: 1; transform: scale(1.1); }
+        }
+        /* ── Cards with liquid glass hover ── */
+        .zs-card {
+          transition: transform 500ms ${EASE_SPRING}, box-shadow 500ms ${EASE_SPRING}, border-color 500ms ${EASE_SPRING};
+          will-change: transform;
+          position: relative;
+          overflow: hidden;
+        }
+        .zs-card::before {
+          content: '';
+          position: absolute; inset: 0;
+          border-radius: inherit;
+          opacity: 0;
+          background: linear-gradient(160deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 15%, transparent 42%, transparent 58%, rgba(255,255,255,0.03) 80%, rgba(255,255,255,0.10) 100%);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -0.5px 0 rgba(255,255,255,0.03);
+          transition: opacity 500ms ${EASE_SPRING};
+          pointer-events: none;
+          z-index: 0;
+        }
+        .zs-card::after {
+          content: '';
+          position: absolute;
+          top: -50%; left: 5%; width: 90%; height: 80%;
+          border-radius: 50%;
+          background: radial-gradient(ellipse at 40% 25%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 35%, transparent 70%);
+          opacity: 0;
+          transition: opacity 500ms ${EASE_SPRING};
+          pointer-events: none;
+          z-index: 0;
+        }
+        .zs-card:hover::before, .zs-card:hover::after { opacity: 1; }
+        .zs-card:hover {
+          transform: translateY(-1px) scale(1.005) !important;
+          box-shadow:
+            0 0.5px 0 0 rgba(255,255,255,0.09) inset,
+            0 -0.5px 0 0 rgba(255,255,255,0.03) inset,
+            0 2px 8px rgba(0,0,0,0.15),
+            0 16px 48px rgba(0,0,0,0.28) !important;
+          border-color: rgba(255,255,255,0.10) !important;
+          backdrop-filter: blur(20px) brightness(1.15) saturate(1.5);
+          -webkit-backdrop-filter: blur(20px) brightness(1.15) saturate(1.5);
+        }
+        .zs-card:active { transform: scale(0.98) translateY(0) !important; transition-duration: 120ms; }
+        .zs-card > * { position: relative; z-index: 1; }
+
+        /* ── Buttons with liquid glass hover ── */
+        .zs-btn {
+          position: relative;
+          overflow: hidden;
+          transition: all 500ms ${EASE_SPRING};
+          cursor: pointer;
+        }
+        .zs-btn::before {
+          content: '';
+          position: absolute; inset: 0;
+          border-radius: inherit;
+          opacity: 0;
+          background: linear-gradient(160deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 15%, transparent 42%, transparent 58%, rgba(255,255,255,0.03) 80%, rgba(255,255,255,0.12) 100%);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -0.5px 0 rgba(255,255,255,0.04);
+          transition: opacity 500ms ${EASE_SPRING};
+          pointer-events: none;
+          z-index: 0;
+        }
+        .zs-btn::after {
+          content: '';
+          position: absolute;
+          top: -50%; left: 5%; width: 90%; height: 80%;
+          border-radius: 50%;
+          background: radial-gradient(ellipse at 40% 25%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 35%, transparent 70%);
+          opacity: 0;
+          transition: opacity 500ms ${EASE_SPRING};
+          pointer-events: none;
+          z-index: 0;
+        }
+        .zs-btn:hover::before, .zs-btn:hover::after { opacity: 1; }
+        .zs-btn:hover {
+          background: rgba(255,255,255,0.05) !important;
+          border-color: rgba(255,255,255,0.12) !important;
+          backdrop-filter: blur(20px) brightness(1.22) saturate(1.6);
+          -webkit-backdrop-filter: blur(20px) brightness(1.22) saturate(1.6);
+          box-shadow: 0 0 0 0.5px rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.45);
+          transform: translateY(-0.5px);
+        }
+        .zs-btn:active { transform: scale(0.97) translateY(0); transition-duration: 120ms; }
+        .zs-btn > * { position: relative; z-index: 1; }
+
+        /* ── Green accent variant ── */
+        .zs-btn-green {
+          position: relative;
+          overflow: hidden;
+          transition: all 500ms ${EASE_SPRING};
+          cursor: pointer;
+        }
+        .zs-btn-green::before {
+          content: '';
+          position: absolute; inset: 0;
+          border-radius: inherit;
+          opacity: 0;
+          background: linear-gradient(160deg, rgba(52,211,153,0.24) 0%, rgba(52,211,153,0.04) 18%, transparent 48%, transparent 58%, rgba(52,211,153,0.03) 82%, rgba(52,211,153,0.16) 100%);
+          box-shadow: inset 0 1px 0 rgba(52,211,153,0.4), inset 0 -0.5px 0 rgba(52,211,153,0.05);
+          transition: opacity 500ms ${EASE_SPRING};
+          pointer-events: none;
+        }
+        .zs-btn-green::after {
+          content: '';
+          position: absolute;
+          top: -50%; left: 5%; width: 90%; height: 80%;
+          border-radius: 50%;
+          background: radial-gradient(ellipse at 40% 25%, rgba(52,211,153,0.15) 0%, rgba(52,211,153,0.02) 35%, transparent 70%);
+          opacity: 0;
+          transition: opacity 500ms ${EASE_SPRING};
+          pointer-events: none;
+        }
+        .zs-btn-green:hover::before, .zs-btn-green:hover::after { opacity: 1; }
+        .zs-btn-green:hover {
+          background: rgba(52,211,153,0.06) !important;
+          border-color: rgba(52,211,153,0.18) !important;
+          backdrop-filter: blur(20px) brightness(1.18) saturate(1.6);
+          -webkit-backdrop-filter: blur(20px) brightness(1.18) saturate(1.6);
+          box-shadow: 0 0 0 0.5px rgba(52,211,153,0.25), 0 2px 8px rgba(52,211,153,0.06), 0 8px 32px rgba(0,0,0,0.04), 0 0 24px rgba(52,211,153,0.04), inset 0 1px 0 rgba(52,211,153,0.4);
+          transform: translateY(-0.5px);
+        }
+        .zs-btn-green:active { transform: scale(0.97) translateY(0); transition-duration: 120ms; }
+
+        /* ── Close button ── */
+        .zs-close {
+          position: relative;
+          overflow: hidden;
+          transition: all 500ms ${EASE_SPRING} !important;
+          backdrop-filter: none;
+          -webkit-backdrop-filter: none;
+        }
+        .zs-close::before {
+          content: '';
+          position: absolute; inset: 0;
+          border-radius: inherit;
+          opacity: 0;
+          background: linear-gradient(160deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 15%, transparent 42%, transparent 58%, rgba(255,255,255,0.03) 80%, rgba(255,255,255,0.12) 100%);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -0.5px 0 rgba(255,255,255,0.04);
+          transition: opacity 500ms ${EASE_SPRING};
+          pointer-events: none;
+        }
+        .zs-close::after {
+          content: '';
+          position: absolute;
+          top: -50%; left: 5%; width: 90%; height: 80%;
+          border-radius: 50%;
+          background: radial-gradient(ellipse at 40% 25%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 35%, transparent 70%);
+          opacity: 0;
+          transition: opacity 500ms ${EASE_SPRING};
+          pointer-events: none;
+        }
+        .zs-close:hover::before, .zs-close:hover::after { opacity: 1; }
+        .zs-close:hover {
+          background: rgba(255,255,255,0.05) !important;
+          border-color: rgba(255,255,255,0.12) !important;
+          backdrop-filter: blur(20px) brightness(1.22) saturate(1.6) !important;
+          -webkit-backdrop-filter: blur(20px) brightness(1.22) saturate(1.6) !important;
+          box-shadow: 0 0 0 0.5px rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.45) !important;
+          transform: translateY(-0.5px);
+        }
+        .zs-close:active { transform: scale(0.92) translateY(0); transition-duration: 120ms; }
+
+        /* ── Stat cards ── */
+        .zs-stat {
+          transition: transform 500ms ${EASE}, box-shadow 500ms ${EASE}, border-color 500ms ${EASE};
+          will-change: transform;
+        }
+        .zs-stat:hover {
+          transform: translateY(-1px) scale(1.005) !important;
+          box-shadow:
+            0 0.5px 0 0 rgba(255,255,255,0.09) inset,
+            0 -0.5px 0 0 rgba(255,255,255,0.03) inset,
+            0 2px 8px rgba(0,0,0,0.15),
+            0 16px 48px rgba(0,0,0,0.28) !important;
+          border-color: rgba(255,255,255,0.08) !important;
+        }
+
+        /* ── Scrollbar ── */
+        .zs-gs::-webkit-scrollbar { width: 5px; }
+        .zs-gs::-webkit-scrollbar-track { background: transparent; }
+        .zs-gs::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.06);
+          border-radius: 999px;
+          transition: background 300ms ease;
+        }
+        .zs-gs::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
+
+        /* ── Chat input ── */
+        .zs-chat-input {
+          transition: all 350ms ${EASE} !important;
+        }
+        .zs-chat-input:focus {
+          outline: none;
+          border-color: rgba(59,130,246,0.25) !important;
+          box-shadow: 0 0 0 3px rgba(59,130,246,0.06), 0 0 16px rgba(59,130,246,0.04) !important;
+          background: rgba(255,255,255,0.035) !important;
+        }
+
+        /* ── Send button ── */
+        .zs-send {
+          transition: all 400ms ${EASE_SPRING};
+        }
+        .zs-send:hover:not(:disabled) {
+          transform: translateY(-0.5px);
+          box-shadow: 0 4px 16px rgba(59,130,246,0.25);
+        }
+        .zs-send:active:not(:disabled) { transform: scale(0.93); transition-duration: 120ms; }
+
+        /* ── Suggestion pills ── */
+        .zs-suggest {
+          position: relative;
+          overflow: hidden;
+          transition: all 500ms ${EASE_SPRING};
+        }
+        .zs-suggest::before {
+          content: '';
+          position: absolute; inset: 0;
+          border-radius: inherit;
+          opacity: 0;
+          background: linear-gradient(160deg, rgba(59,130,246,0.20) 0%, rgba(59,130,246,0.03) 18%, transparent 48%, transparent 58%, rgba(59,130,246,0.02) 82%, rgba(59,130,246,0.12) 100%);
+          box-shadow: inset 0 1px 0 rgba(59,130,246,0.3);
+          transition: opacity 500ms ${EASE_SPRING};
+          pointer-events: none;
+        }
+        .zs-suggest:hover::before { opacity: 1; }
+        .zs-suggest:hover {
+          background: rgba(59,130,246,0.05) !important;
+          border-color: rgba(59,130,246,0.15) !important;
+          color: ${G.accentSoft} !important;
+          transform: translateY(-0.5px);
+        }
+        .zs-suggest:active { transform: scale(0.97); transition-duration: 120ms; }
       `}</style>
 
       {/* ─── LEFT: Mini Chat ──────────────────────────── */}
       <div style={{
         width: 340, flexShrink: 0, display: "flex", flexDirection: "column",
-        borderRight: `1px solid ${G.glassBorder}`,
-        background: "rgba(6,9,15,0.6)",
+        borderRight: `0.5px solid ${G.glassBorder}`,
+        background: "linear-gradient(180deg, rgba(255,255,255,0.012) 0%, rgba(6,9,15,0.5) 100%)",
+        animation: "zs-fadeIn 500ms ease both",
       }}>
         {/* Chat header */}
         <div style={{
-          padding: "16px 18px", borderBottom: `1px solid ${G.glassBorder}`,
-          display: "flex", alignItems: "center", gap: 10,
+          padding: "18px 20px", borderBottom: `0.5px solid ${G.glassBorder}`,
+          display: "flex", alignItems: "center", gap: 12,
+          background: "linear-gradient(180deg, rgba(255,255,255,0.015) 0%, transparent 100%)",
         }}>
           <div style={{
-            width: 32, height: 32, borderRadius: 10,
-            background: G.accentGlow,
+            width: 34, height: 34, borderRadius: 11,
+            background: `linear-gradient(135deg, ${G.accentGlow}, rgba(59,130,246,0.04))`,
+            border: `0.5px solid rgba(59,130,246,0.15)`,
             display: "flex", alignItems: "center", justifyContent: "center",
+            boxShadow: `0 0 20px rgba(59,130,246,0.06)`,
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke={G.accent} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke={G.accent} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />
             </svg>
           </div>
           <div>
@@ -284,9 +548,10 @@ export function WeeklySummaries({
               <div style={{ fontSize: 13, marginBottom: 8 }}>Ask anything about this summary</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {["How can I improve my click rate?", "What should I post this week?", "Why is my traffic low?"].map((q) => (
-                  <button key={q} className="zs-btn" onClick={() => { setChatInput(q); }} style={{
-                    padding: "8px 12px", borderRadius: 999, border: `1px solid ${G.glassBorder}`,
-                    background: G.glass, color: G.textSec, fontSize: 12, textAlign: "left",
+                  <button key={q} className="zs-suggest" onClick={() => { setChatInput(q); }} style={{
+                    padding: "8px 14px", borderRadius: 999, border: `0.5px solid ${G.glassBorder}`,
+                    ...liquidGlass, color: G.textSec, fontSize: 12, textAlign: "left",
+                    letterSpacing: "-0.01em",
                   }}>
                     {q}
                   </button>
@@ -301,7 +566,7 @@ export function WeeklySummaries({
           )}
           {chatMessages.map((m) => (
             <div key={m.id} style={{
-              animation: "fadeUp 200ms ease",
+              animation: "zs-fadeUp 280ms cubic-bezier(0.22,1,0.36,1)",
               alignSelf: m.role === "user" ? "flex-end" : "flex-start",
               maxWidth: "90%",
             }}>
@@ -309,21 +574,22 @@ export function WeeklySummaries({
                 padding: "10px 14px", borderRadius: 16,
                 ...(m.role === "user" ? {
                   background: `linear-gradient(135deg, ${G.accent}30, ${G.accent}15)`,
-                  border: `1px solid ${G.accent}25`,
+                  border: `0.5px solid ${G.accent}25`,
                   borderBottomRightRadius: 4,
                 } : {
-                  ...glass,
+                  ...liquidGlass,
                   borderBottomLeftRadius: 4,
                 }),
                 fontSize: 13, lineHeight: 1.6,
                 color: m.role === "user" ? G.text : G.textSec,
+                fontFamily: "'SF Pro Text', 'Inter', -apple-system, sans-serif",
               }}>
                 {m.content}
               </div>
             </div>
           ))}
           {chatSending && (
-            <div style={{ display: "flex", gap: 4, padding: "8px 14px", animation: "fadeUp 200ms ease" }}>
+            <div style={{ display: "flex", gap: 4, padding: "8px 14px", animation: "zs-fadeUp 200ms ease" }}>
               {[0, 1, 2].map((i) => (
                 <div key={i} style={{
                   width: 6, height: 6, borderRadius: 999, background: G.accent,
@@ -337,7 +603,7 @@ export function WeeklySummaries({
         </div>
 
         {/* Chat input */}
-        <div style={{ padding: 12, borderTop: `1px solid ${G.glassBorder}` }}>
+        <div style={{ padding: 12, borderTop: `0.5px solid ${G.glassBorder}` }}>
           <div style={{ display: "flex", gap: 8 }}>
             <input
               className="zs-chat-input"
@@ -348,20 +614,23 @@ export function WeeklySummaries({
               disabled={!activeSummary}
               style={{
                 flex: 1, padding: "10px 14px", borderRadius: 999,
-                border: `1px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.03)",
-                color: G.text, fontSize: 13, transition: "all 200ms ease",
+                border: `0.5px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.03)",
+                color: G.text, fontSize: 13, transition: "all 300ms cubic-bezier(0.22,1,0.36,1)",
+                fontFamily: "'SF Pro Text', 'Inter', -apple-system, sans-serif",
               }}
             />
             <button
               onClick={sendChat}
               disabled={!chatInput.trim() || !activeSummary || chatSending}
+              className="zs-send"
               style={{
                 width: 38, height: 38, borderRadius: 999, border: "none",
-                background: chatInput.trim() ? G.accent : "rgba(255,255,255,0.05)",
+                background: chatInput.trim() ? `linear-gradient(135deg, ${G.accent}, ${G.accentSoft})` : "rgba(255,255,255,0.04)",
                 color: chatInput.trim() ? "#fff" : G.textMuted,
                 cursor: chatInput.trim() ? "pointer" : "default",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                transition: "all 200ms ease",
+                transition: "all 300ms cubic-bezier(0.22,1,0.36,1)",
+                boxShadow: chatInput.trim() ? `0 0 20px ${G.accent}30` : "none",
               }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -376,24 +645,27 @@ export function WeeklySummaries({
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         {/* Header */}
         <div style={{
-          padding: "16px 24px",
+          padding: "18px 24px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          borderBottom: `1px solid ${G.glassBorder}`,
+          borderBottom: `0.5px solid ${G.glassBorder}`,
+          background: "linear-gradient(180deg, rgba(255,255,255,0.012) 0%, transparent 100%)",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{
               width: 36, height: 36, borderRadius: 12,
-              background: G.greenGlow,
+              background: `linear-gradient(135deg, ${G.greenGlow}, rgba(52,211,153,0.04))`,
+              border: `0.5px solid rgba(52,211,153,0.15)`,
               display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: `0 0 20px rgba(52,211,153,0.06)`,
             }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="4" width="18" height="18" rx="2" stroke={G.green} strokeWidth="1.4" />
-                <path d="M16 2v4M8 2v4M3 10h18" stroke={G.green} strokeWidth="1.4" strokeLinecap="round" />
+                <rect x="3" y="4" width="18" height="18" rx="2" stroke={G.green} strokeWidth="1.3" opacity="0.8" />
+                <path d="M16 2v4M8 2v4M3 10h18" stroke={G.green} strokeWidth="1.3" strokeLinecap="round" opacity="0.8" />
               </svg>
             </div>
             <div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: G.text, letterSpacing: "-0.02em" }}>Weekly Summary</div>
-              <div style={{ fontSize: 12, color: G.textMuted, marginTop: 1 }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: G.text, letterSpacing: "-0.025em", fontFamily: "'SF Pro Display', 'Inter', -apple-system, sans-serif" }}>Weekly Summary</div>
+              <div style={{ fontSize: 12, color: G.textMuted, marginTop: 2 }}>
                 {activeSummary ? formatWeek(activeSummary.week_start, activeSummary.week_end) : "Your business performance"}
               </div>
             </div>
@@ -403,30 +675,32 @@ export function WeeklySummaries({
             {/* Past Summaries button */}
             <button className="zs-btn" onClick={() => setShowList(!showList)} style={{
               padding: "8px 16px", borderRadius: 999,
-              border: `1px solid ${showList ? G.accent + "40" : G.glassBorder}`,
-              background: showList ? G.accentGlow : G.glass,
+              border: `0.5px solid ${showList ? G.accent + "40" : G.glassBorder}`,
+              background: showList ? G.accentGlow : "transparent",
               color: showList ? G.accent : G.textSec, fontSize: 12, fontWeight: 600,
+              letterSpacing: "-0.01em",
             }}>
               {showList ? "Back" : `Past Summaries${summaries.length > 0 ? ` (${summaries.length})` : ""}`}
             </button>
 
             {/* Generate button */}
-            <button className="zs-btn" onClick={generateSummary} disabled={generating} style={{
-              padding: "8px 16px", borderRadius: 999, border: "none",
+            <button className="zs-btn-green" onClick={generateSummary} disabled={generating} style={{
+              padding: "8px 16px", borderRadius: 999, border: `0.5px solid rgba(52,211,153,0.15)`,
               background: `linear-gradient(135deg, ${G.green}20, ${G.green}08)`,
-              boxShadow: `0 0 12px ${G.green}10, inset 0 0.5px 0 rgba(255,255,255,0.1)`,
+              boxShadow: `0 0 16px ${G.green}10, inset 0 0.5px 0 rgba(255,255,255,0.08)`,
               color: G.green, fontSize: 12, fontWeight: 700,
-              opacity: generating ? 0.6 : 1,
+              opacity: generating ? 0.6 : 1, letterSpacing: "-0.01em",
             }}>
               {generating ? "Generating..." : "Generate New"}
             </button>
 
             {/* Close */}
-            <button onClick={onClose} style={{
+            <button className="zs-close" onClick={onClose} style={{
               width: 36, height: 36, borderRadius: 999,
-              border: `1px solid ${G.glassBorder}`, background: G.glass,
+              border: `0.5px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.03)",
               color: G.textSec, cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all 300ms cubic-bezier(0.22,1,0.36,1)",
             }}>✕</button>
           </div>
         </div>
@@ -436,8 +710,8 @@ export function WeeklySummaries({
           {loading ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
               <div style={{ textAlign: "center", color: G.textSec }}>
-                <div style={{ width: 40, height: 40, borderRadius: 999, border: `2px solid ${G.glassBorder}`, borderTopColor: G.green, animation: "spin 1s linear infinite", margin: "0 auto 12px" }} />
-                <div style={{ fontSize: 14 }}>Loading summaries...</div>
+                <div style={{ width: 40, height: 40, borderRadius: 999, border: `2px solid ${G.glassBorder}`, borderTopColor: G.green, animation: "zs-spin 1s linear infinite", margin: "0 auto 12px" }} />
+                <div style={{ fontSize: 14, fontFamily: "'SF Pro Text', 'Inter', -apple-system, sans-serif" }}>Loading summaries...</div>
               </div>
             </div>
           ) : showList ? (
@@ -455,9 +729,9 @@ export function WeeklySummaries({
                     const snap = s.analytics_snapshot || {};
                     return (
                       <button key={s.id} className="zs-card" onClick={() => loadSummary(s.id)} style={{
-                        ...glass, padding: 18, cursor: "pointer", textAlign: "left", width: "100%",
-                        animation: `fadeUp 200ms ease ${i * 50}ms both`,
-                        border: activeSummary?.id === s.id ? `1px solid ${G.accent}40` : `1px solid ${G.glassBorder}`,
+                        ...liquidGlass, padding: 18, cursor: "pointer", textAlign: "left", width: "100%",
+                        animation: `zs-fadeUp 350ms cubic-bezier(0.22,1,0.36,1) ${i * 50}ms both`,
+                        border: activeSummary?.id === s.id ? `0.5px solid ${G.accent}40` : `0.5px solid ${G.glassBorder}`,
                       }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                           <div style={{ fontSize: 14, fontWeight: 700, color: G.text }}>
@@ -490,15 +764,15 @@ export function WeeklySummaries({
                   { label: "CTA Clicks", value: activeSummary.analytics_snapshot?.ctaClicks ?? 0, prev: activeSummary.analytics_snapshot?.prevCtaClicks, color: G.amber },
                   { label: "Revenue", value: activeSummary.analytics_snapshot?.revenue ? `$${(activeSummary.analytics_snapshot.revenue / 100).toFixed(2)}` : "$0", color: G.purple },
                 ].map((s, i) => (
-                  <div key={i} style={{
-                    flex: 1, ...glass, padding: "14px 16px",
-                    animation: `fadeUp 200ms ease ${i * 60}ms both`,
+                  <div key={i} className="zs-stat" style={{
+                    flex: 1, ...liquidGlass, padding: "14px 16px",
+                    animation: `zs-fadeUp 350ms cubic-bezier(0.22,1,0.36,1) ${i * 60}ms both`,
                   }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                      <div style={{ width: 6, height: 6, borderRadius: 999, background: s.color }} />
+                      <div style={{ width: 6, height: 6, borderRadius: 999, background: s.color, boxShadow: `0 0 8px ${s.color}40` }} />
                       <span style={{ fontSize: 11, fontWeight: 600, color: G.textMuted, textTransform: "uppercase", letterSpacing: "0.04em" }}>{s.label}</span>
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: G.text, letterSpacing: "-0.02em" }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: G.text, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", fontFamily: "'SF Pro Display', 'Inter', -apple-system, sans-serif" }}>
                       {typeof s.value === "number" ? s.value.toLocaleString() : s.value}
                     </div>
                     {s.prev !== undefined && typeof s.value === "number" && (
@@ -511,7 +785,7 @@ export function WeeklySummaries({
               </div>
 
               {/* Summary text */}
-              <div style={{ ...glass, padding: 28, animation: "fadeUp 300ms ease 200ms both" }}>
+              <div style={{ ...liquidGlass, padding: 28, animation: "zs-fadeUp 350ms cubic-bezier(0.22,1,0.36,1) 200ms both" }}>
                 {renderText(activeSummary.summary_text)}
               </div>
             </div>
@@ -521,24 +795,27 @@ export function WeeklySummaries({
               <div style={{ textAlign: "center", maxWidth: 400 }}>
                 <div style={{
                   width: 64, height: 64, borderRadius: 20, margin: "0 auto 20px",
-                  background: `linear-gradient(135deg, ${G.greenGlow}, transparent)`,
-                  border: `1px solid rgba(16,185,129,0.15)`,
+                  background: `linear-gradient(135deg, ${G.greenGlow}, rgba(52,211,153,0.02))`,
+                  border: `0.5px solid rgba(52,211,153,0.12)`,
                   display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: `0 0 30px rgba(52,211,153,0.06)`,
+                  animation: "zs-fadeUp 400ms cubic-bezier(0.22,1,0.36,1) both",
                 }}>
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="4" width="18" height="18" rx="2" stroke={G.green} strokeWidth="1.4" />
-                    <path d="M16 2v4M8 2v4M3 10h18" stroke={G.green} strokeWidth="1.4" strokeLinecap="round" />
+                    <rect x="3" y="4" width="18" height="18" rx="2" stroke={G.green} strokeWidth="1.3" opacity="0.8" />
+                    <path d="M16 2v4M8 2v4M3 10h18" stroke={G.green} strokeWidth="1.3" strokeLinecap="round" opacity="0.8" />
                   </svg>
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: G.text, marginBottom: 8 }}>No weekly summaries yet</div>
-                <div style={{ fontSize: 14, color: G.textSec, lineHeight: 1.6, marginBottom: 20 }}>
+                <div style={{ fontSize: 18, fontWeight: 700, color: G.text, marginBottom: 8, letterSpacing: "-0.025em", fontFamily: "'SF Pro Display', 'Inter', -apple-system, sans-serif" }}>No weekly summaries yet</div>
+                <div style={{ fontSize: 14, color: G.textSec, lineHeight: 1.6, marginBottom: 20, fontFamily: "'SF Pro Text', 'Inter', -apple-system, sans-serif" }}>
                   Generate your first weekly summary to see how your business is performing. Zelrex will analyze your traffic, clicks, and revenue.
                 </div>
-                <button className="zs-btn" onClick={generateSummary} disabled={generating} style={{
-                  padding: "12px 24px", borderRadius: 999, border: "none",
+                <button className="zs-btn-green" onClick={generateSummary} disabled={generating} style={{
+                  padding: "12px 24px", borderRadius: 999, border: `0.5px solid rgba(52,211,153,0.15)`,
                   background: `linear-gradient(135deg, ${G.green}25, ${G.green}10)`,
-                  boxShadow: `0 0 16px ${G.green}15, inset 0 0.5px 0 rgba(255,255,255,0.1)`,
+                  boxShadow: `0 0 20px ${G.green}15, inset 0 0.5px 0 rgba(255,255,255,0.08)`,
                   color: G.green, fontSize: 14, fontWeight: 700,
+                  letterSpacing: "-0.01em",
                 }}>
                   {generating ? "Generating..." : "Generate First Summary"}
                 </button>
@@ -556,9 +833,9 @@ export function WeeklySummaries({
 function Stat({ label, value, color }: { label: string; value: number | string; color: string }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-      <div style={{ width: 4, height: 4, borderRadius: 999, background: color, opacity: 0.7 }} />
-      <span style={{ fontSize: 12, color: G.textMuted }}>{label}:</span>
-      <span style={{ fontSize: 12, fontWeight: 700, color: G.text }}>{value}</span>
+      <div style={{ width: 4, height: 4, borderRadius: 999, background: color, boxShadow: `0 0 6px ${color}40` }} />
+      <span style={{ fontSize: 12, color: G.textMuted, fontFamily: "'SF Pro Text', 'Inter', -apple-system, sans-serif" }}>{label}:</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: G.text, fontVariantNumeric: "tabular-nums" }}>{typeof value === "number" ? value.toLocaleString() : value}</span>
     </div>
   );
 }
