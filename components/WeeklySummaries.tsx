@@ -254,9 +254,9 @@ export function WeeklySummaries({
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9600,
-      background: "rgba(2,3,5,0.82)",
-      backdropFilter: "blur(72px) saturate(1.3) brightness(0.92)",
-      WebkitBackdropFilter: "blur(72px) saturate(1.3) brightness(0.92)",
+      background: "rgba(1,2,3,0.92)",
+      backdropFilter: "blur(100px) saturate(1.4) brightness(0.78)",
+      WebkitBackdropFilter: "blur(100px) saturate(1.4) brightness(0.78)",
       display: "flex", overflow: "hidden",
       opacity: mounted ? 1 : 0,
       transition: `opacity 450ms ${EASE}`,
