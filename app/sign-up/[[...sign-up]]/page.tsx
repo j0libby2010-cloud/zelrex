@@ -133,16 +133,7 @@ export default function SignUpPage() {
           pointer-events: none;
           z-index: 1;
         }
-        .su-glass-wrap:hover::before,
-        .su-glass-wrap:hover::after { opacity: 1; }
-        .su-glass-wrap:hover {
-          transform: translateY(-2px) scale(1.003);
-          box-shadow:
-            0 0.5px 0 0 rgba(255,255,255,0.08) inset,
-            0 -0.5px 0 0 rgba(255,255,255,0.02) inset,
-            0 4px 16px rgba(0,0,0,0.18),
-            0 24px 64px rgba(0,0,0,0.30);
-        }
+
 
         /* ─── Clerk card overrides ────────────────── */
         .cl-card,
@@ -257,6 +248,10 @@ export default function SignUpPage() {
                 dividerText: { color: "rgba(255,255,255,0.26)" },
                 identityPreview: { background: "rgba(255,255,255,0.025)", border: "0.5px solid rgba(255,255,255,0.055)", borderRadius: "14px" },
                 formFieldInputShowPasswordButton: { color: "rgba(255,255,255,0.40)" },
+                footer: { display: "none" },
+                footerAction: { display: "none" },
+                footerPages: { display: "none" },
+                badge: { display: "none" },
               },
             }}
           />

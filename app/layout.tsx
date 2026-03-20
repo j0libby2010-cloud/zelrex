@@ -5,7 +5,12 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Zelrex · AI Business Engine",
   description: "Go independent. Get paid. Zelrex builds and runs your freelance business.",
-  icons: { icon: "/favicon.ico" },
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", type: "image/x-icon" },
+    ],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -245,6 +250,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           // ─── Internal Clerk badges ──────────────────────────────
           badge: { display: "none" },
           footerPages: { display: "none" },
+          footer: { display: "none" },
+          footerAction: { display: "none" },
         },
       }}
     >
