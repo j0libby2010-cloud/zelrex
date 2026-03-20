@@ -7,6 +7,7 @@ import { formatMessage } from "./formatMessage";
 import { WebsiteSurvey, SurveyData } from "@/website/pages/components/Websitesurvey";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { WeeklySummaries } from "@/components/WeeklySummaries";
+import { OutreachSystem } from "@/components/OutreachSystem";
 import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
 
@@ -410,6 +411,9 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [summariesOpen, setSummariesOpen] = useState(false);
   const [summariesClosing, setSummariesClosing] = useState(false);
   const summariesOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const [outreachOpen, setOutreachOpen] = useState(false);
+  const [outreachClosing, setOutreachClosing] = useState(false);
+  const outreachOriginRef = useRef<{ x: number; y: number } | null>(null);
   const settingsOriginRef = useRef<{ x: number; y: number } | null>(null);
   const goalOriginRef = useRef<{ x: number; y: number } | null>(null);
   const notifOriginRef = useRef<{ x: number; y: number } | null>(null);
@@ -1824,6 +1828,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   </div>
                 )}
               </div>
+              <button type="button" className="z-glass" onClick={(e) => {
+                outreachOriginRef.current = { x: e.clientX, y: e.clientY };
+                setOutreachOpen(true);
+                if (isMobile) setSidebarOpen(false);
+              }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ color: "#FBBF24" }}><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg> Outreach
+              </button>
               <button type="button" className="z-glass" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? C.accent : "#F59E0B" }} /> {userGoal ? "My Goal" : "Set Goal"}
               </button>
@@ -2116,6 +2127,24 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {/* GOAL MODAL */}
+        {/* ─── OUTREACH SYSTEM ────────────────────────────────── */}
+        {(outreachOpen || outreachClosing) && (
+          <div style={{
+            position: "fixed", inset: 0, zIndex: 9570,
+            transformOrigin: outreachOriginRef.current ? `${outreachOriginRef.current.x}px ${outreachOriginRef.current.y}px` : "center center",
+            animation: `${outreachClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`,
+            pointerEvents: outreachClosing ? "none" : undefined,
+          }}>
+            <OutreachSystem
+              userId={clerkUser?.id || ""}
+              onClose={() => {
+                setOutreachClosing(true);
+                setTimeout(() => { setOutreachOpen(false); setOutreachClosing(false); }, 300);
+              }}
+            />
+          </div>
+        )}
+
         {/* ─── WEEKLY SUMMARIES ──────────────────────────────── */}
         {(summariesOpen || summariesClosing) && (
           <div style={{
