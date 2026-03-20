@@ -83,13 +83,38 @@ export function WeeklySummaries({
   const [generating, setGenerating] = useState(false);
   const [showList, setShowList] = useState(false);
 
-  // Mini-chat state
+  // Mini-chat state — persisted per summary via localStorage
   const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatSending, setChatSending] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatCacheRef = useRef<Record<string, ChatMsg[]>>({});
 
   const uid = () => Math.random().toString(36).slice(2, 10);
+
+  // Load chat history from localStorage for a summary
+  const loadChatForSummary = (summaryId: string) => {
+    if (chatCacheRef.current[summaryId]) {
+      setChatMessages(chatCacheRef.current[summaryId]);
+      return;
+    }
+    try {
+      const stored = localStorage.getItem(`zelrex_sc_${summaryId}`);
+      if (stored) {
+        const msgs = JSON.parse(stored);
+        chatCacheRef.current[summaryId] = msgs;
+        setChatMessages(msgs);
+        return;
+      }
+    } catch {}
+    setChatMessages([]);
+  };
+
+  // Save chat to localStorage whenever messages change
+  const saveChatForSummary = (summaryId: string, msgs: ChatMsg[]) => {
+    chatCacheRef.current[summaryId] = msgs;
+    try { localStorage.setItem(`zelrex_sc_${summaryId}`, JSON.stringify(msgs)); } catch {}
+  };
 
   // Load summaries list
   const loadSummaries = useCallback(async () => {
@@ -116,6 +141,10 @@ export function WeeklySummaries({
   useEffect(() => { loadSummaries(); }, [loadSummaries]);
 
   const loadSummary = async (id: string) => {
+    // Save current chat before switching
+    if (activeSummary?.id && chatMessages.length > 0) {
+      saveChatForSummary(activeSummary.id, chatMessages);
+    }
     try {
       const res = await fetch("/api/z/summary", {
         method: "POST",
@@ -125,7 +154,7 @@ export function WeeklySummaries({
       const data = await res.json();
       if (data.summary) {
         setActiveSummary(data.summary);
-        setChatMessages([]);
+        loadChatForSummary(data.summary.id);
         setShowList(false);
       }
     } catch (e) {
@@ -134,6 +163,9 @@ export function WeeklySummaries({
   };
 
   const generateSummary = async () => {
+    if (activeSummary?.id && chatMessages.length > 0) {
+      saveChatForSummary(activeSummary.id, chatMessages);
+    }
     setGenerating(true);
     try {
       const res = await fetch("/api/z/summary", {
@@ -159,7 +191,9 @@ export function WeeklySummaries({
     const msg = chatInput.trim();
     setChatInput("");
     const userMsg: ChatMsg = { id: uid(), role: "user", content: msg };
-    setChatMessages((prev) => [...prev, userMsg]);
+    const updatedWithUser = [...chatMessages, userMsg];
+    setChatMessages(updatedWithUser);
+    saveChatForSummary(activeSummary.id, updatedWithUser);
     setChatSending(true);
 
     try {
@@ -176,10 +210,16 @@ export function WeeklySummaries({
       });
       const data = await res.json();
       if (data.reply) {
-        setChatMessages((prev) => [...prev, { id: uid(), role: "assistant", content: data.reply }]);
+        const assistantMsg: ChatMsg = { id: uid(), role: "assistant", content: data.reply };
+        const final = [...updatedWithUser, assistantMsg];
+        setChatMessages(final);
+        saveChatForSummary(activeSummary.id, final);
       }
     } catch (e) {
-      setChatMessages((prev) => [...prev, { id: uid(), role: "assistant", content: "Something went wrong. Try again." }]);
+      const errorMsg: ChatMsg = { id: uid(), role: "assistant", content: "Something went wrong. Try again." };
+      const final = [...updatedWithUser, errorMsg];
+      setChatMessages(final);
+      saveChatForSummary(activeSummary.id, final);
     } finally {
       setChatSending(false);
     }
@@ -238,7 +278,6 @@ export function WeeklySummaries({
   };
 
   const renderInline = (text: string) => {
-    // Bold
     const parts = text.split(/(\*\*[^*]+\*\*)/g);
     return parts.map((part, i) => {
       if (part.startsWith("**") && part.endsWith("**")) {
@@ -248,15 +287,41 @@ export function WeeklySummaries({
     });
   };
 
+  // Render chat assistant messages with markdown support
+  const renderChatMessage = (text: string) => {
+    return text.split("\n").map((line, i) => {
+      const trimmed = line.trim();
+      if (!trimmed) return <div key={i} style={{ height: 6 }} />;
+      if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
+        return (
+          <div key={i} style={{ display: "flex", gap: 6, marginBottom: 3, paddingLeft: 2 }}>
+            <span style={{ color: G.accent, flexShrink: 0, fontSize: 11, marginTop: 2 }}>•</span>
+            <span>{renderInline(trimmed.slice(2))}</span>
+          </div>
+        );
+      }
+      const numMatch = trimmed.match(/^(\d+)\.\s*(.*)/);
+      if (numMatch) {
+        return (
+          <div key={i} style={{ display: "flex", gap: 6, marginBottom: 3, paddingLeft: 2 }}>
+            <span style={{ color: G.accent, fontWeight: 700, fontSize: 12, flexShrink: 0, minWidth: 14 }}>{numMatch[1]}.</span>
+            <span>{renderInline(numMatch[2])}</span>
+          </div>
+        );
+      }
+      return <p key={i} style={{ marginBottom: 3 }}>{renderInline(trimmed)}</p>;
+    });
+  };
+
   const [mounted, setMounted] = useState(false);
   useEffect(() => { requestAnimationFrame(() => setMounted(true)); }, []);
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9600,
-      background: "rgba(1,2,3,0.92)",
-      backdropFilter: "blur(100px) saturate(1.4) brightness(0.78)",
-      WebkitBackdropFilter: "blur(100px) saturate(1.4) brightness(0.78)",
+      background: "rgba(2,3,5,0.82)",
+      backdropFilter: "blur(72px) saturate(1.3) brightness(0.92)",
+      WebkitBackdropFilter: "blur(72px) saturate(1.3) brightness(0.92)",
       display: "flex", overflow: "hidden",
       opacity: mounted ? 1 : 0,
       transition: `opacity 450ms ${EASE}`,
@@ -542,16 +607,25 @@ export function WeeklySummaries({
         </div>
 
         {/* Chat messages */}
-        <div className="zs-gs" style={{ flex: 1, overflow: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className="zs-gs" style={{ flex: 1, overflow: "auto", padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
           {chatMessages.length === 0 && activeSummary && (
-            <div style={{ textAlign: "center", padding: "40px 16px", color: G.textMuted }}>
-              <div style={{ fontSize: 13, marginBottom: 8 }}>Ask anything about this summary</div>
+            <div style={{ textAlign: "center", padding: "32px 16px", color: G.textMuted, animation: "zs-fadeIn 400ms ease" }}>
+              <div style={{ width: 44, height: 44, borderRadius: 14, margin: "0 auto 12px", background: `linear-gradient(135deg, ${G.accentGlow}, transparent)`, border: `0.5px solid rgba(59,130,246,0.12)`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3c-4.97 0-9 3.185-9 7.115 0 2.557 1.522 4.82 3.889 6.185l-.724 2.7 3.135-1.567c.87.18 1.775.282 2.7.282 4.97 0 9-3.185 9-7.115C21 6.685 16.97 3 12 3z" stroke={G.accent} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"/></svg>
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: G.textSec, marginBottom: 12 }}>Ask anything about this summary</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {["How can I improve my click rate?", "What should I post this week?", "Why is my traffic low?"].map((q) => (
+                {[
+                  "How can I improve my click rate?",
+                  "What should I focus on this week?",
+                  "Why is my traffic low?",
+                  "Give me 3 outreach ideas",
+                  "How does my site compare to benchmarks?",
+                ].map((q, i) => (
                   <button key={q} className="zs-suggest" onClick={() => { setChatInput(q); }} style={{
-                    padding: "8px 14px", borderRadius: 999, border: `0.5px solid ${G.glassBorder}`,
-                    ...liquidGlass, color: G.textSec, fontSize: 12, textAlign: "left",
-                    letterSpacing: "-0.01em",
+                    padding: "9px 14px", borderRadius: 999, border: `0.5px solid ${G.glassBorder}`,
+                    background: G.glass, color: G.textSec, fontSize: 12, textAlign: "left",
+                    cursor: "pointer", animation: `zs-fadeUp 280ms cubic-bezier(0.22,1,0.36,1) ${i * 40}ms both`,
                   }}>
                     {q}
                   </button>
@@ -564,46 +638,75 @@ export function WeeklySummaries({
               Generate or select a summary to start chatting.
             </div>
           )}
-          {chatMessages.map((m) => (
+          {chatMessages.map((m, idx) => (
             <div key={m.id} style={{
-              animation: "zs-fadeUp 280ms cubic-bezier(0.22,1,0.36,1)",
+              animation: `zs-fadeUp 320ms cubic-bezier(0.22,1,0.36,1) ${Math.min(idx * 30, 200)}ms both`,
               alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-              maxWidth: "90%",
+              maxWidth: "88%",
             }}>
+              {m.role === "assistant" && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, paddingLeft: 2 }}>
+                  <div style={{ width: 16, height: 16, borderRadius: 5, background: G.accentGlow, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ fontSize: 8, fontWeight: 800, color: G.accent }}>Z</span>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: G.textMuted, letterSpacing: "0.04em", textTransform: "uppercase" }}>Zelrex</span>
+                </div>
+              )}
               <div style={{
-                padding: "10px 14px", borderRadius: 16,
+                padding: "11px 15px",
                 ...(m.role === "user" ? {
-                  background: `linear-gradient(135deg, ${G.accent}30, ${G.accent}15)`,
-                  border: `0.5px solid ${G.accent}25`,
-                  borderBottomRightRadius: 4,
+                  background: `linear-gradient(135deg, rgba(59,130,246,0.18) 0%, rgba(59,130,246,0.08) 100%)`,
+                  border: `0.5px solid rgba(59,130,246,0.20)`,
+                  borderRadius: "16px 16px 4px 16px",
+                  boxShadow: `0 2px 12px rgba(59,130,246,0.08)`,
                 } : {
-                  ...liquidGlass,
-                  borderBottomLeftRadius: 4,
+                  background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)",
+                  border: `0.5px solid ${G.glassBorder}`,
+                  borderRadius: "16px 16px 16px 4px",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.15), inset 0 0.5px 0 rgba(255,255,255,0.06)",
                 }),
-                fontSize: 13, lineHeight: 1.6,
+                fontSize: 13, lineHeight: 1.65,
                 color: m.role === "user" ? G.text : G.textSec,
-                fontFamily: "'SF Pro Text', 'Inter', -apple-system, sans-serif",
               }}>
-                {m.content}
+                {m.role === "assistant" ? renderChatMessage(m.content) : m.content}
               </div>
             </div>
           ))}
           {chatSending && (
-            <div style={{ display: "flex", gap: 4, padding: "8px 14px", animation: "zs-fadeUp 200ms ease" }}>
-              {[0, 1, 2].map((i) => (
-                <div key={i} style={{
-                  width: 6, height: 6, borderRadius: 999, background: G.accent,
-                  opacity: 0.4, animation: `pulse 1s ease-in-out ${i * 0.15}s infinite`,
-                }} />
-              ))}
-              <style>{`@keyframes pulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.1)}}`}</style>
+            <div style={{ alignSelf: "flex-start", maxWidth: "88%", animation: "zs-fadeUp 200ms ease" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, paddingLeft: 2 }}>
+                <div style={{ width: 16, height: 16, borderRadius: 5, background: G.accentGlow, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 8, fontWeight: 800, color: G.accent }}>Z</span>
+                </div>
+                <span style={{ fontSize: 10, fontWeight: 600, color: G.textMuted, letterSpacing: "0.04em", textTransform: "uppercase" }}>Zelrex</span>
+              </div>
+              <div style={{ padding: "12px 15px", background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", border: `0.5px solid ${G.glassBorder}`, borderRadius: "16px 16px 16px 4px" }}>
+                <div style={{ display: "flex", gap: 5 }}>
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} style={{ width: 6, height: 6, borderRadius: 999, background: G.accent, opacity: 0.4, animation: `pulse 1s ease-in-out ${i * 0.15}s infinite` }} />
+                  ))}
+                </div>
+              </div>
             </div>
           )}
           <div ref={chatEndRef} />
         </div>
 
-        {/* Chat input */}
+        {/* Chat input + controls */}
         <div style={{ padding: 12, borderTop: `0.5px solid ${G.glassBorder}` }}>
+          {chatMessages.length > 0 && activeSummary && (
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+              <button className="zs-btn" onClick={() => {
+                setChatMessages([]);
+                if (activeSummary?.id) saveChatForSummary(activeSummary.id, []);
+              }} style={{
+                padding: "4px 12px", borderRadius: 999, border: `0.5px solid ${G.glassBorder}`,
+                background: "transparent", color: G.textMuted, fontSize: 11, fontWeight: 500, cursor: "pointer",
+              }}>
+                Clear conversation
+              </button>
+            </div>
+          )}
           <div style={{ display: "flex", gap: 8 }}>
             <input
               className="zs-chat-input"
@@ -695,7 +798,10 @@ export function WeeklySummaries({
             </button>
 
             {/* Close */}
-            <button className="zs-close" onClick={onClose} style={{
+            <button className="zs-close" onClick={() => {
+              if (activeSummary?.id && chatMessages.length > 0) saveChatForSummary(activeSummary.id, chatMessages);
+              onClose();
+            }} style={{
               width: 36, height: 36, borderRadius: 999,
               border: `0.5px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.03)",
               color: G.textSec, cursor: "pointer",
