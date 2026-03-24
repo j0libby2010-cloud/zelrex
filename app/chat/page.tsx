@@ -400,6 +400,29 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Array<{ id: string; text: string; time: number; read: boolean }>>([]);
 
+  // ─── Settings state (persisted to localStorage) ────────────────────
+  const [zelrexSettings, setZelrexSettings] = useState({
+    responseStyle: "direct" as "direct" | "detailed" | "coaching",
+    revenueFirst: true,
+    ideaRejection: true,
+    proactiveSuggestions: true,
+    autoDeploy: false,
+    previewQuality: "high" as "high" | "low",
+    weeklyDigest: true,
+    marketMonitoring: true,
+    soundEffects: false,
+    emailWeeklyReport: true,
+    emailGoalMilestones: true,
+    emailMarketAlerts: true,
+    emailProductUpdates: false,
+    inAppSuggestions: true,
+    inAppDeployStatus: true,
+  });
+  useEffect(() => { try { const s = localStorage.getItem("zelrex_settings"); if (s) setZelrexSettings(prev => ({ ...prev, ...JSON.parse(s) })); } catch {} }, []);
+  const updateSetting = <K extends keyof typeof zelrexSettings>(key: K, val: (typeof zelrexSettings)[K]) => {
+    setZelrexSettings(prev => { const next = { ...prev, [key]: val }; try { localStorage.setItem("zelrex_settings", JSON.stringify(next)); } catch {} return next; });
+  };
+
   // ─── Overlay origin-zoom animation state ───────────────────────────
   const [settingsClosing, setSettingsClosing] = useState(false);
   const [goalClosing, setGoalClosing] = useState(false);
@@ -2184,122 +2207,180 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
         {/* ─── FULL-SCREEN SETTINGS ─────────────────────────── */}
         {(settingsOpen || settingsClosing) && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.95)", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", transformOrigin: settingsOriginRef.current ? `${settingsOriginRef.current.x}px ${settingsOriginRef.current.y}px` : "center center", animation: `${settingsClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: settingsClosing ? "none" : undefined }}>
+          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.97)", backdropFilter: "blur(32px) saturate(1.6)", WebkitBackdropFilter: "blur(32px) saturate(1.6)", transformOrigin: settingsOriginRef.current ? `${settingsOriginRef.current.x}px ${settingsOriginRef.current.y}px` : "center center", animation: `${settingsClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: settingsClosing ? "none" : undefined }}>
             <style>{`
-              .stg-tab { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 10px; border: none; background: none; color: ${C.textSec}; font-size: 13px; font-weight: 500; cursor: pointer; width: 100%; text-align: left; transition: all 500ms cubic-bezier(0.32,0.72,0,1); }
-              .stg-tab::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0; background:linear-gradient(168deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.06) 18%,rgba(255,255,255,0.015) 45%,transparent 60%,rgba(255,255,255,0.025) 78%,rgba(255,255,255,0.09) 100%); box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.3),inset 0 -0.5px 0 rgba(255,255,255,0.05); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
-              .stg-tab::after { content:''; position:absolute; top:-35%; left:8%; width:84%; height:70%; border-radius:50%; background:radial-gradient(ellipse at 38% 35%,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.035) 32%,transparent 68%); opacity:0; transition:opacity 600ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
-              .stg-tab:hover { background: rgba(255,255,255,0.065); backdrop-filter: brightness(1.15) saturate(1.4); -webkit-backdrop-filter: brightness(1.15) saturate(1.4); box-shadow: 0 0 0 0.5px rgba(255,255,255,0.13), 0 1px 2px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06); }
+              .stg-tab { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 11px 18px; border-radius: 12px; border: none; background: none; color: ${C.textSec}; font-size: 13.5px; font-weight: 500; cursor: pointer; width: 100%; text-align: left; transition: all 500ms cubic-bezier(0.32,0.72,0,1); letter-spacing: -0.005em; }
+              .stg-tab::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0; background:linear-gradient(168deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.08) 15%,rgba(255,255,255,0.02) 42%,transparent 58%,rgba(255,255,255,0.03) 78%,rgba(255,255,255,0.12) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.4),inset 0 -0.5px 0 rgba(255,255,255,0.06),inset 0.5px 0 0 rgba(255,255,255,0.04),inset -0.5px 0 0 rgba(255,255,255,0.04); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
+              .stg-tab::after { content:''; position:absolute; top:-50%; left:5%; width:90%; height:80%; border-radius:50%; background:radial-gradient(ellipse at 38% 25%,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.04) 30%,transparent 65%); opacity:0; transition:opacity 600ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
+              .stg-tab:hover { background:rgba(255,255,255,0.06); backdrop-filter:blur(20px) brightness(1.2) saturate(1.5); -webkit-backdrop-filter:blur(20px) brightness(1.2) saturate(1.5); box-shadow:0 0 0 0.5px rgba(255,255,255,0.15),0 2px 8px rgba(0,0,0,0.06),0 8px 28px rgba(0,0,0,0.04),inset 0 1px 0 rgba(255,255,255,0.35); }
               .stg-tab:hover::before, .stg-tab:hover::after { opacity: 1; }
-              .stg-tab:active { transform: scale(0.98); transition-duration: 120ms; }
-              .stg-tab-active { background: rgba(74,144,255,0.08) !important; color: ${C.accent} !important; font-weight: 600; box-shadow: inset 0 0.5px 0 rgba(74,144,255,0.12) !important; }
-              .stg-input { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.025); color: ${C.text}; font-size: 14px; font-family: inherit; outline: none; transition: all 250ms; }
-              .stg-input:focus { border-color: rgba(74,144,255,0.4); box-shadow: 0 0 0 3px rgba(74,144,255,0.08), 0 0 16px rgba(74,144,255,0.05); }
-              .stg-toggle { position: relative; width: 40px; height: 22px; border-radius: 11px; border: none; cursor: pointer; transition: all 500ms cubic-bezier(0.32,0.72,0,1); flex-shrink: 0; }
-              .stg-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 9px; background: white; transition: all 500ms cubic-bezier(0.32,0.72,0,1); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
-              .stg-toggle.stg-on { background: ${C.accent}; }
-              .stg-toggle.stg-on::after { transform: translateX(18px); }
-              .stg-toggle.stg-off { background: rgba(255,255,255,0.1); }
+              .stg-tab:active { transform: scale(0.97); transition-duration: 120ms; }
+              .stg-tab-active { background: rgba(74,144,255,0.10) !important; color: ${C.accent} !important; font-weight: 600; box-shadow: 0 0 0 0.5px rgba(74,144,255,0.18), inset 0 1px 0 rgba(74,144,255,0.15) !important; }
+              .stg-tab-active::before { opacity: 0.6 !important; background: linear-gradient(168deg,rgba(74,144,255,0.20) 0%,rgba(74,144,255,0.06) 18%,transparent 45%,transparent 60%,rgba(74,144,255,0.03) 80%,rgba(74,144,255,0.14) 100%) !important; box-shadow:inset 0 1px 0 rgba(74,144,255,0.35),inset 0 -0.5px 0 rgba(74,144,255,0.06) !important; }
+              .stg-tab-active::after { opacity: 0.5 !important; background: radial-gradient(ellipse at 38% 25%,rgba(74,144,255,0.12) 0%,rgba(74,144,255,0.03) 32%,transparent 68%) !important; }
+              .stg-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.025); color: ${C.text}; font-size: 14px; font-family: inherit; outline: none; transition: all 300ms cubic-bezier(0.32,0.72,0,1); }
+              .stg-input:focus { border-color: rgba(74,144,255,0.4); box-shadow: 0 0 0 3px rgba(74,144,255,0.08), 0 0 20px rgba(74,144,255,0.06); background: rgba(255,255,255,0.035); }
+              .stg-toggle { position: relative; width: 44px; height: 24px; border-radius: 12px; border: none; cursor: pointer; transition: all 500ms cubic-bezier(0.32,0.72,0,1); flex-shrink: 0; overflow: hidden; }
+              .stg-toggle::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0; background:linear-gradient(160deg,rgba(255,255,255,0.30) 0%,rgba(255,255,255,0.06) 18%,transparent 48%,transparent 58%,rgba(255,255,255,0.04) 82%,rgba(255,255,255,0.18) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -0.5px 0 rgba(255,255,255,0.05); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; z-index:1; }
+              .stg-toggle:hover::before { opacity: 1; }
+              .stg-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 10px; background: white; transition: all 500ms cubic-bezier(0.32,0.72,0,1); box-shadow: 0 1px 4px rgba(0,0,0,0.35), 0 0 0 0.5px rgba(255,255,255,0.1); z-index: 2; }
+              .stg-toggle.stg-on { background: ${C.accent}; box-shadow: 0 0 16px rgba(74,144,255,0.2), inset 0 1px 0 rgba(255,255,255,0.15); }
+              .stg-toggle.stg-on::after { transform: translateX(20px); }
+              .stg-toggle.stg-off { background: rgba(255,255,255,0.08); box-shadow: inset 0 1px 2px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(255,255,255,0.06); }
+              .stg-toggle:hover { transform: scale(1.05); }
               .stg-toggle:active { transform: scale(0.92); transition-duration: 120ms; }
-              .stg-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+              .stg-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.04); gap: 16px; }
               .stg-row:last-child { border-bottom: none; }
-              .stg-section { margin-bottom: 32px; }
-              .stg-section-title { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.25); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 16px; }
-              .stg-card { padding: 18px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); }
+              .stg-section { margin-bottom: 40px; }
+              .stg-section-title { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.28); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 20px; }
+              .stg-card { position: relative; overflow: hidden; padding: 22px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); backdrop-filter: blur(12px) brightness(1.05); -webkit-backdrop-filter: blur(12px) brightness(1.05); transition: all 400ms cubic-bezier(0.32,0.72,0,1); }
+              .stg-card::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0.3; background:linear-gradient(168deg,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.03) 20%,transparent 50%,transparent 65%,rgba(255,255,255,0.02) 82%,rgba(255,255,255,0.08) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.25),inset 0 -0.5px 0 rgba(255,255,255,0.03); pointer-events:none; }
+              .stg-card:hover { border-color: rgba(255,255,255,0.09); box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+              .stg-select { position: relative; overflow: hidden; padding: 8px 32px 8px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.03); color: ${C.text}; font-size: 13px; font-weight: 500; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; transition: all 400ms cubic-bezier(0.32,0.72,0,1); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.4)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+              .stg-select:hover { background-color: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); box-shadow: 0 0 0 0.5px rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.3); }
+              .stg-select:focus { border-color: rgba(74,144,255,0.4); box-shadow: 0 0 0 3px rgba(74,144,255,0.08); }
+              .stg-select option { background: #0D1320; color: ${C.text}; }
+              .stg-btn { position: relative; overflow: hidden; padding: 8px 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03); color: ${C.textSec}; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 500ms cubic-bezier(0.32,0.72,0,1); letter-spacing: -0.005em; }
+              .stg-btn::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0; background:linear-gradient(160deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.04) 15%,transparent 42%,transparent 58%,rgba(255,255,255,0.03) 80%,rgba(255,255,255,0.12) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -0.5px 0 rgba(255,255,255,0.04); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
+              .stg-btn::after { content:''; position:absolute; top:-50%; left:5%; width:90%; height:80%; border-radius:50%; background:radial-gradient(ellipse at 40% 25%,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.02) 35%,transparent 70%); opacity:0; transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
+              .stg-btn:hover { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.14); backdrop-filter:blur(20px) brightness(1.22) saturate(1.6); -webkit-backdrop-filter:blur(20px) brightness(1.22) saturate(1.6); box-shadow:0 0 0 0.5px rgba(255,255,255,0.18),0 2px 8px rgba(0,0,0,0.08),0 8px 32px rgba(0,0,0,0.04),inset 0 1px 0 rgba(255,255,255,0.45); transform:translateY(-0.5px); }
+              .stg-btn:hover::before, .stg-btn:hover::after { opacity: 1; }
+              .stg-btn:active { transform: scale(0.97) translateY(0); transition-duration: 120ms; }
+              .stg-btn>* { position: relative; z-index: 1; }
+              .stg-btn-danger { border-color: rgba(239,68,68,0.15); background: rgba(239,68,68,0.04); color: #EF4444; }
+              .stg-btn-danger::before { background: linear-gradient(160deg,rgba(239,68,68,0.22) 0%,rgba(239,68,68,0.04) 18%,transparent 48%,transparent 58%,rgba(239,68,68,0.02) 82%,rgba(239,68,68,0.14) 100%) !important; box-shadow:inset 0 1px 0 rgba(239,68,68,0.3),inset 0 -0.5px 0 rgba(239,68,68,0.04) !important; }
+              .stg-btn-danger::after { background: radial-gradient(ellipse at 40% 25%,rgba(239,68,68,0.10) 0%,rgba(239,68,68,0.015) 35%,transparent 70%) !important; }
+              .stg-btn-danger:hover { background:rgba(239,68,68,0.08) !important; border-color:rgba(239,68,68,0.22) !important; box-shadow:0 0 0 0.5px rgba(239,68,68,0.25),0 2px 8px rgba(239,68,68,0.06),0 0 20px rgba(239,68,68,0.03),inset 0 1px 0 rgba(239,68,68,0.3) !important; }
+              .stg-btn-accent { border: none; background: ${C.accent}; color: #fff; box-shadow: 0 6px 28px rgba(74,144,255,0.25), inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(0,0,0,0.1); }
+              .stg-btn-accent::before { background:linear-gradient(160deg,rgba(255,255,255,0.30) 0%,rgba(255,255,255,0.06) 18%,transparent 48%,transparent 58%,rgba(255,255,255,0.04) 82%,rgba(255,255,255,0.18) 100%) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -0.5px 0 rgba(255,255,255,0.05) !important; opacity: 0.4 !important; }
+              .stg-btn-accent::after { opacity: 0.35 !important; }
+              .stg-btn-accent:hover { transform:translateY(-1px) !important; box-shadow:0 8px 36px rgba(74,144,255,0.38),0 0 0 0.5px rgba(74,144,255,0.4),inset 0 1px 0 rgba(255,255,255,0.30) !important; }
+              .stg-btn-accent:hover::before,.stg-btn-accent:hover::after { opacity: 1 !important; }
+              .stg-btn-accent:active { transform:scale(0.97) translateY(0) !important; }
+              .stg-kbd { padding: 3px 9px; border-radius: 7px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 1px 2px rgba(0,0,0,0.1), inset 0 0.5px 0 rgba(255,255,255,0.06); font-size: 11px; font-weight: 600; color: ${C.textMuted}; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; letter-spacing: 0.02em; }
             `}</style>
 
             {/* Left sidebar */}
-            <div style={{ width: 260, borderRight: `1px solid rgba(255,255,255,0.05)`, display: "flex", flexDirection: "column", padding: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 28 }}>
-                <ZelrexZIcon size={20} />
-                <span style={{ fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "-0.01em" }}>Settings</span>
+            <div style={{ width: 280, borderRight: `1px solid rgba(255,255,255,0.05)`, display: "flex", flexDirection: "column", padding: "20px 16px 16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 36, paddingLeft: 6 }}>
+                <ZelrexZIcon size={22} />
+                <span style={{ fontSize: 17, fontWeight: 800, color: C.text, letterSpacing: "-0.02em" }}>Settings</span>
               </div>
-              <nav style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1 }}>
-                <button className={`stg-tab ${settingsTab === "account" ? "stg-tab-active" : ""}`} onClick={() => setSettingsTab("account")}>
-                  <Ic n="user" style={{ width: 16, height: 16 }} /> Account
-                </button>
-                <button className={`stg-tab ${settingsTab === "subscription" ? "stg-tab-active" : ""}`} onClick={() => setSettingsTab("subscription")}>
-                  <Ic n="credit" style={{ width: 16, height: 16 }} /> Subscription
-                </button>
-                <button className={`stg-tab ${settingsTab === "features" ? "stg-tab-active" : ""}`} onClick={() => setSettingsTab("features")}>
-                  <Ic n="bolt" style={{ width: 16, height: 16 }} /> Zelrex Features
-                </button>
-                <button className={`stg-tab ${settingsTab === "notifications" ? "stg-tab-active" : ""}`} onClick={() => setSettingsTab("notifications")}>
-                  <Ic n="bell" style={{ width: 16, height: 16 }} /> Notifications
-                </button>
+              <nav style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+                {([
+                  ["account", "user", "Account"],
+                  ["subscription", "credit", "Subscription"],
+                  ["features", "bolt", "Features"],
+                  ["notifications", "bell", "Notifications"],
+                ] as const).map(([id, icon, label]) => (
+                  <button key={id} className={`stg-tab ${settingsTab === id ? "stg-tab-active" : ""}`} onClick={() => setSettingsTab(id as any)}>
+                    <Ic n={icon} style={{ width: 16, height: 16, flexShrink: 0 }} /> {label}
+                  </button>
+                ))}
               </nav>
-              {/* Settings footer */}
-              <div style={{ paddingTop: 16, borderTop: `1px solid rgba(255,255,255,0.04)` }}>
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.15)" }}>Zelrex v1.0 · Claude Opus 4.6</span>
+              <div style={{ paddingTop: 16, borderTop: `1px solid rgba(255,255,255,0.04)`, paddingLeft: 6 }}>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.13)", letterSpacing: "0.01em" }}>Zelrex v1.0 · Claude Opus 4.6</span>
               </div>
             </div>
 
-            {/* Right content */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            {/* Right content — centered */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
               {/* Top bar */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 28px", borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
-                <div style={{ fontSize: 18, fontWeight: 700, color: C.text, letterSpacing: "-0.01em" }}>
-                  {settingsTab === "account" && "Account"}
-                  {settingsTab === "subscription" && "Subscription & Billing"}
-                  {settingsTab === "features" && "Zelrex Features"}
-                  {settingsTab === "notifications" && "Notifications"}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 36px", borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
+                <div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: "-0.025em", lineHeight: 1.2 }}>
+                    {settingsTab === "account" && "Account"}
+                    {settingsTab === "subscription" && "Subscription & Billing"}
+                    {settingsTab === "features" && "Zelrex Features"}
+                    {settingsTab === "notifications" && "Notifications"}
+                  </div>
+                  <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4, letterSpacing: "-0.005em" }}>
+                    {settingsTab === "account" && "Manage your profile and connected services"}
+                    {settingsTab === "subscription" && "Your plan, billing, and upgrade options"}
+                    {settingsTab === "features" && "Customize how Zelrex works for you"}
+                    {settingsTab === "notifications" && "Control what you get notified about"}
+                  </div>
                 </div>
-                <button onClick={closeSettings} className="z-glass" style={{ width: 36, height: 36, borderRadius: 10, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.03)", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Ic n="close" style={{ width: 16, height: 16 }} />
+                <button onClick={closeSettings} className="stg-btn" style={{ width: 38, height: 38, borderRadius: 11, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Ic n="close" style={{ width: 16, height: 16, position: "relative", zIndex: 1 }} />
                 </button>
               </div>
 
-              {/* Scrollable content */}
-              <div style={{ flex: 1, overflowY: "auto", padding: "28px 28px 40px", maxWidth: 640 }}>
+              {/* Scrollable content — centered with max-width */}
+              <div style={{ flex: 1, overflowY: "auto", display: "flex", justifyContent: "center" }}>
+                <div style={{ width: "100%", maxWidth: 600, padding: "36px 32px 60px" }}>
 
                 {/* ─── ACCOUNT TAB ─── */}
                 {settingsTab === "account" && (<>
                   <div className="stg-section">
                     <div className="stg-section-title">Profile</div>
-                    <div className="stg-card" style={{ display: "flex", alignItems: "center", gap: 18 }}>
-                      <img src={clerkUser?.imageUrl} alt="" style={{ width: 64, height: 64, borderRadius: 16, border: `2px solid rgba(255,255,255,0.06)` }} />
-                      <div>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: C.text }}>{clerkUser?.fullName || clerkUser?.firstName || "User"}</div>
-                        <div style={{ fontSize: 13, color: C.textMuted, marginTop: 3 }}>{clerkUser?.primaryEmailAddress?.emailAddress || ""}</div>
-                        <div style={{ marginTop: 6, display: "inline-block", padding: "3px 10px", borderRadius: 999, background: `${C.accent}12`, fontSize: 11, fontWeight: 700, color: C.accent, letterSpacing: "0.04em" }}>FREE PLAN</div>
+                    <div className="stg-card" style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                      <div style={{ position: "relative" }}>
+                        <img src={clerkUser?.imageUrl} alt="" style={{ width: 72, height: 72, borderRadius: 18, border: `2px solid rgba(255,255,255,0.08)`, boxShadow: "0 4px 20px rgba(0,0,0,0.3)" }} />
+                        <div style={{ position: "absolute", bottom: -2, right: -2, width: 20, height: 20, borderRadius: 999, background: "#10B981", border: "2.5px solid #0A0F1A", boxShadow: "0 1px 4px rgba(0,0,0,0.3)" }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: "-0.02em" }}>{clerkUser?.fullName || clerkUser?.firstName || "User"}</div>
+                        <div style={{ fontSize: 13.5, color: C.textMuted, marginTop: 4, letterSpacing: "-0.005em" }}>{clerkUser?.primaryEmailAddress?.emailAddress || ""}</div>
+                        <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 12px", borderRadius: 999, background: `${C.accent}12`, border: `1px solid ${C.accent}18`, fontSize: 11, fontWeight: 700, color: C.accent, letterSpacing: "0.06em" }}>
+                          <span style={{ width: 5, height: 5, borderRadius: 999, background: C.accent, boxShadow: `0 0 6px ${C.accent}` }} />
+                          FREE PLAN
+                        </div>
                       </div>
                     </div>
                   </div>
                   <div className="stg-section">
                     <div className="stg-section-title">Connected Accounts</div>
-                    <div className="stg-row">
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 999, background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center" }}><Ic n="globe" style={{ width: 16, height: 16, color: C.textSec }} /></div>
-                        <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Stripe</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Accept payments on your website</div></div>
-                      </div>
-                      <button className="z-glass" style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Connect</button>
-                    </div>
-                    <div className="stg-row">
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ width: 32, height: 32, borderRadius: 999, background: "rgba(255,255,255,0.03)", display: "flex", alignItems: "center", justifyContent: "center" }}><Ic n="chart" style={{ width: 16, height: 16, color: C.textSec }} /></div>
-                        <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Google Analytics</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Track your website visitors</div></div>
-                      </div>
-                      <button className="z-glass" style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Connect</button>
-                    </div>
-                  </div>
-                  <div className="stg-section">
-                    <div className="stg-section-title">Keyboard Shortcuts</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                      {[["New business","Ctrl+N"],["Send message","Enter"],["New line","Shift+Enter"],["Toggle sidebar","Ctrl+B"],["Focus input","Ctrl+K"],["Close modal","Esc"]].map(([a,k]) => (
-                        <div key={a} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", fontSize: 12 }}>
-                          <span style={{ color: C.textSec }}>{a}</span>
-                          <span style={{ padding: "2px 8px", borderRadius: 6, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.05)", fontSize: 11, fontWeight: 600, color: C.textMuted, fontFamily: "monospace" }}>{k}</span>
+                    <div className="stg-card" style={{ padding: 0 }}>
+                      {[
+                        { icon: "globe", name: "Stripe", desc: "Accept payments on your website", color: "#635BFF" },
+                        { icon: "chart", name: "Google Analytics", desc: "Track your website visitors", color: "#F9AB00" },
+                      ].map((svc, i) => (
+                        <div key={svc.name} className="stg-row" style={{ padding: "16px 22px", borderBottom: i === 0 ? `1px solid rgba(255,255,255,0.04)` : "none" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: 10, background: `${svc.color}12`, border: `1px solid ${svc.color}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Ic n={svc.icon} style={{ width: 16, height: 16, color: svc.color }} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>{svc.name}</div>
+                              <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{svc.desc}</div>
+                            </div>
+                          </div>
+                          <button className="stg-btn"><span>Connect</span></button>
                         </div>
                       ))}
                     </div>
                   </div>
                   <div className="stg-section">
-                    <div className="stg-section-title" style={{ color: "#EF4444" }}>Danger Zone</div>
-                    <div className="stg-row"><div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Sign out</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Sign out of your Zelrex account</div></div>
-                      <button onClick={() => { closeSettings(); signOut(); }} className="z-glass" style={{ padding: "7px 16px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Sign out</button>
+                    <div className="stg-section-title">Keyboard Shortcuts</div>
+                    <div className="stg-card" style={{ padding: "14px 22px" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 24px" }}>
+                        {[["New business","Ctrl+N"],["Send message","Enter"],["New line","Shift+Enter"],["Toggle sidebar","Ctrl+B"],["Focus input","Ctrl+K"],["Close modal","Esc"]].map(([a,k]) => (
+                          <div key={a} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", fontSize: 13 }}>
+                            <span style={{ color: C.textSec, letterSpacing: "-0.005em" }}>{a}</span>
+                            <span className="stg-kbd">{k}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="stg-row" style={{ borderBottom: "none" }}><div><div style={{ fontSize: 13, fontWeight: 500, color: "#EF4444" }}>Delete account</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Permanently delete your account and all data</div></div>
-                      <button className="z-glass-danger" style={{ padding: "7px 16px", borderRadius: 9, border: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Delete</button>
+                  </div>
+                  <div className="stg-section">
+                    <div className="stg-section-title" style={{ color: "rgba(239,68,68,0.6)" }}>Danger Zone</div>
+                    <div className="stg-card" style={{ padding: 0, border: "1px solid rgba(239,68,68,0.08)" }}>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Sign out</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Sign out of your Zelrex account</div>
+                        </div>
+                        <button onClick={() => { closeSettings(); signOut(); }} className="stg-btn"><span>Sign out</span></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#EF4444", letterSpacing: "-0.01em" }}>Delete account</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Permanently delete your account and all data</div>
+                        </div>
+                        <button className="stg-btn stg-btn-danger"><span>Delete</span></button>
+                      </div>
                     </div>
                   </div>
                 </>)}
@@ -2308,42 +2389,54 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 {settingsTab === "subscription" && (<>
                   <div className="stg-section">
                     <div className="stg-section-title">Current Plan</div>
-                    <div className="stg-card" style={{ position: "relative", overflow: "hidden" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                        <div><div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>Free</div><div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>Basic access to Zelrex</div></div>
-                        <div style={{ padding: "5px 12px", borderRadius: 999, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", fontSize: 12, fontWeight: 600, color: C.textSec }}>Current</div>
+                    <div className="stg-card" style={{ position: "relative" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                        <div>
+                          <div style={{ fontSize: 24, fontWeight: 800, color: C.text, letterSpacing: "-0.03em" }}>Free</div>
+                          <div style={{ fontSize: 13.5, color: C.textMuted, marginTop: 3 }}>Basic access to Zelrex</div>
+                        </div>
+                        <div style={{ padding: "5px 14px", borderRadius: 999, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)", fontSize: 12, fontWeight: 600, color: C.textSec, letterSpacing: "0.01em" }}>Current</div>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 16 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 0 }}>
                         {["3 businesses", "Basic AI responses", "1 website deploy", "Community support"].map(f => (
-                          <div key={f} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.textSec }}><span style={{ color: C.textMuted }}>✓</span> {f}</div>
+                          <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.textSec }}>
+                            <span style={{ color: C.textMuted, fontSize: 11 }}>✓</span> {f}
+                          </div>
                         ))}
                       </div>
                     </div>
                   </div>
                   <div className="stg-section">
                     <div className="stg-section-title">Upgrade</div>
-                    <div className="stg-card" style={{ border: `1px solid ${C.accent}25`, position: "relative", overflow: "hidden" }}>
-                      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${C.accent}, transparent)` }} />
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                        <div><div style={{ fontSize: 20, fontWeight: 800, color: C.text }}>Pro <span style={{ fontSize: 14, fontWeight: 500, color: C.textSec }}>$26/mo</span></div><div style={{ fontSize: 13, color: C.textMuted, marginTop: 2 }}>Everything you need to scale</div></div>
-                        <div style={{ padding: "5px 12px", borderRadius: 999, background: `${C.accent}15`, fontSize: 12, fontWeight: 700, color: C.accent }}>RECOMMENDED</div>
+                    <div className="stg-card" style={{ border: `1px solid rgba(74,144,255,0.12)`, position: "relative" }}>
+                      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${C.accent}, transparent)`, opacity: 0.8 }} />
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                        <div>
+                          <div style={{ fontSize: 24, fontWeight: 800, color: C.text, letterSpacing: "-0.03em" }}>
+                            Pro <span style={{ fontSize: 15, fontWeight: 500, color: C.textSec, marginLeft: 6 }}>$26/mo</span>
+                          </div>
+                          <div style={{ fontSize: 13.5, color: C.textMuted, marginTop: 3 }}>Everything you need to scale</div>
+                        </div>
+                        <div style={{ padding: "5px 14px", borderRadius: 999, background: `${C.accent}15`, border: `1px solid ${C.accent}20`, fontSize: 11, fontWeight: 700, color: C.accent, letterSpacing: "0.04em" }}>RECOMMENDED</div>
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 18 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 22 }}>
                         {["Unlimited businesses", "Priority AI (Opus 4.6)", "Unlimited deploys", "Custom domains", "Weekly business reports", "Priority support", "Business analytics", "Stripe integration"].map(f => (
-                          <div key={f} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: C.textSec }}><span style={{ color: "#10B981" }}>✓</span> {f}</div>
+                          <div key={f} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.textSec }}>
+                            <span style={{ color: "#10B981", fontSize: 12 }}>✓</span> {f}
+                          </div>
                         ))}
                       </div>
-                      <button className="z-glass-solid" style={{ width: "100%", padding: "12px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", boxShadow: `0 6px 24px ${C.accent}30, inset 0 1px 0 rgba(255,255,255,0.1)` }}>
-                        Upgrade to Pro
+                      <button className="stg-btn stg-btn-accent" style={{ width: "100%", padding: "13px", borderRadius: 999, fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.01em" }}>
+                        <span style={{ position: "relative", zIndex: 1 }}>Upgrade to Pro</span>
                       </button>
                     </div>
                   </div>
                   <div className="stg-section">
                     <div className="stg-section-title">Billing History</div>
-                    <div style={{ textAlign: "center", padding: "32px 0" }}>
-                      <Ic n="credit" style={{ width: 28, height: 28, color: C.textMuted, opacity: 0.4, margin: "0 auto 10px", display: "block" }} />
-                      <div style={{ fontSize: 13, color: C.textMuted }}>No billing history yet</div>
-                      <div style={{ fontSize: 11, color: C.textMuted, opacity: 0.5, marginTop: 4 }}>Invoices will appear here after your first payment</div>
+                    <div className="stg-card" style={{ textAlign: "center", padding: "40px 22px" }}>
+                      <Ic n="credit" style={{ width: 32, height: 32, color: C.textMuted, opacity: 0.3, margin: "0 auto 12px", display: "block" }} />
+                      <div style={{ fontSize: 14, fontWeight: 500, color: C.textMuted, letterSpacing: "-0.01em" }}>No billing history yet</div>
+                      <div style={{ fontSize: 12, color: C.textMuted, opacity: 0.5, marginTop: 5 }}>Invoices will appear here after your first payment</div>
                     </div>
                   </div>
                 </>)}
@@ -2352,51 +2445,87 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 {settingsTab === "features" && (<>
                   <div className="stg-section">
                     <div className="stg-section-title">AI Configuration</div>
-                    <div className="stg-row">
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Response Style</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>How Zelrex communicates with you</div></div>
-                      <select style={{ padding: "7px 12px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.text, fontSize: 12, fontWeight: 500, cursor: "pointer", outline: "none" }}>
-                        <option value="direct">Direct & concise</option><option value="detailed">Detailed</option><option value="coaching">Coaching</option>
-                      </select>
-                    </div>
-                    <div className="stg-row">
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Revenue-First Mode</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Prioritize revenue in all suggestions</div></div>
-                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
-                    </div>
-                    <div className="stg-row">
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Idea Rejection Engine</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Actively reject weak business ideas</div></div>
-                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
-                    </div>
-                    <div className="stg-row">
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Proactive Suggestions</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Zelrex suggests improvements between chats</div></div>
-                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    <div className="stg-card" style={{ padding: 0 }}>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Response Style</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>How Zelrex communicates with you</div>
+                        </div>
+                        <select className="stg-select" value={zelrexSettings.responseStyle} onChange={e => updateSetting("responseStyle", e.target.value as any)}>
+                          <option value="direct">Direct & concise</option>
+                          <option value="detailed">Detailed</option>
+                          <option value="coaching">Coaching</option>
+                        </select>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Revenue-First Mode</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Prioritize revenue in all suggestions</div>
+                        </div>
+                        <button className={`stg-toggle ${zelrexSettings.revenueFirst ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("revenueFirst", !zelrexSettings.revenueFirst)} />
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Idea Rejection Engine</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Actively reject weak business ideas</div>
+                        </div>
+                        <button className={`stg-toggle ${zelrexSettings.ideaRejection ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("ideaRejection", !zelrexSettings.ideaRejection)} />
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Proactive Suggestions</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Zelrex suggests improvements between chats</div>
+                        </div>
+                        <button className={`stg-toggle ${zelrexSettings.proactiveSuggestions ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("proactiveSuggestions", !zelrexSettings.proactiveSuggestions)} />
+                      </div>
                     </div>
                   </div>
                   <div className="stg-section">
                     <div className="stg-section-title">Website Builder</div>
-                    <div className="stg-row">
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Auto-Deploy</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Automatically deploy websites after build</div></div>
-                      <button className="stg-toggle stg-off" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
-                    </div>
-                    <div className="stg-row">
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Preview Quality</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Resolution for website previews</div></div>
-                      <select style={{ padding: "7px 12px", borderRadius: 9, border: `1px solid rgba(255,255,255,0.06)`, background: "rgba(255,255,255,0.025)", color: C.text, fontSize: 12, fontWeight: 500, cursor: "pointer", outline: "none" }}>
-                        <option value="high">High (default)</option><option value="low">Low (faster)</option>
-                      </select>
+                    <div className="stg-card" style={{ padding: 0 }}>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Auto-Deploy</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Automatically deploy websites after build</div>
+                        </div>
+                        <button className={`stg-toggle ${zelrexSettings.autoDeploy ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("autoDeploy", !zelrexSettings.autoDeploy)} />
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Preview Quality</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Resolution for website previews</div>
+                        </div>
+                        <select className="stg-select" value={zelrexSettings.previewQuality} onChange={e => updateSetting("previewQuality", e.target.value as any)}>
+                          <option value="high">High (default)</option>
+                          <option value="low">Low (faster)</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                   <div className="stg-section">
                     <div className="stg-section-title">Business Copilot</div>
-                    <div className="stg-row">
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Weekly Business Digest</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Email summary of business progress</div></div>
-                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
-                    </div>
-                    <div className="stg-row">
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Market Monitoring</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Track market changes relevant to your business</div></div>
-                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
-                    </div>
-                    <div className="stg-row">
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Sound Effects</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Play sounds for notifications and actions</div></div>
-                      <button className="stg-toggle stg-off" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    <div className="stg-card" style={{ padding: 0 }}>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Weekly Business Digest</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Email summary of business progress</div>
+                        </div>
+                        <button className={`stg-toggle ${zelrexSettings.weeklyDigest ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("weeklyDigest", !zelrexSettings.weeklyDigest)} />
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Market Monitoring</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Track market changes relevant to your business</div>
+                        </div>
+                        <button className={`stg-toggle ${zelrexSettings.marketMonitoring ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("marketMonitoring", !zelrexSettings.marketMonitoring)} />
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Sound Effects</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Play sounds for notifications and actions</div>
+                        </div>
+                        <button className={`stg-toggle ${zelrexSettings.soundEffects ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("soundEffects", !zelrexSettings.soundEffects)} />
+                      </div>
                     </div>
                   </div>
                 </>)}
@@ -2405,36 +2534,59 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 {settingsTab === "notifications" && (<>
                   <div className="stg-section">
                     <div className="stg-section-title">Email Notifications</div>
-                    <div className="stg-row">
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Weekly Business Report</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Summary of your business metrics every Monday</div></div>
-                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
-                    </div>
-                    <div className="stg-row">
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Goal Milestones</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Get notified when you hit revenue targets</div></div>
-                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
-                    </div>
-                    <div className="stg-row">
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Market Alerts</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Opportunities and threats in your market</div></div>
-                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
-                    </div>
-                    <div className="stg-row">
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Product Updates</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>New Zelrex features and improvements</div></div>
-                      <button className="stg-toggle stg-off" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    <div className="stg-card" style={{ padding: 0 }}>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Weekly Business Report</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Summary of your business metrics every Monday</div>
+                        </div>
+                        <button className={`stg-toggle ${zelrexSettings.emailWeeklyReport ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("emailWeeklyReport", !zelrexSettings.emailWeeklyReport)} />
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Goal Milestones</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Get notified when you hit revenue targets</div>
+                        </div>
+                        <button className={`stg-toggle ${zelrexSettings.emailGoalMilestones ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("emailGoalMilestones", !zelrexSettings.emailGoalMilestones)} />
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Market Alerts</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Opportunities and threats in your market</div>
+                        </div>
+                        <button className={`stg-toggle ${zelrexSettings.emailMarketAlerts ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("emailMarketAlerts", !zelrexSettings.emailMarketAlerts)} />
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Product Updates</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>New Zelrex features and improvements</div>
+                        </div>
+                        <button className={`stg-toggle ${zelrexSettings.emailProductUpdates ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("emailProductUpdates", !zelrexSettings.emailProductUpdates)} />
+                      </div>
                     </div>
                   </div>
                   <div className="stg-section">
                     <div className="stg-section-title">In-App Notifications</div>
-                    <div className="stg-row">
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Business Suggestions</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Zelrex proactive business recommendations</div></div>
-                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
-                    </div>
-                    <div className="stg-row">
-                      <div><div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>Deploy Status</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 1 }}>Website deployment success or failure</div></div>
-                      <button className="stg-toggle stg-on" onClick={(e) => { e.currentTarget.classList.toggle("stg-on"); e.currentTarget.classList.toggle("stg-off"); }} />
+                    <div className="stg-card" style={{ padding: 0 }}>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Business Suggestions</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Zelrex proactive business recommendations</div>
+                        </div>
+                        <button className={`stg-toggle ${zelrexSettings.inAppSuggestions ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("inAppSuggestions", !zelrexSettings.inAppSuggestions)} />
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Deploy Status</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Website deployment success or failure</div>
+                        </div>
+                        <button className={`stg-toggle ${zelrexSettings.inAppDeployStatus ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("inAppDeployStatus", !zelrexSettings.inAppDeployStatus)} />
+                      </div>
                     </div>
                   </div>
                 </>)}
 
+                </div>
               </div>
             </div>
           </div>

@@ -65,9 +65,9 @@ export interface SurveyData {
 const S = {
   bg: "#06090F",
   overlay: "rgba(0,0,0,0.7)",
-  surface: "#0C1220",
+  surface: "rgba(10,15,26,0.85)",
   surfaceHover: "#101828",
-  border: "rgba(255,255,255,0.08)",
+  border: "rgba(255,255,255,0.07)",
   borderHover: "rgba(255,255,255,0.16)",
   accent: "#4A90FF",
   accentGlow: "rgba(74,144,255,0.12)",
@@ -77,6 +77,191 @@ const S = {
   danger: "#EF4444",
   success: "#10B981",
 };
+
+// Liquid glass CSS injected once
+const SURVEY_GLASS_CSS = `
+  @keyframes surveyFadeIn { from { opacity: 0; transform: scale(0.97) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  @keyframes surveySlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes surveyPulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+  @keyframes surveyShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+  @keyframes zelrexTipIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+  @media(max-width:640px) { .survey-option-grid { grid-template-columns: 1fr !important; } }
+
+  .sv-glass-card {
+    position: relative; overflow: hidden; border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+    backdrop-filter: blur(12px) brightness(1.05);
+    -webkit-backdrop-filter: blur(12px) brightness(1.05);
+    transition: all 400ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .sv-glass-card::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; opacity: 0.3; pointer-events: none;
+    background: linear-gradient(168deg,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.03) 20%,transparent 50%,transparent 65%,rgba(255,255,255,0.02) 82%,rgba(255,255,255,0.08) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), inset 0 -0.5px 0 rgba(255,255,255,0.03);
+  }
+  .sv-glass-card:hover { border-color: rgba(255,255,255,0.10); box-shadow: 0 4px 24px rgba(0,0,0,0.1); }
+
+  .sv-glass-btn {
+    position: relative; overflow: hidden; cursor: pointer; font-family: inherit;
+    transition: all 500ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .sv-glass-btn::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; opacity: 0; pointer-events: none;
+    background: linear-gradient(160deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.04) 15%,transparent 42%,transparent 58%,rgba(255,255,255,0.03) 80%,rgba(255,255,255,0.12) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -0.5px 0 rgba(255,255,255,0.04);
+    transition: opacity 500ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .sv-glass-btn::after {
+    content: ''; position: absolute; top: -50%; left: 5%; width: 90%; height: 80%; border-radius: 50%; pointer-events: none; opacity: 0;
+    background: radial-gradient(ellipse at 40% 25%,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.02) 35%,transparent 70%);
+    transition: opacity 500ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .sv-glass-btn:hover::before, .sv-glass-btn:hover::after { opacity: 1; }
+  .sv-glass-btn:hover {
+    background: rgba(255,255,255,0.06) !important;
+    border-color: rgba(255,255,255,0.14) !important;
+    backdrop-filter: blur(20px) brightness(1.22) saturate(1.6);
+    -webkit-backdrop-filter: blur(20px) brightness(1.22) saturate(1.6);
+    box-shadow: 0 0 0 0.5px rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.45);
+    transform: translateY(-0.5px);
+  }
+  .sv-glass-btn:active { transform: scale(0.97) translateY(0) !important; transition-duration: 120ms; }
+  .sv-glass-btn > * { position: relative; z-index: 1; }
+
+  .sv-glass-btn-accent {
+    position: relative; overflow: hidden; cursor: pointer; font-family: inherit; border: none;
+    transition: all 500ms cubic-bezier(0.32,0.72,0,1);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(255,255,255,0.04);
+  }
+  .sv-glass-btn-accent::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; opacity: 0.4; pointer-events: none;
+    background: linear-gradient(160deg,rgba(255,255,255,0.30) 0%,rgba(255,255,255,0.06) 18%,transparent 48%,transparent 58%,rgba(255,255,255,0.04) 82%,rgba(255,255,255,0.18) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -0.5px 0 rgba(255,255,255,0.05);
+    transition: opacity 500ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .sv-glass-btn-accent::after {
+    content: ''; position: absolute; top: -50%; left: 5%; width: 90%; height: 80%; border-radius: 50%; pointer-events: none; opacity: 0.35;
+    background: radial-gradient(ellipse at 40% 25%,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.03) 35%,transparent 65%);
+    transition: opacity 600ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .sv-glass-btn-accent:hover::before, .sv-glass-btn-accent:hover::after { opacity: 1; }
+  .sv-glass-btn-accent:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 36px rgba(74,144,255,0.35), inset 0 1px 0 rgba(255,255,255,0.30);
+  }
+  .sv-glass-btn-accent:active { transform: scale(0.97) translateY(0) !important; transition-duration: 120ms; }
+  .sv-glass-btn-accent > * { position: relative; z-index: 1; }
+
+  .sv-glass-input {
+    width: 100%; padding: 11px 16px; border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.06); background: rgba(6,9,15,0.8);
+    color: rgba(255,255,255,0.92); font-size: 14px; font-family: inherit;
+    outline: none; letter-spacing: -0.005em;
+    transition: all 300ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .sv-glass-input::placeholder { color: rgba(255,255,255,0.20); }
+  .sv-glass-input:focus {
+    border-color: rgba(74,144,255,0.4);
+    box-shadow: 0 0 0 3px rgba(74,144,255,0.08), 0 0 20px rgba(74,144,255,0.06);
+    background: rgba(6,9,15,0.95);
+  }
+
+  .sv-option {
+    position: relative; overflow: hidden; text-align: left; padding: 14px 16px; border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.06); background: transparent; cursor: pointer;
+    transition: all 400ms cubic-bezier(0.32,0.72,0,1); font-family: inherit;
+  }
+  .sv-option::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; opacity: 0; pointer-events: none;
+    background: linear-gradient(168deg,rgba(255,255,255,0.15) 0%,rgba(255,255,255,0.04) 18%,transparent 45%,transparent 60%,rgba(255,255,255,0.02) 80%,rgba(255,255,255,0.08) 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.30), inset 0 -0.5px 0 rgba(255,255,255,0.04);
+    transition: opacity 400ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .sv-option:hover { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
+  .sv-option:hover::before { opacity: 1; }
+  .sv-option:active { transform: scale(0.98); transition-duration: 120ms; }
+  .sv-option-active {
+    border-color: rgba(74,144,255,0.30) !important;
+    background: rgba(74,144,255,0.08) !important;
+    box-shadow: 0 0 0 0.5px rgba(74,144,255,0.20), 0 0 20px rgba(74,144,255,0.04), inset 0 1px 0 rgba(74,144,255,0.12);
+  }
+  .sv-option-active::before {
+    opacity: 0.6 !important;
+    background: linear-gradient(168deg,rgba(74,144,255,0.20) 0%,rgba(74,144,255,0.05) 18%,transparent 45%,transparent 60%,rgba(74,144,255,0.02) 80%,rgba(74,144,255,0.12) 100%) !important;
+    box-shadow: inset 0 1px 0 rgba(74,144,255,0.30), inset 0 -0.5px 0 rgba(74,144,255,0.05) !important;
+  }
+
+  .sv-color-swatch {
+    width: 48px; height: 48px; border-radius: 14px; cursor: pointer; position: relative; overflow: hidden;
+    transition: all 400ms cubic-bezier(0.32,0.72,0,1); border: 2px solid transparent;
+  }
+  .sv-color-swatch::after {
+    content: ''; position: absolute; top: -30%; left: 10%; width: 80%; height: 50%; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.30) 0%, transparent 70%);
+  }
+  .sv-color-swatch:hover { transform: scale(1.08) translateY(-2px); }
+  .sv-color-swatch:active { transform: scale(0.95); }
+  .sv-color-active { border-color: rgba(255,255,255,0.9) !important; box-shadow: 0 0 20px var(--swatch-glow); }
+
+  .sv-progress-track { height: 3px; background: rgba(255,255,255,0.04); position: relative; overflow: hidden; }
+  .sv-progress-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, #4A90FF, #10B981);
+    transition: width 600ms cubic-bezier(0.32,0.72,0,1);
+    box-shadow: 0 0 12px rgba(74,144,255,0.3);
+  }
+
+  .sv-step-dot {
+    width: 8px; height: 8px; border-radius: 999px;
+    transition: all 400ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .sv-step-dot-active { background: #4A90FF; box-shadow: 0 0 8px rgba(74,144,255,0.5); }
+  .sv-step-dot-done { background: #10B981; box-shadow: 0 0 6px rgba(16,185,129,0.4); }
+  .sv-step-dot-pending { background: rgba(255,255,255,0.12); }
+
+  .sv-tier-card {
+    padding: 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.015); margin-bottom: 10px;
+    transition: all 300ms cubic-bezier(0.32,0.72,0,1);
+  }
+  .sv-tier-card:hover { border-color: rgba(255,255,255,0.10); background: rgba(255,255,255,0.025); }
+
+  .sv-remove-btn {
+    width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.06); background: transparent;
+    color: rgba(255,255,255,0.25); cursor: pointer; font-size: 13px;
+    transition: all 300ms cubic-bezier(0.32,0.72,0,1); display: flex;
+    align-items: center; justify-content: center;
+  }
+  .sv-remove-btn:hover { border-color: rgba(239,68,68,0.3); color: #EF4444; background: rgba(239,68,68,0.06); }
+
+  .sv-add-btn {
+    padding: 7px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);
+    background: transparent; color: rgba(255,255,255,0.45); font-size: 12.5px;
+    font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: all 400ms cubic-bezier(0.32,0.72,0,1); letter-spacing: -0.005em;
+  }
+  .sv-add-btn:hover { border-color: rgba(255,255,255,0.14); color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.03); }
+
+  .sv-social-select {
+    padding: 9px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(6,9,15,0.8); color: rgba(255,255,255,0.92); font-size: 13px;
+    font-family: inherit; outline: none; appearance: none; -webkit-appearance: none;
+    transition: all 300ms cubic-bezier(0.32,0.72,0,1);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.35)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+    padding-right: 30px;
+  }
+  .sv-social-select:focus { border-color: rgba(74,144,255,0.4); box-shadow: 0 0 0 3px rgba(74,144,255,0.08); }
+  .sv-social-select option { background: #0D1320; }
+
+  .sv-review-row {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .sv-review-row:last-child { border-bottom: none; }
+`;
 
 // ─── Main Component ─────────────────────────────────────────────────
 
@@ -197,95 +382,108 @@ export function WebsiteSurvey({
   }
 
   const stepTitles = ["Your Business", "Your Service", "Brand & Style", "Contact Info", "Review & Build"];
+  const stepDescs = [
+    "Tell us about your business so we can build something truly yours",
+    "Define your offer — pricing, deliverables, and turnaround",
+    "Choose your visual identity and brand personality",
+    "How can your clients reach you?",
+    "Everything looks good? Let's build it.",
+  ];
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9999,
-      background: S.overlay, backdropFilter: "blur(12px)",
+      background: "rgba(0,0,0,0.75)", backdropFilter: "blur(24px) saturate(1.5)", WebkitBackdropFilter: "blur(24px) saturate(1.5)",
       display: "flex", alignItems: "center", justifyContent: "center",
       padding: 20,
     }}>
+      <style>{SURVEY_GLASS_CSS}</style>
       <div style={{
-        width: "100%", maxWidth: 620, maxHeight: "90vh",
-        background: S.surface, borderRadius: 20,
+        width: "100%", maxWidth: 640, maxHeight: "92vh",
+        background: S.surface, borderRadius: 24,
         border: `1px solid ${S.border}`,
-        boxShadow: "0 40px 120px rgba(0,0,0,0.6)",
+        backdropFilter: "blur(40px) saturate(1.8)", WebkitBackdropFilter: "blur(40px) saturate(1.8)",
+        boxShadow: "0 60px 140px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.04), inset 0 0.5px 0 rgba(255,255,255,0.06)",
         display: "flex", flexDirection: "column",
         overflow: "hidden",
+        animation: "surveyFadeIn 400ms cubic-bezier(0.22,1,0.36,1) forwards",
       }}>
-        <style>{`@media(max-width:640px){.survey-option-grid{grid-template-columns:1fr!important}}`}</style>
         {/* Header */}
         <div style={{
-          padding: "20px 24px 16px",
+          padding: "22px 28px 18px",
           borderBottom: `1px solid ${S.border}`,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
+          display: "flex", alignItems: "flex-start", justifyContent: "space-between",
         }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: S.textMuted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              Step {step + 1} of {totalSteps}
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: S.textMuted, textTransform: "uppercase", letterSpacing: "0.12em" }}>
+                Step {step + 1} of {totalSteps}
+              </div>
+              <div style={{ display: "flex", gap: 5 }}>
+                {Array.from({ length: totalSteps }).map((_, i) => (
+                  <div key={i} className={`sv-step-dot ${i < step ? "sv-step-dot-done" : i === step ? "sv-step-dot-active" : "sv-step-dot-pending"}`} />
+                ))}
+              </div>
             </div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: S.text, marginTop: 4, letterSpacing: "-0.02em" }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: S.text, letterSpacing: "-0.03em", lineHeight: 1.2 }}>
               {stepTitles[step]}
             </div>
+            <div style={{ fontSize: 13, color: S.textMuted, marginTop: 5, letterSpacing: "-0.005em", lineHeight: 1.5 }}>
+              {stepDescs[step]}
+            </div>
           </div>
-          <button onClick={onClose} style={{
-            width: 32, height: 32, borderRadius: 8, border: `1px solid ${S.border}`,
-            background: "transparent", color: S.textSec, cursor: "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
-          }}>✕</button>
+          <button onClick={onClose} className="sv-glass-btn" style={{
+            width: 36, height: 36, borderRadius: 10, border: `1px solid ${S.border}`,
+            background: "rgba(255,255,255,0.02)", color: S.textSec,
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0, marginTop: 2,
+          }}><span>✕</span></button>
         </div>
 
         {/* Progress bar */}
-        <div style={{ height: 2, background: S.border }}>
-          <div style={{
-            height: "100%", width: `${((step + 1) / totalSteps) * 100}%`,
-            background: `linear-gradient(90deg, ${S.accent}, #10B981)`,
-            borderRadius: 2, transition: "width 400ms ease",
-          }} />
+        <div className="sv-progress-track">
+          <div className="sv-progress-fill" style={{ width: `${((step + 1) / totalSteps) * 100}%` }} />
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, overflow: "auto", padding: "24px 24px 16px" }}>
-          {step === 0 && <StepBusiness data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} buildAskQuestion={buildAskQuestion} />}
-          {step === 1 && <StepService data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} buildAskQuestion={buildAskQuestion} />}
-          {step === 2 && <StepBrand data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} buildAskQuestion={buildAskQuestion} />}
-          {step === 3 && <StepContact data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} buildAskQuestion={buildAskQuestion} />}
-          {step === 4 && <StepReview data={data} />}
+        <div style={{ flex: 1, overflow: "auto", padding: "28px 28px 20px" }}>
+          <div key={step} style={{ animation: "surveySlideUp 350ms cubic-bezier(0.22,1,0.36,1) forwards" }}>
+            {step === 0 && <StepBusiness data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} buildAskQuestion={buildAskQuestion} />}
+            {step === 1 && <StepService data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} buildAskQuestion={buildAskQuestion} />}
+            {step === 2 && <StepBrand data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} buildAskQuestion={buildAskQuestion} />}
+            {step === 3 && <StepContact data={data} update={update} zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} buildAskQuestion={buildAskQuestion} />}
+            {step === 4 && <StepReview data={data} />}
+          </div>
         </div>
 
         {/* Footer */}
         {errors.length > 0 && (
-          <div style={{ padding: "0 24px 8px" }}>
-            <div style={{ padding: "10px 14px", borderRadius: 10, background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)" }}>
-              {errors.map((e, i) => <div key={i} style={{ fontSize: 12, color: S.danger, lineHeight: 1.6 }}>• {e}</div>)}
+          <div style={{ padding: "0 28px 10px" }}>
+            <div className="sv-glass-card" style={{ padding: "12px 16px", borderColor: "rgba(239,68,68,0.15)", background: "rgba(239,68,68,0.04)" }}>
+              {errors.map((e, i) => <div key={i} style={{ fontSize: 12.5, color: S.danger, lineHeight: 1.7, letterSpacing: "-0.005em" }}>• {e}</div>)}
             </div>
           </div>
         )}
         <div style={{
-          padding: "16px 24px 20px",
+          padding: "16px 28px 22px",
           borderTop: `1px solid ${S.border}`,
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           {step > 0 ? (
-            <button onClick={back} style={{
-              padding: "10px 20px", borderRadius: 10, border: `1px solid ${S.border}`,
-              background: "transparent", color: S.textSec, fontSize: 14, fontWeight: 600, cursor: "pointer",
-            }}>Back</button>
+            <button onClick={back} className="sv-glass-btn" style={{
+              padding: "10px 22px", borderRadius: 12, border: `1px solid ${S.border}`,
+              background: "rgba(255,255,255,0.02)", color: S.textSec, fontSize: 14, fontWeight: 600, letterSpacing: "-0.01em",
+            }}><span>Back</span></button>
           ) : <div />}
           
-          <button onClick={next} style={{
-            padding: "10px 24px", borderRadius: 10, border: "none",
+          <button onClick={next} className="sv-glass-btn-accent" style={{
+            padding: "11px 28px", borderRadius: 12,
             background: step === totalSteps - 1 
               ? `linear-gradient(135deg, ${S.accent}, #10B981)` 
               : S.accent,
-            color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
-            boxShadow: `0 4px 20px ${S.accentGlow}`,
-            transition: "transform 150ms, box-shadow 150ms",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = `0 8px 30px ${S.accentGlow}`; }}
-          onMouseLeave={(e) => { e.currentTarget.style.transform = "none"; e.currentTarget.style.boxShadow = `0 4px 20px ${S.accentGlow}`; }}
-          >
-            {step === totalSteps - 1 ? "Build my website →" : "Continue →"}
+            color: "#fff", fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.01em",
+            boxShadow: `0 6px 28px rgba(74,144,255,0.25), inset 0 1px 0 rgba(255,255,255,0.18)`,
+          }}>
+            <span>{step === totalSteps - 1 ? "Build my website →" : "Continue →"}</span>
           </button>
         </div>
       </div>
@@ -297,32 +495,32 @@ export function WebsiteSurvey({
 
 function Label({ children, required, askKey, zelrexTip, setZelrexTip, onAskZelrex, buildAskQuestion }: { children: React.ReactNode; required?: boolean; askKey?: string; zelrexTip?: string | null; setZelrexTip?: (k: string | null) => void; onAskZelrex?: (question: string) => void; buildAskQuestion?: (key: string) => string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-      <label style={{ fontSize: 13, fontWeight: 600, color: S.text }}>{children}{required && <span style={{ color: S.danger, marginLeft: 4 }}>*</span>}</label>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+      <label style={{ fontSize: 13.5, fontWeight: 600, color: S.text, letterSpacing: "-0.01em" }}>{children}{required && <span style={{ color: S.accent, marginLeft: 4, fontSize: 12 }}>*</span>}</label>
       {askKey && setZelrexTip && (
-        <button type="button" onClick={() => {
+        <button type="button" className="sv-glass-btn" onClick={() => {
           if (onAskZelrex && askKey && buildAskQuestion) {
             onAskZelrex(buildAskQuestion(askKey));
           } else {
             setZelrexTip(zelrexTip === askKey ? null : askKey);
           }
         }} style={{
-          display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 10px", borderRadius: 8,
-          border: `1px solid ${zelrexTip === askKey ? S.accent + "50" : S.accent + "25"}`,
-          background: zelrexTip === askKey ? `linear-gradient(135deg, ${S.accent}20, ${S.accent}08)` : `linear-gradient(135deg, ${S.accent}10, transparent)`,
-          color: zelrexTip === askKey ? S.accent : S.accent + "AA",
-          fontSize: 11, fontWeight: 600, cursor: "pointer", transition: "all 200ms cubic-bezier(0.2,0,0,1)", letterSpacing: "0.01em",
+          display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 11px", borderRadius: 9,
+          border: `1px solid ${zelrexTip === askKey ? "rgba(74,144,255,0.35)" : "rgba(74,144,255,0.15)"}`,
+          background: zelrexTip === askKey ? "rgba(74,144,255,0.10)" : "rgba(74,144,255,0.04)",
+          color: zelrexTip === askKey ? S.accent : "rgba(74,144,255,0.75)",
+          fontSize: 11, fontWeight: 600, letterSpacing: "0.01em",
           whiteSpace: "nowrap",
-          boxShadow: zelrexTip === askKey ? `0 0 16px ${S.accent}20, inset 0 0.5px 0 rgba(255,255,255,0.1)` : `inset 0 0.5px 0 rgba(255,255,255,0.06)`,
-        }}
-        onMouseEnter={(e) => { const t = e.currentTarget; t.style.borderColor = `${S.accent}60`; t.style.background = `linear-gradient(135deg, ${S.accent}25, ${S.accent}10)`; t.style.boxShadow = `0 0 20px ${S.accent}25, inset 0 0.5px 0 rgba(255,255,255,0.12)`; t.style.transform = "translateY(-0.5px)"; }}
-        onMouseLeave={(e) => { const t = e.currentTarget; const isActive = zelrexTip === askKey; t.style.borderColor = isActive ? `${S.accent}50` : `${S.accent}25`; t.style.background = isActive ? `linear-gradient(135deg, ${S.accent}20, ${S.accent}08)` : `linear-gradient(135deg, ${S.accent}10, transparent)`; t.style.boxShadow = isActive ? `0 0 16px ${S.accent}20, inset 0 0.5px 0 rgba(255,255,255,0.1)` : `inset 0 0.5px 0 rgba(255,255,255,0.06)`; t.style.transform = "none"; }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
-            <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.6" />
-          </svg>
-          Ask Zelrex
+          boxShadow: zelrexTip === askKey ? "0 0 16px rgba(74,144,255,0.12), inset 0 0.5px 0 rgba(74,144,255,0.20)" : "inset 0 0.5px 0 rgba(255,255,255,0.06)",
+        }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 5, position: "relative", zIndex: 1 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <path d="M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.6" />
+            </svg>
+            Ask Zelrex
+          </span>
         </button>
       )}
     </div>
@@ -330,7 +528,7 @@ function Label({ children, required, askKey, zelrexTip, setZelrexTip, onAskZelre
 }
 
 function Hint({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 12, color: S.textMuted, marginBottom: 10, lineHeight: 1.5 }}>{children}</div>;
+  return <div style={{ fontSize: 12.5, color: S.textMuted, marginBottom: 10, lineHeight: 1.55, letterSpacing: "-0.005em" }}>{children}</div>;
 }
 
 type InputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, "onChange" | "value"> & {
@@ -344,14 +542,7 @@ function Input({ value, onChange, placeholder, ...rest }: InputProps) {
       value={value} 
       onChange={(e) => onChange(e.target.value)} 
       placeholder={placeholder}
-      style={{
-        width: "100%", padding: "10px 14px", borderRadius: 10,
-        border: `1px solid ${S.border}`, background: S.bg,
-        color: S.text, fontSize: 14, outline: "none",
-        transition: "border-color 200ms",
-      }}
-      onFocus={(e) => { e.currentTarget.style.borderColor = S.accent; }}
-      onBlur={(e) => { e.currentTarget.style.borderColor = S.border; }}
+      className="sv-glass-input"
       {...rest}
     />
   );
@@ -364,15 +555,8 @@ function TextArea({ value, onChange, placeholder, rows = 3 }: { value: string; o
       onChange={(e) => onChange(e.target.value)} 
       placeholder={placeholder}
       rows={rows}
-      style={{
-        width: "100%", padding: "10px 14px", borderRadius: 10,
-        border: `1px solid ${S.border}`, background: S.bg,
-        color: S.text, fontSize: 14, outline: "none", resize: "vertical",
-        fontFamily: "inherit", lineHeight: 1.6,
-        transition: "border-color 200ms",
-      }}
-      onFocus={(e) => { e.currentTarget.style.borderColor = S.accent; }}
-      onBlur={(e) => { e.currentTarget.style.borderColor = S.border; }}
+      className="sv-glass-input"
+      style={{ resize: "vertical", lineHeight: 1.65 }}
     />
   );
 }
@@ -387,14 +571,12 @@ function OptionGrid({ options, value, onChange }: {
       {options.map((opt) => {
         const active = value === opt.key;
         return (
-          <button key={opt.key} type="button" onClick={() => onChange(opt.key)} style={{
-            textAlign: "left", padding: "12px 14px", borderRadius: 10,
-            border: `1px solid ${active ? S.accent : S.border}`,
-            background: active ? S.accentGlow : "transparent",
-            cursor: "pointer", transition: "all 150ms",
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: active ? S.text : S.textSec }}>{opt.label}</div>
-            {opt.desc && <div style={{ fontSize: 11, color: S.textMuted, marginTop: 2 }}>{opt.desc}</div>}
+          <button key={opt.key} type="button" onClick={() => onChange(opt.key)} className={`sv-option ${active ? "sv-option-active" : ""}`}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: active ? S.text : S.textSec, letterSpacing: "-0.01em", position: "relative", zIndex: 1 }}>
+              {active && <span style={{ display: "inline-block", width: 6, height: 6, borderRadius: 999, background: S.accent, boxShadow: `0 0 8px ${S.accent}`, marginRight: 8, verticalAlign: "middle" }} />}
+              {opt.label}
+            </div>
+            {opt.desc && <div style={{ fontSize: 11.5, color: S.textMuted, marginTop: 3, letterSpacing: "-0.005em", position: "relative", zIndex: 1 }}>{opt.desc}</div>}
           </button>
         );
       })}
@@ -403,7 +585,7 @@ function OptionGrid({ options, value, onChange }: {
 }
 
 function FieldGroup({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
-  return <div style={{ marginBottom: 20, ...style }}>{children}</div>;
+  return <div style={{ marginBottom: 24, ...style }}>{children}</div>;
 }
 
 // ─── Ask Zelrex Tips ──────────────────────────────────────────────
@@ -438,20 +620,19 @@ function ZelrexTipPopover({ tipKey }: { tipKey: string }) {
   const tip = ZELREX_TIPS[tipKey];
   if (!tip) return null;
   return (
-    <div style={{
-      marginBottom: 12, padding: "12px 14px", borderRadius: 12,
-      background: "rgba(74,144,255,0.06)", border: `1px solid ${S.accent}20`,
-      display: "flex", gap: 10, alignItems: "flex-start",
-      animation: "zelrexTipIn 200ms ease",
+    <div className="sv-glass-card" style={{
+      marginBottom: 14, padding: "14px 16px",
+      borderColor: "rgba(74,144,255,0.12)", background: "rgba(74,144,255,0.04)",
+      display: "flex", gap: 12, alignItems: "flex-start",
+      animation: "zelrexTipIn 250ms cubic-bezier(0.22,1,0.36,1)",
     }}>
-      <div style={{ flexShrink: 0, marginTop: 2 }}>
-        <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+      <div style={{ flexShrink: 0, marginTop: 1, width: 24, height: 24, borderRadius: 8, background: "rgba(74,144,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <svg width="14" height="14" viewBox="0 0 32 32" fill="none">
           <text x="4" y="23" fill={S.accent} fontFamily="Inter, system-ui, sans-serif" fontWeight="800" fontSize="24" fontStyle="italic">Z</text>
           <line x1="3" y1="28" x2="27" y2="28" stroke={S.accent} strokeWidth="2.5" strokeLinecap="round" opacity="0.5" />
         </svg>
       </div>
-      <div style={{ fontSize: 12.5, color: S.textSec, lineHeight: 1.65 }}>{tip}</div>
-      <style>{`@keyframes zelrexTipIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}`}</style>
+      <div style={{ fontSize: 12.5, color: S.textSec, lineHeight: 1.7, letterSpacing: "-0.005em" }}>{tip}</div>
     </div>
   );
 }
@@ -534,24 +715,18 @@ function StepService({ data, update, zelrexTip, setZelrexTip, onAskZelrex, build
         {zelrexTip === "deliverables" && <ZelrexTipPopover tipKey="deliverables" />}
         <Hint>List specific deliverables.</Hint>
         {data.deliverables.map((d, i) => (
-          <div key={i} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+          <div key={i} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
             <Input value={d} onChange={(v) => {
               const next = [...data.deliverables];
               next[i] = v;
               update("deliverables", next);
             }} placeholder={`Deliverable ${i + 1}`} />
             {data.deliverables.length > 1 && (
-              <button type="button" onClick={() => update("deliverables", data.deliverables.filter((_, j) => j !== i))} style={{
-                width: 36, height: 36, flexShrink: 0, borderRadius: 8, border: `1px solid ${S.border}`,
-                background: "transparent", color: S.textMuted, cursor: "pointer", fontSize: 14,
-              }}>✕</button>
+              <button type="button" className="sv-remove-btn" onClick={() => update("deliverables", data.deliverables.filter((_, j) => j !== i))}>✕</button>
             )}
           </div>
         ))}
-        <button type="button" onClick={() => update("deliverables", [...data.deliverables, ""])} style={{
-          padding: "6px 12px", borderRadius: 8, border: `1px solid ${S.border}`,
-          background: "transparent", color: S.textSec, fontSize: 12, cursor: "pointer", marginTop: 4,
-        }}>+ Add deliverable</button>
+        <button type="button" className="sv-add-btn" onClick={() => update("deliverables", [...data.deliverables, ""])}>+ Add deliverable</button>
       </FieldGroup>
 
       <FieldGroup>
@@ -592,11 +767,8 @@ function StepService({ data, update, zelrexTip, setZelrexTip, onAskZelrex, build
           <Label askKey="tiers" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} buildAskQuestion={buildAskQuestion}>Pricing tiers</Label>
           {zelrexTip === "tiers" && <ZelrexTipPopover tipKey="tiers" />}
           {data.tiers.map((tier, i) => (
-            <div key={i} style={{
-              padding: 14, borderRadius: 12, border: `1px solid ${S.border}`,
-              marginBottom: 10, background: "rgba(255,255,255,0.02)",
-            }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+            <div key={i} className="sv-tier-card">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
                 <Input value={tier.name} onChange={(v) => {
                   const next = [...data.tiers]; next[i] = { ...tier, name: v }; update("tiers", next);
                 }} placeholder="Tier name (e.g., Starter)" />
@@ -605,7 +777,7 @@ function StepService({ data, update, zelrexTip, setZelrexTip, onAskZelrex, build
                 }} placeholder="Price (e.g., $500)" />
               </div>
               {tier.features.map((f, j) => (
-                <div key={j} style={{ display: "flex", gap: 6, marginBottom: 4 }}>
+                <div key={j} style={{ display: "flex", gap: 8, marginBottom: 6 }}>
                   <Input value={f} onChange={(v) => {
                     const next = [...data.tiers];
                     const feats = [...tier.features]; feats[j] = v;
@@ -614,17 +786,14 @@ function StepService({ data, update, zelrexTip, setZelrexTip, onAskZelrex, build
                   }} placeholder={`Feature ${j + 1}`} />
                 </div>
               ))}
-              <button type="button" onClick={() => {
+              <button type="button" className="sv-add-btn" style={{ marginTop: 6, fontSize: 11.5 }} onClick={() => {
                 const next = [...data.tiers];
                 next[i] = { ...tier, features: [...tier.features, ""] };
                 update("tiers", next);
-              }} style={{ padding: "4px 10px", borderRadius: 6, border: `1px solid ${S.border}`, background: "transparent", color: S.textMuted, fontSize: 11, cursor: "pointer", marginTop: 4 }}>+ feature</button>
+              }}>+ feature</button>
             </div>
           ))}
-          <button type="button" onClick={() => update("tiers", [...data.tiers, { name: "", price: "", features: [""] }])} style={{
-            padding: "6px 12px", borderRadius: 8, border: `1px solid ${S.border}`,
-            background: "transparent", color: S.textSec, fontSize: 12, cursor: "pointer",
-          }}>+ Add tier</button>
+          <button type="button" className="sv-add-btn" onClick={() => update("tiers", [...data.tiers, { name: "", price: "", features: [""] }])}>+ Add tier</button>
         </FieldGroup>
       )}
 
@@ -673,20 +842,22 @@ function StepBrand({ data, update, zelrexTip, setZelrexTip, onAskZelrex, buildAs
         <Label askKey="primaryColor" zelrexTip={zelrexTip} setZelrexTip={setZelrexTip} onAskZelrex={onAskZelrex} buildAskQuestion={buildAskQuestion}>Primary brand color</Label>
         {zelrexTip === "primaryColor" && <ZelrexTipPopover tipKey="primaryColor" />}
         <Hint>This will be your accent color for buttons and highlights.</Hint>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {colors.map((c) => (
-            <button key={c.hex} type="button" onClick={() => update("primaryColor", c.hex)} style={{
-              width: 44, height: 44, borderRadius: 12,
-              background: c.hex,
-              border: data.primaryColor === c.hex ? "3px solid #fff" : "2px solid transparent",
-              cursor: "pointer", transition: "all 150ms",
-              boxShadow: data.primaryColor === c.hex ? `0 0 16px ${c.hex}60` : "none",
-            }} title={c.name} />
-          ))}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {colors.map((c) => {
+            const active = data.primaryColor === c.hex;
+            return (
+              <button key={c.hex} type="button" onClick={() => update("primaryColor", c.hex)}
+                className={`sv-color-swatch ${active ? "sv-color-active" : ""}`}
+                style={{ background: c.hex, ["--swatch-glow" as string]: `${c.hex}60` } as React.CSSProperties}
+                title={c.name}
+              />
+            );
+          })}
           <div style={{ position: "relative" }}>
             <input type="color" value={data.primaryColor} onChange={(e) => update("primaryColor", e.target.value)} style={{
-              width: 44, height: 44, borderRadius: 12, border: "2px dashed rgba(255,255,255,0.2)",
+              width: 48, height: 48, borderRadius: 14, border: "2px dashed rgba(255,255,255,0.15)",
               background: "transparent", cursor: "pointer", padding: 0,
+              transition: "all 300ms cubic-bezier(0.32,0.72,0,1)",
             }} title="Custom color" />
           </div>
         </div>
@@ -774,28 +945,19 @@ function StepContact({ data, update, zelrexTip, setZelrexTip, onAskZelrex, build
         {zelrexTip === "socialPlatforms" && <ZelrexTipPopover tipKey="socialPlatforms" />}
         <Hint>Add any that you want linked on your site.</Hint>
         {data.socialLinks.map((link, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "120px 1fr 36px", gap: 8, marginBottom: 6 }}>
-            <select value={link.platform} onChange={(e) => {
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "130px 1fr 36px", gap: 8, marginBottom: 8 }}>
+            <select className="sv-social-select" value={link.platform} onChange={(e) => {
               const next = [...data.socialLinks]; next[i] = { ...link, platform: e.target.value }; update("socialLinks", next);
-            }} style={{
-              padding: "8px 10px", borderRadius: 8, border: `1px solid ${S.border}`,
-              background: S.bg, color: S.text, fontSize: 13,
             }}>
               {socialPlatforms.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
             <Input value={link.url} onChange={(v) => {
               const next = [...data.socialLinks]; next[i] = { ...link, url: v }; update("socialLinks", next);
             }} placeholder="https://..." />
-            <button type="button" onClick={() => update("socialLinks", data.socialLinks.filter((_, j) => j !== i))} style={{
-              borderRadius: 8, border: `1px solid ${S.border}`, background: "transparent",
-              color: S.textMuted, cursor: "pointer", fontSize: 14,
-            }}>✕</button>
+            <button type="button" className="sv-remove-btn" onClick={() => update("socialLinks", data.socialLinks.filter((_, j) => j !== i))}>✕</button>
           </div>
         ))}
-        <button type="button" onClick={() => update("socialLinks", [...data.socialLinks, { platform: "Twitter/X", url: "" }])} style={{
-          padding: "6px 12px", borderRadius: 8, border: `1px solid ${S.border}`,
-          background: "transparent", color: S.textSec, fontSize: 12, cursor: "pointer",
-        }}>+ Add social link</button>
+        <button type="button" className="sv-add-btn" onClick={() => update("socialLinks", [...data.socialLinks, { platform: "Twitter/X", url: "" }])}>+ Add social link</button>
       </FieldGroup>
 
       <FieldGroup>
@@ -839,30 +1001,35 @@ function StepReview({ data }: { data: SurveyData }) {
 
   return (
     <div>
-      <div style={{ fontSize: 14, color: S.textSec, marginBottom: 20, lineHeight: 1.6 }}>
+      <div style={{ fontSize: 13.5, color: S.textSec, marginBottom: 24, lineHeight: 1.65, letterSpacing: "-0.005em" }}>
         Review your details below. Zelrex will use all of this to build your website — every headline, every section, every price will be real. No placeholders.
       </div>
       
       {sections.map((section) => (
-        <div key={section.label} style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: S.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+        <div key={section.label} className="sv-glass-card" style={{ padding: "16px 18px", marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: S.textMuted, textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 10 }}>
             {section.label}
           </div>
           {section.items.filter(([_, v]) => v).map(([label, value]) => (
-            <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: `1px solid ${S.border}` }}>
-              <span style={{ fontSize: 13, color: S.textMuted }}>{label}</span>
-              <span style={{ fontSize: 13, color: S.text, fontWeight: 500, textAlign: "right", maxWidth: "60%" }}>{value}</span>
+            <div key={label} className="sv-review-row">
+              <span style={{ fontSize: 13, color: S.textMuted, letterSpacing: "-0.005em" }}>{label}</span>
+              <span style={{ fontSize: 13, color: S.text, fontWeight: 500, textAlign: "right", maxWidth: "60%", letterSpacing: "-0.005em" }}>{value}</span>
             </div>
           ))}
         </div>
       ))}
 
-      <div style={{
-        padding: 14, borderRadius: 12, background: S.accentGlow,
-        border: `1px solid rgba(74,144,255,0.2)`,
-        display: "flex", alignItems: "center", gap: 10,
+      <div className="sv-glass-card" style={{
+        padding: "16px 18px", marginTop: 8,
+        borderColor: "rgba(74,144,255,0.12)", background: "rgba(74,144,255,0.04)",
+        display: "flex", alignItems: "flex-start", gap: 12,
       }}>
-        <span style={{ fontSize: 13, color: S.accent, lineHeight: 1.5 }}>
+        <div style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 8, background: "rgba(74,144,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={S.accent} strokeWidth="2" strokeLinecap="round">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+        </div>
+        <span style={{ fontSize: 13, color: S.textSec, lineHeight: 1.65, letterSpacing: "-0.005em" }}>
           Zelrex will generate a multi-page website with all of this information. Every section will be customized to your business type and brand preferences.
         </span>
       </div>
