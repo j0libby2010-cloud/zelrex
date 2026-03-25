@@ -228,12 +228,16 @@ export function WeeklySummaries({
     });
   };
 
+  const [mobileView, setMobileView] = useState<"summary" | "chat">("summary");
+  const [isMobileWS, setIsMobileWS] = useState(false);
+  useEffect(() => { const c = () => setIsMobileWS(window.innerWidth < 768); c(); window.addEventListener("resize", c); return () => window.removeEventListener("resize", c); }, []);
+
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9600,
-      background: "rgba(3,5,8,0.94)",
+      background: "rgba(3,5,8,0.75)",
       backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
-      display: "flex", overflow: "hidden",
+      display: "flex", flexDirection: isMobileWS ? "column" : "row", overflow: "hidden",
     }}>
       <style>{`
         @keyframes spin{to{transform:rotate(360deg)}}
@@ -247,13 +251,33 @@ export function WeeklySummaries({
         .zs-gs::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:999px}
         .zs-gs::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.15)}
         .zs-chat-input:focus{outline:none;border-color:${G.accent}40!important;box-shadow:0 0 0 3px ${G.accent}10}
+        @media(max-width:768px){
+          .zs-header-actions{flex-wrap:wrap;gap:6px!important}
+          .zs-header-actions button{font-size:11px!important;padding:6px 12px!important}
+          .zs-stat-bar{flex-wrap:wrap!important;gap:8px!important}
+          .zs-gs{padding:12px!important}
+        }
       `}</style>
+
+      {/* ─── Mobile Tab Toggle ──────────────────────── */}
+      {isMobileWS && (
+        <div style={{ display: "flex", padding: "8px 12px", gap: 4, borderBottom: `0.5px solid ${G.glassBorder}`, background: "rgba(6,9,15,0.8)" }}>
+          {(["summary", "chat"] as const).map((v) => (
+            <button key={v} className="zs-btn" onClick={() => setMobileView(v)} style={{
+              flex: 1, padding: "8px 0", borderRadius: 999, border: "none",
+              background: mobileView === v ? `linear-gradient(135deg, ${G.accent}25, ${G.accent}10)` : "transparent",
+              color: mobileView === v ? G.accent : G.textSec, fontSize: 13, fontWeight: 600, textTransform: "capitalize", cursor: "pointer",
+            }}>{v === "chat" ? "Ask Zelrex" : "Summary"}</button>
+          ))}
+        </div>
+      )}
 
       {/* ─── LEFT: Mini Chat ──────────────────────────── */}
       <div style={{
-        width: 340, flexShrink: 0, display: "flex", flexDirection: "column",
-        borderRight: `1px solid ${G.glassBorder}`,
+        width: isMobileWS ? "100%" : 340, flexShrink: 0, display: (isMobileWS && mobileView !== "chat") ? "none" : "flex", flexDirection: "column",
+        borderRight: isMobileWS ? "none" : `1px solid ${G.glassBorder}`,
         background: "rgba(6,9,15,0.6)",
+        flex: isMobileWS ? 1 : undefined,
       }}>
         {/* Chat header */}
         <div style={{
@@ -373,7 +397,7 @@ export function WeeklySummaries({
       </div>
 
       {/* ─── RIGHT: Summary Content ──────────────────── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: (isMobileWS && mobileView !== "summary") ? "none" : "flex", flexDirection: "column", overflow: "hidden" }}>
         {/* Header */}
         <div style={{
           padding: "16px 24px",

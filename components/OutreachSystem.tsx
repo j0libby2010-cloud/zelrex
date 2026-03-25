@@ -417,10 +417,28 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
           box-shadow: 0 0 0 3px rgba(59,130,246,0.08), 0 0 20px rgba(59,130,246,0.06) !important;
           outline: none;
         }
+
+        /* ─── Mobile Responsive ─── */
+        @media (max-width: 768px) {
+          .or-header { flex-direction: column !important; gap: 12px !important; padding: 14px 16px !important; }
+          .or-header > div:first-child { width: 100%; }
+          .or-stats-bar { flex-wrap: wrap !important; gap: 8px !important; padding: 10px 16px !important; }
+          .or-stats-bar > div { flex: unset !important; min-width: calc(50% - 4px) !important; }
+          .or-content { padding: 14px !important; }
+          .or-actions { flex-direction: column !important; }
+          .or-actions button { width: 100% !important; }
+          .or-email-actions { flex-wrap: wrap !important; }
+          .or-email-actions button { flex: 1 !important; min-width: calc(50% - 4px) !important; }
+          .or-settings-form { padding: 20px !important; }
+        }
+        @media (max-width: 480px) {
+          .or-stats-bar > div { min-width: 100% !important; }
+          .or-email-actions button { min-width: 100% !important; }
+        }
       `}</style>
 
       {/* ─── Header ─────────────────────────────────── */}
-      <div style={{
+      <div className="or-header" style={{
         padding: "18px 28px", display: "flex", alignItems: "center", justifyContent: "space-between",
         borderBottom: `0.5px solid ${G.glassBorder}`,
         background: "linear-gradient(180deg, rgba(255,255,255,0.015) 0%, transparent 100%)",
@@ -470,7 +488,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
 
       {/* ─── Stats Bar ──────────────────────────────── */}
       {stats && !setupMode && (
-        <div style={{
+        <div className="or-stats-bar" style={{
           padding: "14px 28px", display: "flex", gap: 12,
           borderBottom: `0.5px solid ${G.glassBorder}`,
           animation: `or-fadeIn 400ms ${EASE} 200ms both`,
@@ -501,7 +519,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
       )}
 
       {/* ─── Content ────────────────────────────────── */}
-      <div className="or-gs" style={{ flex: 1, overflow: "auto", padding: 28 }}>
+      <div className="or-gs or-content" style={{ flex: 1, overflow: "auto", padding: 28 }}>
         {loading ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
             <div style={{
@@ -514,7 +532,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
         ) : setupMode || tab === "settings" ? (
           /* ─── Settings / Setup ────────────────────── */
           <div style={{ maxWidth: 580, margin: "0 auto", animation: `or-fadeUp 400ms ${EASE} 100ms both` }}>
-            <div style={{ ...liquidGlass, padding: 32 }}>
+            <div className="or-settings-form" style={{ ...liquidGlass, padding: 32 }}>
               <div style={{
                 fontSize: 20, fontWeight: 700, color: G.text, marginBottom: 6,
                 letterSpacing: "-0.025em",
@@ -588,7 +606,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
           /* ─── Queue Tab ───────────────────────────── */
           <div style={{ maxWidth: 820, margin: "0 auto" }}>
             {/* Action buttons */}
-            <div style={{ display: "flex", gap: 10, marginBottom: 22, animation: `or-fadeUp 350ms ${EASE} 100ms both` }}>
+            <div className="or-actions" style={{ display: "flex", gap: 10, marginBottom: 22, animation: `or-fadeUp 350ms ${EASE} 100ms both` }}>
               <button className="or-btn" onClick={findProspects} disabled={finding} style={{
                 padding: "11px 22px", border: "none",
                 background: `linear-gradient(135deg, ${G.amber}20, ${G.amber}06)`,
@@ -692,7 +710,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                         }} onClick={(e) => e.stopPropagation()}>
                           <div style={{ fontSize: 12, fontWeight: 700, color: G.accentSoft, marginBottom: 6, letterSpacing: "-0.01em" }}>Subject: {email.subject}</div>
                           <div style={{ fontSize: 13, color: G.textSec, lineHeight: 1.8, whiteSpace: "pre-wrap", marginBottom: 16 }}>{email.body}</div>
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <div className="or-email-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                             <button className="or-btn" onClick={() => { openInEmail(email, p); markSent(email.id); }} style={{
                               padding: "9px 18px", border: "none",
                               background: `linear-gradient(135deg, ${G.green}20, ${G.green}06)`,

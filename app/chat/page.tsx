@@ -379,6 +379,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => { const check = () => setIsMobile(window.innerWidth < 768); check(); window.addEventListener("resize", check); return () => window.removeEventListener("resize", check); }, []);
+
+  // Mobile: prevent zoom on input focus, ensure viewport meta
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let meta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement;
+    if (meta) { meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'; }
+  }, []);
   const [buildStage, setBuildStage] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewWidth, setPreviewWidth] = useState(0); // 0 = auto (flex: 1)
@@ -1730,6 +1737,18 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           .msg-actions{opacity:1}
           .user-actions{opacity:1}
         }
+        @media(max-width:480px){
+          .welcome-h1{font-size:24px!important}
+        }
+        /* Mobile safe area for input */
+        @supports(padding-bottom: env(safe-area-inset-bottom)){
+          .z-input-area{padding-bottom:calc(10px + env(safe-area-inset-bottom))!important}
+        }
+        /* Mobile touch improvements */
+        @media(hover:none){
+          .z-glass:active{transform:scale(0.97)!important;transition-duration:100ms!important}
+          .z-glass-accent:active{transform:scale(0.97)!important;transition-duration:100ms!important}
+        }
       `}</style>
 
       {/* HEADER */}
@@ -2038,7 +2057,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           </div>
 
           {/* INPUT */}
-          <div style={{ padding: isMobile ? "6px 8px 10px" : (showPreview ? "8px 12px 14px" : "8px 16px 18px"), position: "relative" }}>
+          <div className="z-input-area" style={{ padding: isMobile ? "6px 8px 10px" : (showPreview ? "8px 12px 14px" : "8px 16px 18px"), position: "relative" }}>
             {!surveyData && !showSurvey && activeChat?.pendingSurvey && (
               <div style={{ maxWidth: showPreview ? "100%" : 820, margin: "0 auto 10px", borderRadius: 999, border: `1px solid ${C.border}`, background: C.bg, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, position: "relative", zIndex: 2 }}>
                 <div style={{ fontSize: 12, color: C.textSec }}>Survey paused. Continue to finish your website build.</div>
@@ -2637,4 +2656,4 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       </div>
     </div>
   );
-}
+}  

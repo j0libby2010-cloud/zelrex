@@ -446,10 +446,26 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
         .z-device-bar {
           transition: width 800ms ${EASE};
         }
+
+        /* ─── Mobile Responsive ─── */
+        @media (max-width: 768px) {
+          .z-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .z-bottom-grid { grid-template-columns: 1fr !important; }
+          .z-engagement-grid { grid-template-columns: 1fr !important; }
+          .z-tier-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .z-header-inner { flex-direction: column !important; gap: 12px !important; }
+          .z-range-pills { order: 0 !important; }
+          .z-gs { padding: 14px !important; }
+        }
+        @media (max-width: 480px) {
+          .z-stats-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+          .z-tier-grid { grid-template-columns: 1fr !important; }
+          .z-chart-container { height: 220px !important; }
+        }
       `}</style>
 
       {/* ─── Header ──────────────────────────────── */}
-      <div style={{
+      <div className="z-header-inner" style={{
         padding: "18px 28px",
         display: "flex", alignItems: "center", justifyContent: "space-between",
         borderBottom: `0.5px solid ${G.glassBorder}`,
@@ -543,7 +559,7 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
         ) : (
           <div style={{ maxWidth: 1200, margin: "0 auto" }}>
             {/* Stat Cards */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
+            <div className="z-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 24 }}>
               {[
                 { label: "Visitors", value: fmt(data.uniqueVisitors), sub: `${fmt(data.pageviews)} pageviews`, color: G.accent },
                 { label: "CTA Clicks", value: fmt(data.ctaClicks), sub: `${data.conversionRate}% click rate`, color: G.green },
@@ -620,7 +636,7 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
             </div>
 
             {/* Bottom Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+            <div className="z-bottom-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
               <Panel title="Top Pages" items={data.topPages.slice(0,6)} delay={360} renderItem={(p:any,i:number) => (
                 <Row key={i} left={<span style={{ fontFamily: "'SF Mono', 'Fira Code', 'Cascadia Code', monospace", fontSize: 12, letterSpacing: "-0.01em" }}>{p.path}</span>} right={p.views} last={i===Math.min(data.topPages.length,6)-1}/>
               )} empty="No page data yet"/>
@@ -662,7 +678,7 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
                 animation: `z-fadeUp 600ms ${EASE} 540ms both`,
               }}>
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: G.text, marginBottom: 16, letterSpacing: "0.01em" }}>Revenue by Tier</div>
-                <div style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(data.revenue.byTier.length, 4)}, 1fr)`, gap: 14 }}>
+                <div className="z-tier-grid" style={{ display: "grid", gridTemplateColumns: `repeat(${Math.min(data.revenue.byTier.length, 4)}, 1fr)`, gap: 14 }}>
                   {data.revenue.byTier.map((t,i) => (
                     <div key={i} style={{
                       padding: 18, borderRadius: 16,
@@ -680,7 +696,7 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
             )}
 
             {/* Engagement */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
+            <div className="z-engagement-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
               <div className="z-stat" style={{
                 ...liquidGlass, padding: 22, display: "flex", alignItems: "center", gap: 18,
                 animation: `z-fadeUp 600ms ${EASE} 600ms both`,

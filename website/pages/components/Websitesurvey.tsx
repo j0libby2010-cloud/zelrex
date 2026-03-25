@@ -86,6 +86,11 @@ const SURVEY_GLASS_CSS = `
   @keyframes surveyShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
   @keyframes zelrexTipIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
   @media(max-width:640px) { .survey-option-grid { grid-template-columns: 1fr !important; } }
+  @media(max-width:480px) {
+    .survey-header { padding: 16px 18px 14px !important; }
+    .survey-body { padding: 16px 18px !important; }
+    .survey-footer { padding: 14px 18px !important; }
+  }
 
   .sv-glass-card {
     position: relative; overflow: hidden; border-radius: 16px;
@@ -409,7 +414,7 @@ export function WebsiteSurvey({
         animation: "surveyFadeIn 400ms cubic-bezier(0.22,1,0.36,1) forwards",
       }}>
         {/* Header */}
-        <div style={{
+        <div className="survey-header" style={{
           padding: "22px 28px 18px",
           borderBottom: `1px solid ${S.border}`,
           display: "flex", alignItems: "flex-start", justifyContent: "space-between",
