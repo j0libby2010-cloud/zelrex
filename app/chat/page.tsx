@@ -1867,15 +1867,15 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 </button>
                 {analyticsTooltip && !deployData?.url && (
                   <div style={{
-                    position: "absolute", left: "calc(100% + 8px)", top: "50%", transform: "translateY(-50%)",
+                    position: "absolute", left: isMobile ? "50%" : "calc(100% + 8px)", top: isMobile ? "calc(100% + 6px)" : "50%", transform: isMobile ? "translateX(-50%)" : "translateY(-50%)",
                     padding: "8px 14px", borderRadius: 12, whiteSpace: "nowrap",
                     background: "rgba(12,16,24,0.95)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
                     border: `1px solid ${C.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
                     fontSize: 12, color: C.textSec, zIndex: 100,
                     animation: "tooltipIn 200ms ease",
                   }}>
-                    No deployed business yet. Deploy your site first.
-                    <style>{`@keyframes tooltipIn { from { opacity: 0; transform: translateY(-50%) translateX(-4px); } to { opacity: 1; transform: translateY(-50%) translateX(0); } }`}</style>
+                    Deploy your site first to see analytics.
+                    <style>{`@keyframes tooltipIn { from { opacity: 0; transform: ${isMobile ? "translateX(-50%) translateY(-4px)" : "translateY(-50%) translateX(-4px)"}; } to { opacity: 1; transform: ${isMobile ? "translateX(-50%) translateY(0)" : "translateY(-50%) translateX(0)"}; } }`}</style>
                   </div>
                 )}
               </div>
