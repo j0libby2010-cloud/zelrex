@@ -386,6 +386,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     let meta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement;
     if (meta) { meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'; }
   }, []);
+
   const [buildStage, setBuildStage] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewWidth, setPreviewWidth] = useState(0); // 0 = auto (flex: 1)
@@ -447,6 +448,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const settingsOriginRef = useRef<{ x: number; y: number } | null>(null);
   const goalOriginRef = useRef<{ x: number; y: number } | null>(null);
   const notifOriginRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Prevent background scroll when overlays are open
+  useEffect(() => {
+    const anyOpen = analyticsOpen || summariesOpen || outreachOpen || settingsOpen || goalModalOpen;
+    if (anyOpen) { document.body.style.overflow = 'hidden'; }
+    else { document.body.style.overflow = ''; }
+    return () => { document.body.style.overflow = ''; };
+  }, [analyticsOpen, summariesOpen, outreachOpen, settingsOpen, goalModalOpen]);
 
   // ─── Overlay origin-zoom helpers ───────────────────────────────────
   const openSettings = (e: React.MouseEvent) => {
@@ -2226,7 +2235,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
         {/* ─── FULL-SCREEN SETTINGS ─────────────────────────── */}
         {(settingsOpen || settingsClosing) && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.97)", backdropFilter: "blur(32px) saturate(1.6)", WebkitBackdropFilter: "blur(32px) saturate(1.6)", transformOrigin: settingsOriginRef.current ? `${settingsOriginRef.current.x}px ${settingsOriginRef.current.y}px` : "center center", animation: `${settingsClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: settingsClosing ? "none" : undefined }}>
+          <div className="stg-layout" style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.97)", backdropFilter: "blur(32px) saturate(1.6)", WebkitBackdropFilter: "blur(32px) saturate(1.6)", transformOrigin: settingsOriginRef.current ? `${settingsOriginRef.current.x}px ${settingsOriginRef.current.y}px` : "center center", animation: `${settingsClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: settingsClosing ? "none" : undefined }}>
             <style>{`
               .stg-tab { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 11px 18px; border-radius: 12px; border: none; background: none; color: ${C.textSec}; font-size: 13.5px; font-weight: 500; cursor: pointer; width: 100%; text-align: left; transition: all 500ms cubic-bezier(0.32,0.72,0,1); letter-spacing: -0.005em; }
               .stg-tab::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0; background:linear-gradient(168deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.08) 15%,rgba(255,255,255,0.02) 42%,transparent 58%,rgba(255,255,255,0.03) 78%,rgba(255,255,255,0.12) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.4),inset 0 -0.5px 0 rgba(255,255,255,0.06),inset 0.5px 0 0 rgba(255,255,255,0.04),inset -0.5px 0 0 rgba(255,255,255,0.04); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
@@ -2239,15 +2248,16 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               .stg-tab-active::after { opacity: 0.5 !important; background: radial-gradient(ellipse at 38% 25%,rgba(74,144,255,0.12) 0%,rgba(74,144,255,0.03) 32%,transparent 68%) !important; }
               .stg-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.025); color: ${C.text}; font-size: 14px; font-family: inherit; outline: none; transition: all 300ms cubic-bezier(0.32,0.72,0,1); }
               .stg-input:focus { border-color: rgba(74,144,255,0.4); box-shadow: 0 0 0 3px rgba(74,144,255,0.08), 0 0 20px rgba(74,144,255,0.06); background: rgba(255,255,255,0.035); }
-              .stg-toggle { position: relative; width: 44px; height: 24px; border-radius: 12px; border: none; cursor: pointer; transition: all 500ms cubic-bezier(0.32,0.72,0,1); flex-shrink: 0; overflow: hidden; }
-              .stg-toggle::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0; background:linear-gradient(160deg,rgba(255,255,255,0.30) 0%,rgba(255,255,255,0.06) 18%,transparent 48%,transparent 58%,rgba(255,255,255,0.04) 82%,rgba(255,255,255,0.18) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -0.5px 0 rgba(255,255,255,0.05); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; z-index:1; }
+              .stg-toggle { position: relative; width: 52px; height: 28px; border-radius: 14px; border: none; cursor: pointer; transition: all 400ms cubic-bezier(0.32,0.72,0,1); flex-shrink: 0; overflow: visible; }
+              .stg-toggle::before { content:''; position:absolute; inset:-1px; border-radius:15px; opacity:0; background:linear-gradient(160deg,rgba(255,255,255,0.25) 0%,rgba(255,255,255,0.05) 18%,transparent 48%,transparent 58%,rgba(255,255,255,0.04) 82%,rgba(255,255,255,0.15) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.35),inset 0 -0.5px 0 rgba(255,255,255,0.05); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; z-index:1; }
               .stg-toggle:hover::before { opacity: 1; }
-              .stg-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 10px; background: white; transition: all 500ms cubic-bezier(0.32,0.72,0,1); box-shadow: 0 1px 4px rgba(0,0,0,0.35), 0 0 0 0.5px rgba(255,255,255,0.1); z-index: 2; }
-              .stg-toggle.stg-on { background: ${C.accent}; box-shadow: 0 0 16px rgba(74,144,255,0.2), inset 0 1px 0 rgba(255,255,255,0.15); }
-              .stg-toggle.stg-on::after { transform: translateX(20px); }
-              .stg-toggle.stg-off { background: rgba(255,255,255,0.08); box-shadow: inset 0 1px 2px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(255,255,255,0.06); }
-              .stg-toggle:hover { transform: scale(1.05); }
-              .stg-toggle:active { transform: scale(0.92); transition-duration: 120ms; }
+              .stg-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 12px; background: white; transition: all 400ms cubic-bezier(0.68,-0.15,0.27,1.35); box-shadow: 0 1px 4px rgba(0,0,0,0.3), 0 0 0 0.5px rgba(255,255,255,0.1); z-index: 2; }
+              .stg-toggle.stg-on { background: ${C.accent}; box-shadow: 0 0 20px rgba(74,144,255,0.25), 0 0 0 0.5px rgba(74,144,255,0.3), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 2px rgba(0,0,0,0.1); }
+              .stg-toggle.stg-on::after { transform: translateX(24px); box-shadow: 0 1px 6px rgba(0,0,0,0.3), 0 0 8px rgba(74,144,255,0.2), 0 0 0 0.5px rgba(255,255,255,0.15); }
+              .stg-toggle.stg-off { background: rgba(255,255,255,0.08); box-shadow: inset 0 1px 3px rgba(0,0,0,0.2), 0 0 0 0.5px rgba(255,255,255,0.06); }
+              .stg-toggle:hover { transform: scale(1.04); }
+              .stg-toggle:active { transform: scale(0.95); transition-duration: 100ms; }
+              .stg-toggle:active::after { width: 28px; border-radius: 14px; transition-duration: 100ms; }
               .stg-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.04); gap: 16px; }
               .stg-row:last-child { border-bottom: none; }
               .stg-section { margin-bottom: 40px; }
@@ -2277,11 +2287,24 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               .stg-btn-accent:hover::before,.stg-btn-accent:hover::after { opacity: 1 !important; }
               .stg-btn-accent:active { transform:scale(0.97) translateY(0) !important; }
               .stg-kbd { padding: 3px 9px; border-radius: 7px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 1px 2px rgba(0,0,0,0.1), inset 0 0.5px 0 rgba(255,255,255,0.06); font-size: 11px; font-weight: 600; color: ${C.textMuted}; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; letter-spacing: 0.02em; }
+              @media(max-width:768px) {
+                .stg-layout { flex-direction: column !important; }
+                .stg-sidebar { width: 100% !important; border-right: none !important; border-bottom: 0.5px solid rgba(255,255,255,0.05) !important; padding: 12px 12px 0 !important; }
+                .stg-sidebar nav { flex-direction: row !important; gap: 2px !important; overflow-x: auto !important; padding-bottom: 12px !important; }
+                .stg-sidebar nav button { padding: 8px 14px !important; white-space: nowrap !important; font-size: 12px !important; }
+                .stg-sidebar .stg-logo-row { display: none !important; }
+                .stg-sidebar .stg-version { display: none !important; }
+                .stg-content-header { padding: 14px 16px !important; }
+                .stg-content-header .stg-title { font-size: 18px !important; }
+                .stg-content-scroll { padding: 16px !important; }
+                .stg-card { padding: 14px !important; }
+                .stg-row { padding: 12px 14px !important; flex-wrap: wrap !important; }
+              }
             `}</style>
 
             {/* Left sidebar */}
-            <div style={{ width: 280, borderRight: `1px solid rgba(255,255,255,0.05)`, display: "flex", flexDirection: "column", padding: "20px 16px 16px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 36, paddingLeft: 6 }}>
+            <div className="stg-sidebar" style={{ width: 280, borderRight: `1px solid rgba(255,255,255,0.05)`, display: "flex", flexDirection: "column", padding: "20px 16px 16px" }}>
+              <div className="stg-logo-row" style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 36, paddingLeft: 6 }}>
                 <ZelrexZIcon size={22} />
                 <span style={{ fontSize: 17, fontWeight: 800, color: C.text, letterSpacing: "-0.02em" }}>Settings</span>
               </div>
@@ -2297,7 +2320,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   </button>
                 ))}
               </nav>
-              <div style={{ paddingTop: 16, borderTop: `1px solid rgba(255,255,255,0.04)`, paddingLeft: 6 }}>
+              <div className="stg-version" style={{ paddingTop: 16, borderTop: `1px solid rgba(255,255,255,0.04)`, paddingLeft: 6 }}>
                 <span style={{ fontSize: 11, color: "rgba(255,255,255,0.13)", letterSpacing: "0.01em" }}>Zelrex v1.0 · Claude Opus 4.6</span>
               </div>
             </div>
@@ -2305,9 +2328,9 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             {/* Right content — centered */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
               {/* Top bar */}
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 36px", borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
+              <div className="stg-content-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 36px", borderBottom: `1px solid rgba(255,255,255,0.04)` }}>
                 <div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: "-0.025em", lineHeight: 1.2 }}>
+                  <div className="stg-title" style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: "-0.025em", lineHeight: 1.2 }}>
                     {settingsTab === "account" && "Account"}
                     {settingsTab === "subscription" && "Subscription & Billing"}
                     {settingsTab === "features" && "Zelrex Features"}
@@ -2327,7 +2350,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
               {/* Scrollable content — centered with max-width */}
               <div style={{ flex: 1, overflowY: "auto", display: "flex", justifyContent: "center" }}>
-                <div style={{ width: "100%", maxWidth: 600, padding: "36px 32px 60px" }}>
+                <div className="stg-content-scroll" style={{ width: "100%", maxWidth: 600, padding: "36px 32px 60px" }}>
 
                 {/* ─── ACCOUNT TAB ─── */}
                 {settingsTab === "account" && (<>
@@ -2351,35 +2374,21 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div className="stg-section">
                     <div className="stg-section-title">Connected Accounts</div>
                     <div className="stg-card" style={{ padding: 0 }}>
-                      {[
-                        { icon: "globe", name: "Stripe", desc: "Accept payments on your website", color: "#635BFF" },
-                        { icon: "chart", name: "Google Analytics", desc: "Track your website visitors", color: "#F9AB00" },
-                      ].map((svc, i) => (
-                        <div key={svc.name} className="stg-row" style={{ padding: "16px 22px", borderBottom: i === 0 ? `1px solid rgba(255,255,255,0.04)` : "none" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                            <div style={{ width: 36, height: 36, borderRadius: 10, background: `${svc.color}12`, border: `1px solid ${svc.color}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <Ic n={svc.icon} style={{ width: 16, height: 16, color: svc.color }} />
-                            </div>
-                            <div>
-                              <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>{svc.name}</div>
-                              <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{svc.desc}</div>
-                            </div>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: "rgba(99,91,255,0.12)", border: "1px solid rgba(99,91,255,0.20)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Ic n="globe" style={{ width: 16, height: 16, color: "#635BFF" }} />
                           </div>
-                          <button className="stg-btn"><span>Connect</span></button>
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Stripe</div>
+                            <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Accept payments on your website</div>
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="stg-section">
-                    <div className="stg-section-title">Keyboard Shortcuts</div>
-                    <div className="stg-card" style={{ padding: "14px 22px" }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px 24px" }}>
-                        {[["New business","Ctrl+N"],["Send message","Enter"],["New line","Shift+Enter"],["Toggle sidebar","Ctrl+B"],["Focus input","Ctrl+K"],["Close modal","Esc"]].map(([a,k]) => (
-                          <div key={a} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", fontSize: 13 }}>
-                            <span style={{ color: C.textSec, letterSpacing: "-0.005em" }}>{a}</span>
-                            <span className="stg-kbd">{k}</span>
-                          </div>
-                        ))}
+                        {deployData?.url ? (
+                          <span style={{ padding: "6px 14px", borderRadius: 999, background: "rgba(16,185,129,0.10)", border: "1px solid rgba(16,185,129,0.20)", color: "#10B981", fontSize: 12, fontWeight: 600 }}>Connected</span>
+                        ) : (
+                          <button className="stg-btn"><span>Connect</span></button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -2465,7 +2474,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div className="stg-section">
                     <div className="stg-section-title">AI Configuration</div>
                     <div className="stg-card" style={{ padding: 0 }}>
-                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Response Style</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>How Zelrex communicates with you</div>
@@ -2475,27 +2484,6 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                           <option value="detailed">Detailed</option>
                           <option value="coaching">Coaching</option>
                         </select>
-                      </div>
-                      <div className="stg-row" style={{ padding: "16px 22px" }}>
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Revenue-First Mode</div>
-                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Prioritize revenue in all suggestions</div>
-                        </div>
-                        <button className={`stg-toggle ${zelrexSettings.revenueFirst ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("revenueFirst", !zelrexSettings.revenueFirst)} />
-                      </div>
-                      <div className="stg-row" style={{ padding: "16px 22px" }}>
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Idea Rejection Engine</div>
-                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Actively reject weak business ideas</div>
-                        </div>
-                        <button className={`stg-toggle ${zelrexSettings.ideaRejection ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("ideaRejection", !zelrexSettings.ideaRejection)} />
-                      </div>
-                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Proactive Suggestions</div>
-                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Zelrex suggests improvements between chats</div>
-                        </div>
-                        <button className={`stg-toggle ${zelrexSettings.proactiveSuggestions ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("proactiveSuggestions", !zelrexSettings.proactiveSuggestions)} />
                       </div>
                     </div>
                   </div>
@@ -2531,19 +2519,12 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                         </div>
                         <button className={`stg-toggle ${zelrexSettings.weeklyDigest ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("weeklyDigest", !zelrexSettings.weeklyDigest)} />
                       </div>
-                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Market Monitoring</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Track market changes relevant to your business</div>
                         </div>
                         <button className={`stg-toggle ${zelrexSettings.marketMonitoring ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("marketMonitoring", !zelrexSettings.marketMonitoring)} />
-                      </div>
-                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Sound Effects</div>
-                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Play sounds for notifications and actions</div>
-                        </div>
-                        <button className={`stg-toggle ${zelrexSettings.soundEffects ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("soundEffects", !zelrexSettings.soundEffects)} />
                       </div>
                     </div>
                   </div>
@@ -2656,4 +2637,4 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       </div>
     </div>
   );
-}  
+}
