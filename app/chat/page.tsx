@@ -1611,7 +1611,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     try {
       const ctrl = new AbortController(); abortRef.current = ctrl;
       // If this is a website rebuild, include existing survey data so the API has full context
-      const requestBody: any = { messages: [...activeChat.messages, userMsg], userId: clerkUser?.id, userEmail: clerkUser?.primaryEmailAddress?.emailAddress };
+      const requestBody: any = { messages: [...activeChat.messages, userMsg], userId: clerkUser?.id, userEmail: clerkUser?.primaryEmailAddress?.emailAddress, responseStyle: zelrexSettings.responseStyle };
       if (isBuild && surveyData) { requestBody.surveyData = surveyData; requestBody.action = "buildWebsite"; }
       const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(requestBody) });
       const raw = await res.text(); let data: { reply?: string; previewUrl?: string; websiteData?: any; stripeCheckoutUrls?: any } = {}; try { data = JSON.parse(raw); } catch {}
@@ -1625,6 +1625,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           stripeConnected: !!((data as any).stripeCheckoutUrls || data.websiteData.stripeCheckoutUrls),
         } : data.websiteData;
         saveWebsiteData(enriched);
+        // Auto-deploy if setting is enabled
+        if (zelrexSettings.autoDeploy) { setTimeout(() => handleDeploy(), 1500); }
       }
       const reply = data.reply?.trim() || "Something went wrong. Please try again.";
       // Auto-title: if this is the first assistant reply, derive a title from the reply
@@ -2384,10 +2386,10 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                             <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Accept payments on your website</div>
                           </div>
                         </div>
-                        {deployData?.url ? (
+                        {websiteData?.stripeConnected ? (
                           <span style={{ padding: "6px 14px", borderRadius: 999, background: "rgba(16,185,129,0.10)", border: "1px solid rgba(16,185,129,0.20)", color: "#10B981", fontSize: 12, fontWeight: 600 }}>Connected</span>
                         ) : (
-                          <button className="stg-btn"><span>Connect</span></button>
+                          <button className="stg-btn" onClick={() => { closeSettings(); const msg = "Connect my Stripe account"; setInput(msg); setTimeout(() => sendMessage(msg), 100); }}><span>Connect</span></button>
                         )}
                       </div>
                     </div>
@@ -2407,7 +2409,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                           <div style={{ fontSize: 14, fontWeight: 600, color: "#EF4444", letterSpacing: "-0.01em" }}>Delete account</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Permanently delete your account and all data</div>
                         </div>
-                        <button className="stg-btn stg-btn-danger"><span>Delete</span></button>
+                        <button onClick={() => { if (window.confirm("Are you sure you want to delete your account? This cannot be undone.")) { if (window.confirm("This will permanently delete all your businesses, websites, and data. Type DELETE to confirm.")) { closeSettings(); signOut(); } } }} className="stg-btn stg-btn-danger"><span>Delete</span></button>
                       </div>
                     </div>
                   </div>
@@ -2454,7 +2456,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                           </div>
                         ))}
                       </div>
-                      <button className="stg-btn stg-btn-accent" style={{ width: "100%", padding: "13px", borderRadius: 999, fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.01em" }}>
+                      <button className="stg-btn stg-btn-accent" onClick={() => alert("Pro plan launching soon! You'll be the first to know.")} style={{ width: "100%", padding: "13px", borderRadius: 999, fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.01em" }}>
                         <span style={{ position: "relative", zIndex: 1 }}>Upgrade to Pro</span>
                       </button>
                     </div>

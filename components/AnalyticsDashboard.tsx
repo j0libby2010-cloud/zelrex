@@ -298,6 +298,33 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
   const fmtMoney = (c: number) => `$${(c / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
   const fmtTime = (s: number) => s >= 60 ? `${Math.floor(s / 60)}m ${s % 60}s` : `${s}s`;
 
+  // Fill missing dates with zeros so the chart shows a continuous timeline
+  const fillDateGaps = <T extends { date: string }>(rows: T[], defaults: Omit<T, "date">): T[] => {
+    if (!rows || rows.length === 0) {
+      // Generate empty dates for the selected range
+      const days = range === "today" ? 1 : range === "7d" ? 7 : range === "30d" ? 30 : range === "90d" ? 90 : 365;
+      const result: T[] = [];
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        result.push({ date: d.toISOString().slice(0, 10), ...defaults } as T);
+      }
+      return result;
+    }
+    const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+    const start = new Date(sorted[0].date);
+    const end = new Date();
+    const map = new Map(sorted.map(r => [r.date, r]));
+    const result: T[] = [];
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const key = d.toISOString().slice(0, 10);
+      result.push(map.get(key) || { date: key, ...defaults } as T);
+    }
+    return result;
+  };
+
+  const chartDailyData = data ? fillDateGaps(data.dailyData, { pageviews: 0, visitors: 0, clicks: 0, checkouts: 0 } as any) : [];
+  const chartRevenueData = data?.revenue?.dailyRevenue ? fillDateGaps(data.revenue.dailyRevenue, { amount: 0, count: 0 } as any) : [];
+
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9600,
@@ -540,7 +567,7 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
               <div style={{ fontSize: 13, color: G.textMuted, letterSpacing: "0.01em" }}>Loading analytics...</div>
             </div>
           </div>
-        ) : !data || data.pageviews === 0 ? (
+        ) : !data ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: G.textSec, animation: "z-fadeUp 700ms ease both" }}>
             <div style={{ textAlign: "center", maxWidth: 400 }}>
               <div style={{
@@ -585,7 +612,7 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
               <div style={{ padding: "24px 24px 14px", height: 310 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   {activeChart === "traffic" ? (
-                    <AreaChart data={data.dailyData}>
+                    <AreaChart data={chartDailyData}>
                       <defs>
                         <linearGradient id="gV" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor={G.chartLine1} stopOpacity={0.2}/>
@@ -610,7 +637,7 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
                       <Line type="monotone" dataKey="checkouts" stroke={G.chartLine3} strokeWidth={1.8} name="Checkouts" dot={false} strokeDasharray="5 5" strokeOpacity={0.7} animationDuration={1200} animationEasing="ease-out"/>
                     </AreaChart>
                   ) : (
-                    <BarChart data={data.revenue.dailyRevenue}>
+                    <BarChart data={chartRevenueData}>
                       <defs>
                         <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor={G.purple} stopOpacity={0.7}/>

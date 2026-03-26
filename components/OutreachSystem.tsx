@@ -420,19 +420,25 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
 
         /* ─── Mobile Responsive ─── */
         @media (max-width: 768px) {
-          .or-header { flex-direction: column !important; gap: 12px !important; padding: 14px 16px !important; }
+          .or-header { flex-direction: column !important; gap: 10px !important; padding: 12px 14px !important; }
           .or-header > div:first-child { width: 100%; }
-          .or-stats-bar { flex-wrap: wrap !important; gap: 8px !important; padding: 10px 16px !important; }
-          .or-stats-bar > div { flex: unset !important; min-width: calc(50% - 4px) !important; }
-          .or-content { padding: 14px !important; }
+          .or-stats-bar {
+            flex-wrap: nowrap !important; gap: 6px !important; padding: 8px 14px !important;
+            overflow-x: auto !important; -webkit-overflow-scrolling: touch;
+          }
+          .or-stats-bar::-webkit-scrollbar { display: none; }
+          .or-stat {
+            flex: none !important; padding: 8px 14px !important; border-radius: 12px !important;
+            min-width: auto !important; white-space: nowrap !important;
+          }
+          .or-content { padding: 12px !important; }
           .or-actions { flex-direction: column !important; }
           .or-actions button { width: 100% !important; }
           .or-email-actions { flex-wrap: wrap !important; }
-          .or-email-actions button { flex: 1 !important; min-width: calc(50% - 4px) !important; }
-          .or-settings-form { padding: 20px !important; }
+          .or-email-actions button { flex: 1 !important; min-width: calc(50% - 4px) !important; padding: 8px 10px !important; }
+          .or-settings-form { padding: 18px !important; }
         }
         @media (max-width: 480px) {
-          .or-stats-bar > div { min-width: 100% !important; }
           .or-email-actions button { min-width: 100% !important; }
         }
       `}</style>

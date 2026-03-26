@@ -314,6 +314,15 @@ export async function POST(req: Request) {
     const body = await req.json();
     const messages = body.messages ?? [];
     const surveyData = body.surveyData;
+    const responseStyle: string = body.responseStyle || "direct";
+
+    // Communication style modifier
+    const responseStyles: Record<string, string> = {
+      direct: "Respond concisely and directly. Get to the point fast.",
+      detailed: "Provide thorough, detailed explanations with examples and step-by-step guidance.",
+      coaching: "Respond like a mentor. Ask guiding questions. Help the user think through decisions.",
+    };
+    const styleInstruction = `\n\nCOMMUNICATION STYLE: ${responseStyles[responseStyle] || responseStyles.direct}`;
 
     const sessionState: SessionState = getSessionState(messages);
 
@@ -681,7 +690,7 @@ export async function POST(req: Request) {
         console.log(`[ZELREX] Memory loaded: ${userContext.memory?.length || 0} facts, stage ${userContext.progressStage}`);
 
         // 2. Build dynamic prompt
-        const dynamicSystemPrompt = buildSystemPromptFn(userContext);
+        const dynamicSystemPrompt = buildSystemPromptFn(userContext) + styleInstruction;
 
         // 3. Call Claude with tools in a loop
         let currentMessages: any[] = messages.map((m: any) => ({
@@ -801,7 +810,7 @@ export async function POST(req: Request) {
       const response = await anthropic.messages.create({
         model: 'claude-opus-4-6',
         max_tokens: 4096,
-        system: SYSTEM_PROMPT,
+        system: SYSTEM_PROMPT + styleInstruction,
         messages: currentMessages,
       });
 
