@@ -253,20 +253,43 @@ export function WeeklySummaries({
         .zs-chat-input:focus{outline:none;border-color:${G.accent}40!important;box-shadow:0 0 0 3px ${G.accent}10}
         @media(max-width:768px){
           .zs-header-actions{flex-wrap:wrap;gap:6px!important}
-          .zs-header-actions button{font-size:11px!important;padding:6px 12px!important}
-          .zs-stat-bar{flex-wrap:wrap!important;gap:8px!important}
+          .zs-header-actions button{font-size:11px!important;padding:8px 14px!important;min-height:38px}
+          .zs-stat-bar{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important}
           .zs-gs{padding:12px!important}
+          .zs-summary-header{flex-direction:column!important;gap:10px!important;padding:14px 16px!important}
+          .zs-summary-header > div:last-child{width:100%;display:flex;flex-wrap:wrap;gap:6px}
+          .zs-summary-text{padding:18px!important}
+          .zs-close-btn{position:absolute!important;right:14px!important;top:14px!important;width:38px!important;height:38px!important}
+        }
+        @media(max-width:480px){
+          .zs-stat-bar{gap:6px!important}
+          .zs-stat-bar > div{padding:10px 12px!important}
+          .zs-header-actions button{font-size:10px!important;padding:6px 10px!important}
+          .zs-gs{padding:10px!important}
+          .zs-summary-header{padding:12px 14px!important}
+        }
+        /* Mobile safe area */
+        @supports(padding-bottom: env(safe-area-inset-bottom)){
+          .zs-gs{padding-bottom:calc(12px + env(safe-area-inset-bottom))!important}
+        }
+        /* Mobile touch improvements */
+        @media(hover:none){
+          .zs-btn:active{transform:scale(0.97)!important;transition-duration:100ms!important}
+          .zs-card:active{transform:scale(0.99)!important;transition-duration:120ms!important}
         }
       `}</style>
 
       {/* ─── Mobile Tab Toggle ──────────────────────── */}
       {isMobileWS && (
-        <div style={{ display: "flex", padding: "8px 12px", gap: 4, borderBottom: `0.5px solid ${G.glassBorder}`, background: "rgba(6,9,15,0.8)" }}>
+        <div style={{ display: "flex", padding: "10px 14px", gap: 6, borderBottom: `0.5px solid ${G.glassBorder}`, background: "rgba(6,9,15,0.85)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)" }}>
           {(["summary", "chat"] as const).map((v) => (
             <button key={v} className="zs-btn" onClick={() => setMobileView(v)} style={{
-              flex: 1, padding: "8px 0", borderRadius: 999, border: "none",
+              flex: 1, padding: "10px 0", borderRadius: 999, border: "none",
               background: mobileView === v ? `linear-gradient(135deg, ${G.accent}25, ${G.accent}10)` : "transparent",
-              color: mobileView === v ? G.accent : G.textSec, fontSize: 13, fontWeight: 600, textTransform: "capitalize", cursor: "pointer",
+              color: mobileView === v ? G.accent : G.textSec, fontSize: 14, fontWeight: 600, textTransform: "capitalize", cursor: "pointer",
+              boxShadow: mobileView === v ? `0 0 12px ${G.accent}10, inset 0 0.5px 0 rgba(255,255,255,0.10)` : "none",
+              transition: `all 300ms ${EASE}`,
+              minHeight: 44,
             }}>{v === "chat" ? "Ask Zelrex" : "Summary"}</button>
           ))}
         </div>
@@ -373,7 +396,8 @@ export function WeeklySummaries({
               style={{
                 flex: 1, padding: "10px 14px", borderRadius: 999,
                 border: `1px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.03)",
-                color: G.text, fontSize: 13, transition: "all 200ms ease",
+                color: G.text, fontSize: isMobileWS ? 16 : 13, transition: "all 200ms ease",
+                minHeight: isMobileWS ? 44 : undefined,
               }}
             />
             <button
@@ -399,10 +423,11 @@ export function WeeklySummaries({
       {/* ─── RIGHT: Summary Content ──────────────────── */}
       <div style={{ flex: 1, display: (isMobileWS && mobileView !== "summary") ? "none" : "flex", flexDirection: "column", overflow: "hidden" }}>
         {/* Header */}
-        <div style={{
+        <div className="zs-summary-header" style={{
           padding: "16px 24px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
           borderBottom: `1px solid ${G.glassBorder}`,
+          position: "relative",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{
@@ -446,7 +471,7 @@ export function WeeklySummaries({
             </button>
 
             {/* Close */}
-            <button onClick={onClose} style={{
+            <button className="zs-close-btn" onClick={onClose} style={{
               width: 36, height: 36, borderRadius: 999,
               border: `1px solid ${G.glassBorder}`, background: G.glass,
               color: G.textSec, cursor: "pointer",
@@ -507,7 +532,7 @@ export function WeeklySummaries({
             /* ─── Active Summary Content ──────────────── */
             <div style={{ maxWidth: 740, margin: "0 auto" }}>
               {/* Quick stats bar */}
-              <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+              <div className="zs-stat-bar" style={{ display: "flex", gap: 12, marginBottom: 24 }}>
                 {[
                   { label: "Pageviews", value: activeSummary.analytics_snapshot?.pageviews ?? 0, prev: activeSummary.analytics_snapshot?.prevPageviews, color: G.accent },
                   { label: "Visitors", value: activeSummary.analytics_snapshot?.visitors ?? 0, prev: activeSummary.analytics_snapshot?.prevVisitors, color: G.green },
@@ -535,7 +560,7 @@ export function WeeklySummaries({
               </div>
 
               {/* Summary text */}
-              <div style={{ ...glass, padding: 28, animation: "fadeUp 300ms ease 200ms both" }}>
+              <div className="zs-summary-text" style={{ ...glass, padding: 28, animation: "fadeUp 300ms ease 200ms both" }}>
                 {renderText(activeSummary.summary_text)}
               </div>
             </div>

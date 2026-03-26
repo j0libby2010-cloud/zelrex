@@ -420,26 +420,44 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
 
         /* ─── Mobile Responsive ─── */
         @media (max-width: 768px) {
-          .or-header { flex-direction: column !important; gap: 10px !important; padding: 12px 14px !important; }
+          .or-header { flex-direction: column !important; gap: 10px !important; padding: 14px 16px !important; position: relative !important; }
           .or-header > div:first-child { width: 100%; }
+          .or-header .or-close { position: absolute !important; right: 14px !important; top: 14px !important; width: 38px !important; height: 38px !important; }
           .or-stats-bar {
-            flex-wrap: nowrap !important; gap: 6px !important; padding: 8px 14px !important;
+            flex-wrap: nowrap !important; gap: 8px !important; padding: 10px 14px !important;
             overflow-x: auto !important; -webkit-overflow-scrolling: touch;
           }
           .or-stats-bar::-webkit-scrollbar { display: none; }
           .or-stat {
-            flex: none !important; padding: 8px 14px !important; border-radius: 12px !important;
+            flex: none !important; padding: 10px 16px !important; border-radius: 14px !important;
             min-width: auto !important; white-space: nowrap !important;
           }
-          .or-content { padding: 12px !important; }
-          .or-actions { flex-direction: column !important; }
-          .or-actions button { width: 100% !important; }
-          .or-email-actions { flex-wrap: wrap !important; }
-          .or-email-actions button { flex: 1 !important; min-width: calc(50% - 4px) !important; padding: 8px 10px !important; }
+          .or-content { padding: 14px !important; }
+          .or-actions { flex-direction: column !important; gap: 8px !important; }
+          .or-actions button { width: 100% !important; min-height: 44px !important; font-size: 13px !important; }
+          .or-email-actions { flex-wrap: wrap !important; gap: 8px !important; }
+          .or-email-actions button { flex: 1 !important; min-width: calc(50% - 4px) !important; padding: 10px 12px !important; min-height: 42px !important; font-size: 12px !important; }
           .or-settings-form { padding: 18px !important; }
+          .or-settings-form input, .or-settings-form select, .or-settings-form textarea { font-size: 16px !important; min-height: 44px !important; }
+          .or-prospect-card { border-radius: 16px !important; padding: 16px !important; }
+          .or-prospect-card .or-score { width: 36px !important; height: 36px !important; font-size: 12px !important; }
         }
         @media (max-width: 480px) {
+          .or-header { padding: 12px 14px !important; }
           .or-email-actions button { min-width: 100% !important; }
+          .or-content { padding: 10px !important; }
+          .or-stat { padding: 8px 12px !important; }
+        }
+        /* Mobile safe area */
+        @supports(padding-bottom: env(safe-area-inset-bottom)){
+          .or-content { padding-bottom: calc(14px + env(safe-area-inset-bottom)) !important; }
+        }
+        /* Mobile touch improvements */
+        @media(hover:none){
+          .or-tab:active { transform: scale(0.93) !important; transition-duration: 100ms !important; }
+          .or-close:active { transform: scale(0.90) !important; transition-duration: 100ms !important; }
+          .or-btn:active { transform: scale(0.97) !important; transition-duration: 100ms !important; }
+          .or-prospect-card:active { transform: scale(0.99) !important; transition-duration: 120ms !important; }
         }
       `}</style>
 

@@ -476,18 +476,37 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
 
         /* ─── Mobile Responsive ─── */
         @media (max-width: 768px) {
-          .z-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .z-stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
           .z-bottom-grid { grid-template-columns: 1fr !important; }
           .z-engagement-grid { grid-template-columns: 1fr !important; }
           .z-tier-grid { grid-template-columns: repeat(2, 1fr) !important; }
-          .z-header-inner { flex-direction: column !important; gap: 12px !important; }
+          .z-header-inner { flex-direction: column !important; gap: 10px !important; padding: 14px 16px !important; }
+          .z-header-inner > div:first-child { width: 100%; }
+          .z-header-inner > button:last-child { position: absolute; right: 14px; top: 14px; }
           .z-range-pills { order: 0 !important; }
-          .z-gs { padding: 14px !important; }
+          .z-gs { padding: 12px !important; }
+          .z-stat { border-radius: 16px !important; padding: 16px !important; }
+          .z-close { width: 38px !important; height: 38px !important; }
+          .z-chart-container { height: 240px !important; }
+          .z-row { margin: 0 -4px !important; padding-left: 4px !important; padding-right: 4px !important; }
         }
         @media (max-width: 480px) {
-          .z-stats-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+          .z-stats-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+          .z-stat { padding: 14px !important; }
           .z-tier-grid { grid-template-columns: 1fr !important; }
-          .z-chart-container { height: 220px !important; }
+          .z-chart-container { height: 200px !important; }
+          .z-header-inner { padding: 12px 14px !important; gap: 8px !important; }
+          .z-gs { padding: 10px !important; }
+        }
+        /* Mobile safe area */
+        @supports(padding-bottom: env(safe-area-inset-bottom)){
+          .z-gs { padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important; }
+        }
+        /* Mobile touch improvements */
+        @media(hover:none){
+          .z-stat:active { transform: scale(0.98) !important; transition-duration: 120ms !important; }
+          .z-close:active { transform: scale(0.90) !important; transition-duration: 100ms !important; }
+          .z-glass-tab:active { transform: scale(0.95) !important; transition-duration: 100ms !important; }
         }
       `}</style>
 
@@ -498,6 +517,7 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
         borderBottom: `0.5px solid ${G.glassBorder}`,
         background: "linear-gradient(180deg, rgba(255,255,255,0.015) 0%, transparent 100%)",
         animation: "z-fadeIn 600ms ease both",
+        position: "relative",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{
