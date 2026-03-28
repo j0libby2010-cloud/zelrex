@@ -8,6 +8,7 @@ import { WebsiteSurvey, SurveyData } from "@/website/pages/components/Websitesur
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { WeeklySummaries } from "@/components/WeeklySummaries";
 import { OutreachSystem } from "@/components/OutreachSystem";
+import { CRMSystem } from "@/components/CRMSystem";
 import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
 
@@ -387,6 +388,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     if (meta) { meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'; }
   }, []);
 
+  // Prevent background scroll when overlays are open
+  useEffect(() => {
+    const anyOpen = analyticsOpen || summariesOpen || outreachOpen || settingsOpen || goalModalOpen || crmOpen;
+    if (anyOpen) { document.body.style.overflow = 'hidden'; }
+    else { document.body.style.overflow = ''; }
+    return () => { document.body.style.overflow = ''; };
+  }, [analyticsOpen, summariesOpen, outreachOpen, settingsOpen, goalModalOpen, crmOpen]);
   const [buildStage, setBuildStage] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewWidth, setPreviewWidth] = useState(0); // 0 = auto (flex: 1)
@@ -445,17 +453,12 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [outreachOpen, setOutreachOpen] = useState(false);
   const [outreachClosing, setOutreachClosing] = useState(false);
   const outreachOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const [crmOpen, setCrmOpen] = useState(false);
+  const [crmClosing, setCrmClosing] = useState(false);
+  const crmOriginRef = useRef<{ x: number; y: number } | null>(null);
   const settingsOriginRef = useRef<{ x: number; y: number } | null>(null);
   const goalOriginRef = useRef<{ x: number; y: number } | null>(null);
   const notifOriginRef = useRef<{ x: number; y: number } | null>(null);
-
-  // Prevent background scroll when overlays are open
-  useEffect(() => {
-    const anyOpen = analyticsOpen || summariesOpen || outreachOpen || settingsOpen || goalModalOpen;
-    if (anyOpen) { document.body.style.overflow = 'hidden'; }
-    else { document.body.style.overflow = ''; }
-    return () => { document.body.style.overflow = ''; };
-  }, [analyticsOpen, summariesOpen, outreachOpen, settingsOpen, goalModalOpen]);
 
   // ─── Overlay origin-zoom helpers ───────────────────────────────────
   const openSettings = (e: React.MouseEvent) => {
@@ -495,17 +498,6 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [chats, setChats] = useState<Chat[]>([{ id: uid("chat"), title: "New business", messages: [], updatedAt: Date.now() }]);
   const [activeChatId, setActiveChatId] = useState(() => chats[0]?.id ?? "");
   const activeChat = useMemo(() => chats.find((c) => c.id === activeChatId) ?? chats[0], [chats, activeChatId]);
-
-  // Check if ANY chat has a deployed site (not just the active one) — fixes mobile analytics bug
-  const hasAnyDeployment = useMemo(() => {
-    if (deployData?.url) return true;
-    if (chats.some(c => c.deployData?.url)) return true;
-    // Check localStorage for any chat's deploy data
-    for (const c of chats) {
-      try { const dd = localStorage.getItem(`zelrex_dd_${c.id}`); if (dd) { const parsed = JSON.parse(dd); if (parsed?.url) return true; } } catch {}
-    }
-    return false;
-  }, [chats, deployData]);
 
   // Sync websiteData/deployData from active chat when switching chats (with localStorage backup)
   useEffect(() => {
@@ -1758,22 +1750,9 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           .welcome-grid{grid-template-columns:1fr!important;max-width:300px!important}
           .msg-actions{opacity:1}
           .user-actions{opacity:1}
-          /* Premium mobile sidebar */
-          .z-sidebar-tools button{padding:12px 14px!important;font-size:13px!important;gap:10px!important;border-radius:14px!important;min-height:44px}
-          .z-sidebar-tools svg{width:18px!important;height:18px!important}
-          .z-sidebar-search{padding:10px 14px!important;border-radius:14px!important;min-height:44px}
-          .z-sidebar-search input{font-size:14px!important}
-          .z-new-biz-btn{padding:12px 0!important;font-size:14px!important;min-height:46px}
-          /* Mobile message actions */
-          .msg-act{width:36px!important;height:34px!important;border-radius:12px!important}
-          .msg-act svg{width:16px!important;height:16px!important}
-          /* Mobile chat row tap targets */
-          .chat-row{padding:10px 10px!important;min-height:44px}
         }
         @media(max-width:480px){
-          .welcome-h1{font-size:22px!important}
-          .welcome-grid{max-width:260px!important}
-          .msg-act{width:34px!important;height:32px!important}
+          .welcome-h1{font-size:24px!important}
         }
         /* Mobile safe area for input */
         @supports(padding-bottom: env(safe-area-inset-bottom)){
@@ -1858,19 +1837,19 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
         {/* SIDEBAR BACKDROP (mobile only) */}
         {sidebarOpen && isMobile && (
-          <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)", WebkitBackdropFilter: "blur(4px)", zIndex: 19, animation: "backdropFadeIn 300ms ease forwards" }} />
+          <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 19 }} />
         )}
 
         {/* SIDEBAR */}
-        <aside style={{ width: sidebarOpen ? (isMobile ? 280 : 260) : 0, minWidth: sidebarOpen ? (isMobile ? 280 : 260) : 0, borderRight: sidebarOpen ? `1px solid ${C.border}` : "none", background: isMobile ? "rgba(6,9,15,0.96)" : C.bg, backdropFilter: isMobile ? "blur(40px) saturate(1.4)" : "none", WebkitBackdropFilter: isMobile ? "blur(40px) saturate(1.4)" : "none", transition: "all 500ms cubic-bezier(0.32,0.72,0,1)", overflow: "hidden", display: "flex", flexDirection: "column", position: isMobile ? "fixed" : "absolute", top: isMobile ? 0 : -81, bottom: 0, left: 0, paddingTop: isMobile ? 60 : 81, zIndex: 20 }}>
-          <div style={{ padding: isMobile ? "12px 14px" : 10, opacity: sidebarOpen ? 1 : 0, transition: "opacity 400ms cubic-bezier(0.32,0.72,0,1)" }}>
+        <aside style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, borderRight: sidebarOpen ? `1px solid ${C.border}` : "none", background: C.bg, transition: "all 500ms cubic-bezier(0.32,0.72,0,1)", overflow: "hidden", display: "flex", flexDirection: "column", position: isMobile ? "fixed" : "absolute", top: isMobile ? 0 : -81, bottom: 0, left: 0, paddingTop: isMobile ? 60 : 81, zIndex: 20 }}>
+          <div style={{ padding: 10, opacity: sidebarOpen ? 1 : 0, transition: "opacity 400ms cubic-bezier(0.32,0.72,0,1)" }}>
             {/* New Business button */}
-            <button onClick={createNewChat} type="button" className="z-glass z-new-biz-btn" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 0", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+            <button onClick={createNewChat} type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 0", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
               <Ic n="briefcase" className="h-4 w-4" /> New Business
             </button>
 
             {/* Tool buttons */}
-            <div className="z-sidebar-tools" style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: isMobile ? 4 : 2 }}>
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
               <button type="button" className="z-glass" onClick={(e) => {
                 summariesOriginRef.current = { x: e.clientX, y: e.clientY };
                 setSummariesOpen(true);
@@ -1880,7 +1859,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               </button>
               <div style={{ position: "relative" }}>
                 <button type="button" className="z-glass" onClick={(e) => {
-                  if (hasAnyDeployment) {
+                  if (deployData?.url) {
                     analyticsOriginRef.current = { x: e.clientX, y: e.clientY };
                     setAnalyticsOpen(true);
                     if (isMobile) setSidebarOpen(false);
@@ -1891,7 +1870,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                   <Ic n="analytics" style={{ width: 15, height: 15, color: "#8B5CF6" }} /> Business Analytics
                 </button>
-                {analyticsTooltip && !hasAnyDeployment && (
+                {analyticsTooltip && !deployData?.url && (
                   <div style={{
                     position: "absolute", left: isMobile ? "50%" : "calc(100% + 8px)", top: isMobile ? "calc(100% + 6px)" : "50%", transform: isMobile ? "translateX(-50%)" : "translateY(-50%)",
                     padding: "8px 14px", borderRadius: 12, whiteSpace: "nowrap",
@@ -1912,16 +1891,23 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ color: "#FBBF24" }}><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg> Outreach
               </button>
+              <button type="button" className="z-glass" onClick={(e) => {
+                crmOriginRef.current = { x: e.clientX, y: e.clientY };
+                setCrmOpen(true);
+                if (isMobile) setSidebarOpen(false);
+              }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ color: "#3B82F6" }}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg> Clients
+              </button>
               <button type="button" className="z-glass" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? C.accent : "#F59E0B" }} /> {userGoal ? "My Goal" : "Set Goal"}
               </button>
             </div>
 
             {/* Search */}
-            <div className="z-sidebar-search" style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", borderRadius: 999, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
+            <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", borderRadius: 999, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
               <Ic n="search" className="h-3.5 w-3.5" style={{ color: C.textMuted }} />
               <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search businesses..." style={{ flex: 1, background: "none", border: "none", outline: "none", color: C.text, fontSize: 12 }} />
-              {searchQuery && <HBtn onClick={() => setSearchQuery("")} style={{ width: 24, height: 24, color: C.textMuted }}><Ic n="close" className="h-3 w-3" /></HBtn>}
+              {searchQuery && <HBtn onClick={() => setSearchQuery("")} style={{ width: 20, height: 20, color: C.textMuted }}><Ic n="close" className="h-3 w-3" /></HBtn>}
             </div>
           </div>
           <div style={{ height: 1, margin: "0 10px", background: C.border }} />
@@ -2027,7 +2013,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
         {/* CHAT */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 280, transition: dragRef.current ? "none" : "all 500ms cubic-bezier(0.32,0.72,0,1)", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0 }}>
-          <div style={{ flex: 1, overflowY: "auto", padding: isMobile ? "12px 10px" : showPreview ? "16px 12px" : "16px 16px" }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: showPreview ? "16px 12px" : "16px 16px" }}>
             <div style={{ maxWidth: showPreview ? "100%" : 820, margin: "0 auto" }}>
               {!hasMessages ? (
                 <WelcomeScreen onAction={sendViaCard} />
@@ -2092,7 +2078,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           </div>
 
           {/* INPUT */}
-          <div className="z-input-area" style={{ padding: isMobile ? "8px 10px 12px" : (showPreview ? "8px 12px 14px" : "8px 16px 18px"), position: "relative" }}>
+          <div className="z-input-area" style={{ padding: isMobile ? "6px 8px 10px" : (showPreview ? "8px 12px 14px" : "8px 16px 18px"), position: "relative" }}>
             {!surveyData && !showSurvey && activeChat?.pendingSurvey && (
               <div style={{ maxWidth: showPreview ? "100%" : 820, margin: "0 auto 10px", borderRadius: 999, border: `1px solid ${C.border}`, background: C.bg, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, position: "relative", zIndex: 2 }}>
                 <div style={{ fontSize: 12, color: C.textSec }}>Survey paused. Continue to finish your website build.</div>
@@ -2148,7 +2134,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 </div>
               </div>
             </div>
-            <div style={{ marginTop: 6, textAlign: "center", fontSize: isMobile ? 10 : 12, fontWeight: 500, color: C.textSec, position: "relative", zIndex: 1 }}>Zelrex can make mistakes. Check important info before making business decisions.</div>
+            <div style={{ marginTop: 8, textAlign: "center", fontSize: 12, fontWeight: 500, color: C.textSec, position: "relative", zIndex: 1 }}>Zelrex can make mistakes. Check important info before making business decisions.</div>
           </div>
         </div>
 
@@ -2204,6 +2190,24 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {/* GOAL MODAL */}
+        {/* ─── CLIENT MANAGER (CRM) ───────────────────────────── */}
+        {(crmOpen || crmClosing) && (
+          <div style={{
+            position: "fixed", inset: 0, zIndex: 9580,
+            transformOrigin: crmOriginRef.current ? `${crmOriginRef.current.x}px ${crmOriginRef.current.y}px` : "center center",
+            animation: `${crmClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`,
+            pointerEvents: crmClosing ? "none" : undefined,
+          }}>
+            <CRMSystem
+              userId={clerkUser?.id || ""}
+              onClose={() => {
+                setCrmClosing(true);
+                setTimeout(() => { setCrmOpen(false); setCrmClosing(false); }, 300);
+              }}
+            />
+          </div>
+        )}
+
         {/* ─── OUTREACH SYSTEM ────────────────────────────────── */}
         {(outreachOpen || outreachClosing) && (
           <div style={{
@@ -2250,7 +2254,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           }}>
             <AnalyticsDashboard
               userId={clerkUser?.id || ""}
-              deployed={hasAnyDeployment}
+              deployed={!!(deployData?.url)}
               onClose={() => {
                 setAnalyticsClosing(true);
                 setTimeout(() => { setAnalyticsOpen(false); setAnalyticsClosing(false); }, 300);
