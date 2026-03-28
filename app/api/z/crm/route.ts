@@ -154,7 +154,7 @@ async function invoicesCreate(supabase: SupabaseClient, userId: string, body: an
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   // Update client lifetime value
-  await supabase.rpc('increment_client_value', { cid: clientId, amount: totalCents }).catch(() => {});
+  try { await supabase.rpc('increment_client_value', { cid: clientId, amount: totalCents }); } catch {}
 
   return NextResponse.json({ invoice: data });
 }
