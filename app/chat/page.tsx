@@ -388,13 +388,6 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     if (meta) { meta.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'; }
   }, []);
 
-  // Prevent background scroll when overlays are open
-  useEffect(() => {
-    const anyOpen = analyticsOpen || summariesOpen || outreachOpen || settingsOpen || goalModalOpen || crmOpen;
-    if (anyOpen) { document.body.style.overflow = 'hidden'; }
-    else { document.body.style.overflow = ''; }
-    return () => { document.body.style.overflow = ''; };
-  }, [analyticsOpen, summariesOpen, outreachOpen, settingsOpen, goalModalOpen, crmOpen]);
   const [buildStage, setBuildStage] = useState("");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewWidth, setPreviewWidth] = useState(0); // 0 = auto (flex: 1)
@@ -459,6 +452,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const settingsOriginRef = useRef<{ x: number; y: number } | null>(null);
   const goalOriginRef = useRef<{ x: number; y: number } | null>(null);
   const notifOriginRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Prevent background scroll when overlays are open
+  useEffect(() => {
+    const anyOpen = analyticsOpen || summariesOpen || outreachOpen || settingsOpen || goalModalOpen || crmOpen;
+    if (anyOpen) { document.body.style.overflow = 'hidden'; }
+    else { document.body.style.overflow = ''; }
+    return () => { document.body.style.overflow = ''; };
+  }, [analyticsOpen, summariesOpen, outreachOpen, settingsOpen, goalModalOpen, crmOpen]);
 
   // ─── Overlay origin-zoom helpers ───────────────────────────────────
   const openSettings = (e: React.MouseEvent) => {
