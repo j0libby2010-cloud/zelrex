@@ -288,7 +288,7 @@ export function WeeklySummaries({
               background: mobileView === v ? `linear-gradient(135deg, ${G.accent}25, ${G.accent}10)` : "transparent",
               color: mobileView === v ? G.accent : G.textSec, fontSize: 14, fontWeight: 600, textTransform: "capitalize", cursor: "pointer",
               boxShadow: mobileView === v ? `0 0 12px ${G.accent}10, inset 0 0.5px 0 rgba(255,255,255,0.10)` : "none",
-              transition: `all 300ms ${EASE}`,
+              transition: `all 300ms ease`,
               minHeight: 44,
             }}>{v === "chat" ? "Ask Zelrex" : "Summary"}</button>
           ))}
