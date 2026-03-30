@@ -316,6 +316,8 @@ export async function POST(req: Request) {
     const surveyData = body.surveyData;
     const responseStyle: string = body.responseStyle || "direct";
     const attachments: any[] = body.attachments || [];
+    const currentTime: string = body.currentTime || new Date().toISOString();
+    const userGoal: { text: string; target: string; deadline: string } | undefined = body.userGoal;
 
     // Communication style modifier
     const responseStyles: Record<string, string> = {
@@ -323,7 +325,18 @@ export async function POST(req: Request) {
       detailed: "Provide thorough, detailed explanations with examples and step-by-step guidance.",
       coaching: "Respond like a mentor. Ask guiding questions. Help the user think through decisions.",
     };
-    const styleInstruction = `\n\nCOMMUNICATION STYLE: ${responseStyles[responseStyle] || responseStyles.direct}`;
+    let styleInstruction = `\n\nCOMMUNICATION STYLE: ${responseStyles[responseStyle] || responseStyles.direct}`;
+
+    // Inject current time so Zelrex is always aware
+    styleInstruction += `\n\nCURRENT DATE AND TIME: ${currentTime}`;
+
+    // Inject user goal so every recommendation aligns with it
+    if (userGoal?.text) {
+      styleInstruction += `\n\nUSER'S GOAL: "${userGoal.text}"`;
+      if (userGoal.target) styleInstruction += ` | Revenue target: ${userGoal.target}`;
+      if (userGoal.deadline) styleInstruction += ` | Deadline: ${userGoal.deadline}`;
+      styleInstruction += `\nEvery recommendation, suggestion, and analysis you give should be evaluated against this goal. If something doesn't move the user closer to this goal, say so. Track their progress toward this goal.`;
+    }
 
     const sessionState: SessionState = getSessionState(messages);
 

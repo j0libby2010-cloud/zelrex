@@ -59,8 +59,10 @@ function autoTitleFromReply(userText: string, replyText: string): string {
   return makeTitle(userText);
 }
 
-function detectPhase(msgs: Msg[]): BusinessPhase {
+function detectPhase(msgs: Msg[], hasWebsite?: boolean, hasClients?: boolean, hasRevenue?: boolean): BusinessPhase {
   if (!msgs.length) return "ready";
+  if (hasRevenue) return "live";
+  if (hasWebsite) return "live";
   const r = msgs.slice(-5).map((m) => m.content.toLowerCase()).join(" ");
   if (msgs.some((m) => m.previewUrl) || r.includes("site is ready")) return "live";
   if (r.includes("building") || r.includes("generating")) return "building";
@@ -1372,7 +1374,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const phase = useMemo(() => isSending && buildStage.includes("market") ? "evaluating" as BusinessPhase : isSending && (buildStage.includes("Build") || buildStage.includes("Generat")) ? "building" as BusinessPhase : detectPhase(activeChat?.messages ?? []), [activeChat?.messages, isSending, buildStage]);
+  const phase = useMemo(() => isSending && buildStage.includes("market") ? "evaluating" as BusinessPhase : isSending && (buildStage.includes("Build") || buildStage.includes("Generat")) ? "building" as BusinessPhase : detectPhase(activeChat?.messages ?? [], !!websiteData, false, false), [activeChat?.messages, isSending, buildStage, websiteData]);
   const businessName = useMemo(() => getBusinessName(activeChat?.messages ?? []), [activeChat?.messages]);
   const hasMessages = (activeChat?.messages?.length ?? 0) > 0;
 
@@ -1692,7 +1694,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     try {
       const ctrl = new AbortController(); abortRef.current = ctrl;
       // If this is a website rebuild, include existing survey data so the API has full context
-      const requestBody: any = { messages: [...activeChat.messages, userMsg], userId: clerkUser?.id, userEmail: clerkUser?.primaryEmailAddress?.emailAddress, responseStyle: zelrexSettings.responseStyle };
+      const requestBody: any = {
+        messages: [...activeChat.messages, userMsg],
+        userId: clerkUser?.id,
+        userEmail: clerkUser?.primaryEmailAddress?.emailAddress,
+        responseStyle: zelrexSettings.responseStyle,
+        currentTime: new Date().toISOString(),
+        userGoal: userGoal || undefined,
+      };
       if (attachmentData.length > 0) requestBody.attachments = attachmentData;
       if (isBuild && surveyData) { requestBody.surveyData = surveyData; requestBody.action = "buildWebsite"; }
       const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(requestBody) });
@@ -2006,7 +2015,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             <div style={{ padding: "4px 8px 6px", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.textMuted }}>Your Businesses</div>
             {filteredChats.map((c) => {
               const isA = c.id === activeChatId; const isR = renamingChatId === c.id; const isExp = expandedBizId === c.id;
-              const bizPhase = detectPhase(c.messages); const bizName = getBusinessName(c.messages);
+              const bizPhase = detectPhase(c.messages, !!(c as any).websiteData); const bizName = getBusinessName(c.messages);
               const createdDate = c.id.includes("_") ? new Date(parseInt(c.id.split("_").pop() || "0", 16)).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
               return (
                 <div key={c.id} style={{ marginBottom: 2, borderRadius: 10, overflow: "hidden", border: isA ? `1px solid rgba(255,255,255,0.06)` : "1px solid transparent", background: isA ? "rgba(255,255,255,0.04)" : "transparent", transition: "all 500ms cubic-bezier(0.32,0.72,0,1)" }}>
