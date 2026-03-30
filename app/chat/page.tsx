@@ -433,6 +433,16 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     setZelrexSettings(prev => { const next = { ...prev, [key]: val }; try { localStorage.setItem("zelrex_settings", JSON.stringify(next)); } catch {} return next; });
   };
 
+  // ─── Liquid glass toggle animation state ───────────────────────────
+  const [slidingToggles, setSlidingToggles] = useState({});
+  const handleToggle = (key) => {
+    const goingOn = !zelrexSettings[key];
+    setSlidingToggles(prev => ({ ...prev, [key]: goingOn ? "on" : "off" }));
+    updateSetting(key, goingOn);
+    setTimeout(() => setSlidingToggles(prev => { const n = { ...prev }; delete n[key]; return n; }), 600);
+  };
+  const tglClass = (key) => `stg-toggle ${zelrexSettings[key] ? "stg-on" : "stg-off"}${slidingToggles[key] ? ` stg-sliding-${slidingToggles[key]}` : ""}`;
+
   // ─── Overlay origin-zoom animation state ───────────────────────────
   const [settingsClosing, setSettingsClosing] = useState(false);
   const [goalClosing, setGoalClosing] = useState(false);
@@ -2280,17 +2290,39 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               .stg-tab-active::after { opacity: 0.5 !important; background: radial-gradient(ellipse at 38% 25%,rgba(74,144,255,0.12) 0%,rgba(74,144,255,0.03) 32%,transparent 68%) !important; }
               .stg-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.025); color: ${C.text}; font-size: 14px; font-family: inherit; outline: none; transition: all 300ms cubic-bezier(0.32,0.72,0,1); }
               .stg-input:focus { border-color: rgba(74,144,255,0.4); box-shadow: 0 0 0 3px rgba(74,144,255,0.08), 0 0 20px rgba(74,144,255,0.06); background: rgba(255,255,255,0.035); }
-              .stg-toggle { position: relative; width: 52px; height: 28px; border-radius: 14px; border: none; cursor: pointer; transition: all 400ms cubic-bezier(0.32,0.72,0,1); flex-shrink: 0; overflow: visible; isolation: isolate; }
-              .stg-toggle::before { content:''; position:absolute; inset:0; border-radius:14px; opacity:0.6; background:linear-gradient(160deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.04) 18%,transparent 48%,transparent 58%,rgba(255,255,255,0.03) 82%,rgba(255,255,255,0.12) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.3),inset 0 -0.5px 0 rgba(255,255,255,0.04); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; z-index:1; }
-              .stg-toggle:hover::before { opacity: 1; }
-              .stg-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 12px; background: linear-gradient(145deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 40%, rgba(220,230,245,0.5) 70%, rgba(200,215,240,0.45) 100%); backdrop-filter: blur(12px) saturate(1.4) brightness(1.15); -webkit-backdrop-filter: blur(12px) saturate(1.4) brightness(1.15); transition: all 400ms cubic-bezier(0.68,-0.15,0.27,1.35); box-shadow: 0 2px 8px rgba(0,0,0,0.18), 0 0 0 0.5px rgba(255,255,255,0.25), inset 0 1.5px 0 rgba(255,255,255,0.7), inset 0 -1px 2px rgba(0,0,0,0.06), 0 0 12px rgba(140,180,255,0.08); z-index: 2; }
+              @keyframes glassSlideOn {
+                0% { transform: translateX(0) scale(1); width: 24px; height: 24px; border-radius: 12px; }
+                15% { transform: translateX(2px) scale(1.35); width: 32px; height: 32px; border-radius: 16px; box-shadow: 0 0 18px 4px rgba(120,180,255,0.18), 0 0 8px 2px rgba(255,120,180,0.10), 0 0 12px 3px rgba(120,255,200,0.10), 0 0 0 1px rgba(255,255,255,0.18), inset 0 1px 0 rgba(255,255,255,0.6); }
+                50% { transform: translateX(12px) scale(1.55); width: 36px; height: 36px; border-radius: 18px; box-shadow: 0 0 24px 6px rgba(120,180,255,0.22), 0 0 14px 4px rgba(255,100,160,0.14), 0 0 18px 5px rgba(100,255,200,0.12), 0 0 10px 3px rgba(200,140,255,0.10), 0 0 0 1.5px rgba(255,255,255,0.22), inset 0 2px 0 rgba(255,255,255,0.7); background: radial-gradient(ellipse at 35% 30%, rgba(255,255,255,0.7) 0%, rgba(220,235,255,0.4) 40%, rgba(200,220,255,0.25) 65%, rgba(180,210,255,0.15) 100%); backdrop-filter: blur(24px) saturate(2) brightness(1.2); -webkit-backdrop-filter: blur(24px) saturate(2) brightness(1.2); }
+                85% { transform: translateX(22px) scale(1.2); width: 28px; height: 28px; border-radius: 14px; }
+                100% { transform: translateX(24px) scale(1); width: 24px; height: 24px; border-radius: 12px; }
+              }
+              @keyframes glassSlideOff {
+                0% { transform: translateX(24px) scale(1); width: 24px; height: 24px; border-radius: 12px; }
+                15% { transform: translateX(22px) scale(1.35); width: 32px; height: 32px; border-radius: 16px; box-shadow: 0 0 18px 4px rgba(120,180,255,0.18), 0 0 8px 2px rgba(255,120,180,0.10), 0 0 12px 3px rgba(120,255,200,0.10), 0 0 0 1px rgba(255,255,255,0.18), inset 0 1px 0 rgba(255,255,255,0.6); }
+                50% { transform: translateX(12px) scale(1.55); width: 36px; height: 36px; border-radius: 18px; box-shadow: 0 0 24px 6px rgba(120,180,255,0.22), 0 0 14px 4px rgba(255,100,160,0.14), 0 0 18px 5px rgba(100,255,200,0.12), 0 0 10px 3px rgba(200,140,255,0.10), 0 0 0 1.5px rgba(255,255,255,0.22), inset 0 2px 0 rgba(255,255,255,0.7); background: radial-gradient(ellipse at 35% 30%, rgba(255,255,255,0.7) 0%, rgba(220,235,255,0.4) 40%, rgba(200,220,255,0.25) 65%, rgba(180,210,255,0.15) 100%); backdrop-filter: blur(24px) saturate(2) brightness(1.2); -webkit-backdrop-filter: blur(24px) saturate(2) brightness(1.2); }
+                85% { transform: translateX(2px) scale(1.2); width: 28px; height: 28px; border-radius: 14px; }
+                100% { transform: translateX(0) scale(1); width: 24px; height: 24px; border-radius: 12px; }
+              }
+              @keyframes prismaticPulse {
+                0%, 100% { opacity: 0; }
+                30%, 70% { opacity: 1; }
+              }
+              .stg-toggle { position: relative; width: 52px; height: 28px; border-radius: 14px; border: none; cursor: pointer; transition: background 400ms cubic-bezier(0.32,0.72,0,1), box-shadow 400ms cubic-bezier(0.32,0.72,0,1); flex-shrink: 0; overflow: visible; isolation: isolate; padding: 0; }
+              .stg-toggle::before { content:''; position:absolute; inset:0; border-radius:14px; opacity:0.6; background:linear-gradient(160deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.04) 18%,transparent 48%,transparent 58%,rgba(255,255,255,0.03) 82%,rgba(255,255,255,0.12) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.3),inset 0 -0.5px 0 rgba(255,255,255,0.04); pointer-events:none; z-index:1; }
+              .stg-knob { position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 12px; display: block; pointer-events: none; z-index: 2; background: radial-gradient(ellipse at 35% 28%, rgba(255,255,255,0.9) 0%, rgba(240,245,255,0.65) 35%, rgba(215,225,240,0.5) 60%, rgba(200,215,240,0.4) 100%); backdrop-filter: blur(16px) saturate(1.6) brightness(1.15); -webkit-backdrop-filter: blur(16px) saturate(1.6) brightness(1.15); box-shadow: 0 2px 8px rgba(0,0,0,0.18), 0 0 0 0.5px rgba(255,255,255,0.25), inset 0 1.5px 0 rgba(255,255,255,0.75), inset 0 -1px 2px rgba(0,0,0,0.06); transition: transform 400ms cubic-bezier(0.32,0.72,0,1), box-shadow 400ms cubic-bezier(0.32,0.72,0,1); }
+              .stg-knob::before { content: ''; position: absolute; inset: -2px; border-radius: inherit; background: conic-gradient(from 180deg, rgba(255,100,100,0.0) 0deg, rgba(255,180,100,0.0) 60deg, rgba(100,255,180,0.0) 120deg, rgba(100,180,255,0.0) 180deg, rgba(180,100,255,0.0) 240deg, rgba(255,100,180,0.0) 300deg, rgba(255,100,100,0.0) 360deg); opacity: 0; transition: opacity 200ms; pointer-events: none; z-index: 3; }
+              .stg-knob::after { content: ''; position: absolute; top: 15%; left: 18%; width: 40%; height: 30%; border-radius: 50%; background: linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.0) 100%); pointer-events: none; z-index: 3; }
               .stg-toggle.stg-on { background: linear-gradient(135deg, ${C.accent}, ${C.accent}dd); box-shadow: 0 0 24px rgba(74,144,255,0.3), 0 0 0 0.5px rgba(74,144,255,0.35), inset 0 1.5px 0 rgba(255,255,255,0.2), inset 0 -1px 3px rgba(0,0,0,0.12); }
-              .stg-toggle.stg-on::after { transform: translateX(24px); background: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(230,240,255,0.65) 40%, rgba(200,220,255,0.55) 70%, rgba(180,210,255,0.5) 100%); box-shadow: 0 2px 10px rgba(0,0,0,0.2), 0 0 16px rgba(74,144,255,0.2), 0 0 0 0.5px rgba(255,255,255,0.3), inset 0 1.5px 0 rgba(255,255,255,0.8), inset 0 -1px 2px rgba(74,144,255,0.1), -2px 0 6px rgba(100,160,255,0.12), 2px 0 6px rgba(140,200,255,0.08); }
+              .stg-toggle.stg-on .stg-knob { transform: translateX(24px); background: radial-gradient(ellipse at 35% 28%, rgba(255,255,255,0.95) 0%, rgba(230,240,255,0.7) 35%, rgba(200,220,255,0.55) 60%, rgba(180,210,255,0.45) 100%); box-shadow: 0 2px 10px rgba(0,0,0,0.2), 0 0 16px rgba(74,144,255,0.2), 0 0 0 0.5px rgba(255,255,255,0.3), inset 0 1.5px 0 rgba(255,255,255,0.85), inset 0 -1px 2px rgba(74,144,255,0.08); }
               .stg-toggle.stg-off { background: rgba(255,255,255,0.06); box-shadow: inset 0 1.5px 4px rgba(0,0,0,0.25), 0 0 0 0.5px rgba(255,255,255,0.06), inset 0 0 8px rgba(0,0,0,0.08); }
-              .stg-toggle.stg-off::after { background: linear-gradient(145deg, rgba(220,225,235,0.8) 0%, rgba(200,205,215,0.6) 40%, rgba(180,185,200,0.5) 70%, rgba(170,175,190,0.45) 100%); box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(255,255,255,0.12), inset 0 1.5px 0 rgba(255,255,255,0.5), inset 0 -1px 2px rgba(0,0,0,0.06); }
-              .stg-toggle:hover { transform: scale(1.04); }
+              .stg-toggle.stg-off .stg-knob { background: radial-gradient(ellipse at 35% 28%, rgba(220,225,235,0.85) 0%, rgba(200,210,225,0.65) 35%, rgba(185,195,215,0.5) 60%, rgba(175,185,205,0.4) 100%); box-shadow: 0 2px 8px rgba(0,0,0,0.15), 0 0 0 0.5px rgba(255,255,255,0.12), inset 0 1.5px 0 rgba(255,255,255,0.5), inset 0 -1px 2px rgba(0,0,0,0.06); }
+              .stg-toggle.stg-sliding-on .stg-knob { animation: glassSlideOn 600ms cubic-bezier(0.32,0.72,0,1) forwards; }
+              .stg-toggle.stg-sliding-on .stg-knob::before { animation: prismaticPulse 600ms cubic-bezier(0.32,0.72,0,1); background: conic-gradient(from 180deg, rgba(255,80,80,0.2) 0deg, rgba(255,200,80,0.15) 60deg, rgba(80,255,160,0.2) 120deg, rgba(80,160,255,0.2) 180deg, rgba(180,80,255,0.2) 240deg, rgba(255,80,180,0.15) 300deg, rgba(255,80,80,0.2) 360deg); }
+              .stg-toggle.stg-sliding-off .stg-knob { animation: glassSlideOff 600ms cubic-bezier(0.32,0.72,0,1) forwards; }
+              .stg-toggle.stg-sliding-off .stg-knob::before { animation: prismaticPulse 600ms cubic-bezier(0.32,0.72,0,1); background: conic-gradient(from 180deg, rgba(255,80,80,0.2) 0deg, rgba(255,200,80,0.15) 60deg, rgba(80,255,160,0.2) 120deg, rgba(80,160,255,0.2) 180deg, rgba(180,80,255,0.2) 240deg, rgba(255,80,180,0.15) 300deg, rgba(255,80,80,0.2) 360deg); }
+              .stg-toggle:hover { transform: scale(1.04); transition: transform 200ms cubic-bezier(0.32,0.72,0,1); }
               .stg-toggle:active { transform: scale(0.95); transition-duration: 100ms; }
-              .stg-toggle:active::after { width: 28px; border-radius: 14px; transition-duration: 100ms; }
               .stg-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.04); gap: 16px; }
               .stg-row:last-child { border-bottom: none; }
               .stg-section { margin-bottom: 40px; }
@@ -2528,7 +2560,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Auto-Deploy</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Automatically deploy websites after build</div>
                         </div>
-                        <button className={`stg-toggle ${zelrexSettings.autoDeploy ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("autoDeploy", !zelrexSettings.autoDeploy)} />
+                        <button className={tglClass("autoDeploy")} onClick={() => handleToggle("autoDeploy")}><span className="stg-knob" /></button>
                       </div>
                       <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
                         <div>
@@ -2550,14 +2582,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Weekly Business Digest</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Email summary of business progress</div>
                         </div>
-                        <button className={`stg-toggle ${zelrexSettings.weeklyDigest ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("weeklyDigest", !zelrexSettings.weeklyDigest)} />
+                        <button className={tglClass("weeklyDigest")} onClick={() => handleToggle("weeklyDigest")}><span className="stg-knob" /></button>
                       </div>
                       <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Market Monitoring</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Track market changes relevant to your business</div>
                         </div>
-                        <button className={`stg-toggle ${zelrexSettings.marketMonitoring ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("marketMonitoring", !zelrexSettings.marketMonitoring)} />
+                        <button className={tglClass("marketMonitoring")} onClick={() => handleToggle("marketMonitoring")}><span className="stg-knob" /></button>
                       </div>
                     </div>
                   </div>
@@ -2573,28 +2605,28 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Weekly Business Report</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Summary of your business metrics every Monday</div>
                         </div>
-                        <button className={`stg-toggle ${zelrexSettings.emailWeeklyReport ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("emailWeeklyReport", !zelrexSettings.emailWeeklyReport)} />
+                        <button className={tglClass("emailWeeklyReport")} onClick={() => handleToggle("emailWeeklyReport")}><span className="stg-knob" /></button>
                       </div>
                       <div className="stg-row" style={{ padding: "16px 22px" }}>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Goal Milestones</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Get notified when you hit revenue targets</div>
                         </div>
-                        <button className={`stg-toggle ${zelrexSettings.emailGoalMilestones ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("emailGoalMilestones", !zelrexSettings.emailGoalMilestones)} />
+                        <button className={tglClass("emailGoalMilestones")} onClick={() => handleToggle("emailGoalMilestones")}><span className="stg-knob" /></button>
                       </div>
                       <div className="stg-row" style={{ padding: "16px 22px" }}>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Market Alerts</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Opportunities and threats in your market</div>
                         </div>
-                        <button className={`stg-toggle ${zelrexSettings.emailMarketAlerts ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("emailMarketAlerts", !zelrexSettings.emailMarketAlerts)} />
+                        <button className={tglClass("emailMarketAlerts")} onClick={() => handleToggle("emailMarketAlerts")}><span className="stg-knob" /></button>
                       </div>
                       <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Product Updates</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>New Zelrex features and improvements</div>
                         </div>
-                        <button className={`stg-toggle ${zelrexSettings.emailProductUpdates ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("emailProductUpdates", !zelrexSettings.emailProductUpdates)} />
+                        <button className={tglClass("emailProductUpdates")} onClick={() => handleToggle("emailProductUpdates")}><span className="stg-knob" /></button>
                       </div>
                     </div>
                   </div>
@@ -2606,14 +2638,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Business Suggestions</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Zelrex proactive business recommendations</div>
                         </div>
-                        <button className={`stg-toggle ${zelrexSettings.inAppSuggestions ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("inAppSuggestions", !zelrexSettings.inAppSuggestions)} />
+                        <button className={tglClass("inAppSuggestions")} onClick={() => handleToggle("inAppSuggestions")}><span className="stg-knob" /></button>
                       </div>
                       <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Deploy Status</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Website deployment success or failure</div>
                         </div>
-                        <button className={`stg-toggle ${zelrexSettings.inAppDeployStatus ? "stg-on" : "stg-off"}`} onClick={() => updateSetting("inAppDeployStatus", !zelrexSettings.inAppDeployStatus)} />
+                        <button className={tglClass("inAppDeployStatus")} onClick={() => handleToggle("inAppDeployStatus")}><span className="stg-knob" /></button>
                       </div>
                     </div>
                   </div>
