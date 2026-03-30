@@ -2291,23 +2291,27 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               .stg-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.025); color: ${C.text}; font-size: 14px; font-family: inherit; outline: none; transition: all 300ms cubic-bezier(0.32,0.72,0,1); }
               .stg-input:focus { border-color: rgba(74,144,255,0.4); box-shadow: 0 0 0 3px rgba(74,144,255,0.08), 0 0 20px rgba(74,144,255,0.06); background: rgba(255,255,255,0.035); }
               @keyframes trailFadeOn {
-                0% { opacity: 0.6; transform: translateX(0); width: 20px; }
-                40% { opacity: 0.35; transform: translateX(8px); width: 28px; }
-                100% { opacity: 0; transform: translateX(24px); width: 8px; }
+                0% { opacity: 0.8; left: 2px; width: 24px; filter: blur(0px); }
+                20% { opacity: 0.6; left: 2px; width: 30px; filter: blur(2px); }
+                50% { opacity: 0.4; left: 6px; width: 36px; filter: blur(6px); }
+                80% { opacity: 0.15; left: 14px; width: 24px; filter: blur(10px); }
+                100% { opacity: 0; left: 26px; width: 12px; filter: blur(12px); }
               }
               @keyframes trailFadeOff {
-                0% { opacity: 0.6; transform: translateX(24px); width: 20px; }
-                40% { opacity: 0.35; transform: translateX(16px); width: 28px; }
-                100% { opacity: 0; transform: translateX(0); width: 8px; }
+                0% { opacity: 0.8; left: 26px; width: 24px; filter: blur(0px); }
+                20% { opacity: 0.6; left: 20px; width: 30px; filter: blur(2px); }
+                50% { opacity: 0.4; left: 10px; width: 36px; filter: blur(6px); }
+                80% { opacity: 0.15; left: 4px; width: 24px; filter: blur(10px); }
+                100% { opacity: 0; left: 2px; width: 12px; filter: blur(12px); }
               }
               .stg-toggle { position: relative; width: 52px; height: 28px; border-radius: 14px; border: none; cursor: pointer; transition: background 300ms ease, box-shadow 300ms ease; flex-shrink: 0; overflow: hidden; padding: 0; }
               .stg-knob { position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 12px; display: block; pointer-events: none; z-index: 2; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 0 0 0.5px rgba(0,0,0,0.04); transition: transform 400ms cubic-bezier(0.4,0.0,0.2,1); }
-              .stg-knob::before { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 10px; pointer-events: none; z-index: 1; opacity: 0; }
-              .stg-toggle.stg-on { background: ${C.accent}; box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.06); }
-              .stg-toggle.stg-on .stg-knob { transform: translateX(24px); }
+              .stg-knob::before { content: ''; position: absolute; top: 0; left: 0; width: 24px; height: 24px; border-radius: 12px; pointer-events: none; z-index: -1; opacity: 0; }
+              .stg-toggle.stg-on { background: ${C.accent}; box-shadow: 0 0 12px rgba(59,130,246,0.2), inset 0 0 0 0.5px rgba(0,0,0,0.06); }
+              .stg-toggle.stg-on .stg-knob { transform: translateX(24px); box-shadow: 0 1px 4px rgba(0,0,0,0.2), 0 0 8px rgba(59,130,246,0.15); }
               .stg-toggle.stg-off { background: rgba(255,255,255,0.12); box-shadow: inset 0 1px 3px rgba(0,0,0,0.15), inset 0 0 0 0.5px rgba(255,255,255,0.05); }
-              .stg-toggle.stg-sliding-on .stg-knob::before { animation: trailFadeOn 450ms cubic-bezier(0.4,0,0.2,1) forwards; background: radial-gradient(circle, rgba(74,144,255,0.5) 0%, rgba(74,144,255,0.0) 70%); }
-              .stg-toggle.stg-sliding-off .stg-knob::before { animation: trailFadeOff 450ms cubic-bezier(0.4,0,0.2,1) forwards; background: radial-gradient(circle, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.0) 70%); }
+              .stg-toggle.stg-sliding-on .stg-knob::before { animation: trailFadeOn 500ms cubic-bezier(0.4,0,0.2,1) forwards; background: linear-gradient(90deg, rgba(59,130,246,0.5) 0%, rgba(96,165,250,0.4) 40%, rgba(147,197,253,0.2) 70%, transparent 100%); }
+              .stg-toggle.stg-sliding-off .stg-knob::before { animation: trailFadeOff 500ms cubic-bezier(0.4,0,0.2,1) forwards; background: linear-gradient(270deg, rgba(255,255,255,0.4) 0%, rgba(200,210,230,0.25) 40%, rgba(180,190,210,0.1) 70%, transparent 100%); }
               .stg-toggle:active .stg-knob { width: 28px; border-radius: 14px; transition-duration: 100ms; }
               .stg-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.04); gap: 16px; }
               .stg-row:last-child { border-bottom: none; }
@@ -2316,10 +2320,10 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               .stg-card { position: relative; overflow: hidden; padding: 22px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); backdrop-filter: blur(12px) brightness(1.05); -webkit-backdrop-filter: blur(12px) brightness(1.05); transition: all 400ms cubic-bezier(0.32,0.72,0,1); }
               .stg-card::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0.3; background:linear-gradient(168deg,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.03) 20%,transparent 50%,transparent 65%,rgba(255,255,255,0.02) 82%,rgba(255,255,255,0.08) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.25),inset 0 -0.5px 0 rgba(255,255,255,0.03); pointer-events:none; }
               .stg-card:hover { border-color: rgba(255,255,255,0.09); box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
-              .stg-select { position: relative; padding: 10px 36px 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); backdrop-filter: blur(12px) brightness(1.05); -webkit-backdrop-filter: blur(12px) brightness(1.05); color: ${C.text}; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; transition: all 300ms cubic-bezier(0.4,0,0.2,1); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.45)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; letter-spacing: -0.01em; min-width: 120px; }
-              .stg-select:hover { background-color: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.15); box-shadow: 0 2px 12px rgba(0,0,0,0.1), 0 0 0 0.5px rgba(255,255,255,0.1); }
-              .stg-select:focus { border-color: ${C.accent}55; box-shadow: 0 0 0 3px ${C.accent}12, 0 2px 12px rgba(0,0,0,0.08); background-color: rgba(255,255,255,0.06); }
-              .stg-select option { background: #111827; color: ${C.text}; padding: 8px 12px; font-size: 13px; }
+              .stg-select { position: relative; overflow: hidden; padding: 10px 38px 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03); backdrop-filter: blur(20px) brightness(1.08) saturate(1.3); -webkit-backdrop-filter: blur(20px) brightness(1.08) saturate(1.3); color: ${C.text}; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; transition: all 400ms cubic-bezier(0.32,0.72,0,1); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.35)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; letter-spacing: -0.01em; min-width: 130px; box-shadow: 0 0 0 0.5px rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.08); }
+              .stg-select:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.14); box-shadow: 0 0 0 0.5px rgba(255,255,255,0.15), 0 2px 12px rgba(0,0,0,0.1), 0 8px 28px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.25); backdrop-filter: blur(20px) brightness(1.18) saturate(1.5); -webkit-backdrop-filter: blur(20px) brightness(1.18) saturate(1.5); transform: translateY(-0.5px); }
+              .stg-select:focus { border-color: rgba(59,130,246,0.35); box-shadow: 0 0 0 3px rgba(59,130,246,0.08), 0 0 16px rgba(59,130,246,0.06), 0 2px 12px rgba(0,0,0,0.08), inset 0 1px 0 rgba(59,130,246,0.12); background: rgba(255,255,255,0.05); }
+              .stg-select option { background: #0f1729; color: ${C.text}; padding: 8px 12px; font-size: 13px; }
               .stg-btn { position: relative; overflow: hidden; padding: 8px 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03); color: ${C.textSec}; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 500ms cubic-bezier(0.32,0.72,0,1); letter-spacing: -0.005em; }
               .stg-btn::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0; background:linear-gradient(160deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.04) 15%,transparent 42%,transparent 58%,rgba(255,255,255,0.03) 80%,rgba(255,255,255,0.12) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -0.5px 0 rgba(255,255,255,0.04); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
               .stg-btn::after { content:''; position:absolute; top:-50%; left:5%; width:90%; height:80%; border-radius:50%; background:radial-gradient(ellipse at 40% 25%,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.02) 35%,transparent 70%); opacity:0; transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
