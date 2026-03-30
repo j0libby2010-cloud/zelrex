@@ -14,7 +14,7 @@ import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
 
 type Role = "user" | "assistant";
-type Msg = { id: string; role: Role; content: string; createdAt: number; previewUrl?: string };
+type Msg = { id: string; role: Role; content: string; createdAt: number; previewUrl?: string; attachments?: { name: string; type: string; kind: string; data: string }[] };
 type Chat = { id: string; title: string; messages: Msg[]; updatedAt: number; pendingSurvey?: boolean; websiteData?: any; deployData?: any; surveyData?: any };
 type DraftAttachment = { id: string; file: File; kind: "image" | "file"; previewUrl?: string };
 type BusinessPhase = "ready" | "intake" | "evaluating" | "building" | "live";
@@ -1663,7 +1663,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       } catch {}
     }
     if (attachmentData.length > 0) {
-      userMsg.content = text + (attachmentData.length === 1 ? `\n\n[Attached: ${attachmentData[0].name}]` : `\n\n[Attached: ${attachmentData.length} files]`);
+      userMsg.attachments = attachmentData;
     }
     // Clear attachments
     setDraftAttachments((p) => { for (const a of p) if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); return []; });
@@ -1881,7 +1881,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 )}
               </HBtn>
               {(notifOpen || notifClosing) && (
-                <div onMouseDown={e => e.stopPropagation()} style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 340, borderRadius: 16, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.92)", backdropFilter: "blur(40px) saturate(1.6)", WebkitBackdropFilter: "blur(40px) saturate(1.6)", boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", overflow: "hidden", transformOrigin: "top right", animation: `${notifClosing ? "dropdownVacuumOut" : "dropdownVacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards` }}>
+                <div onMouseDown={e => e.stopPropagation()} style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 340, borderRadius: 22, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.012) 50%, rgba(255,255,255,0.02) 100%)", backdropFilter: "blur(64px) saturate(1.6) brightness(1.04)", WebkitBackdropFilter: "blur(64px) saturate(1.6) brightness(1.04)", boxShadow: "0 0.5px 0 0 rgba(255,255,255,0.06) inset, 0 -0.5px 0 0 rgba(255,255,255,0.02) inset, 0 1px 3px rgba(0,0,0,0.12), 0 8px 40px rgba(0,0,0,0.22)", overflow: "hidden", transformOrigin: "top right", animation: `${notifClosing ? "dropdownVacuumOut" : "dropdownVacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards` }}>
                   <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Notifications {notifications.filter(n => !n.read).length > 0 && <span style={{ fontSize: 10, fontWeight: 500, color: C.accent, marginLeft: 4 }}>({notifications.filter(n => !n.read).length})</span>}</span>
                     <div style={{ display: "flex", gap: 8 }}>
@@ -2143,7 +2143,19 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                               </>
                             ) : (
                               <>
-                                <div style={{ fontSize: 15, lineHeight: 1.7 }}>{m.content}</div>
+                                {m.attachments && m.attachments.length > 0 && (
+                                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: m.content.trim() ? 8 : 0 }}>
+                                    {m.attachments.map((att, i) => att.kind === "image" ? (
+                                      <img key={i} src={att.data} alt={att.name} style={{ maxWidth: 220, maxHeight: 180, borderRadius: 12, objectFit: "cover", border: `1px solid ${C.border}` }} />
+                                    ) : (
+                                      <div key={i} style={{ padding: "8px 14px", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, fontSize: 12, color: C.textSec, display: "flex", alignItems: "center", gap: 6 }}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                        {att.name}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                {m.content.trim() && <div style={{ fontSize: 15, lineHeight: 1.7 }}>{m.content}</div>}
                               </>
                             )}
                           </div>
@@ -2177,7 +2189,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               </div>
             )}
             <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 24, background: "linear-gradient(to bottom, rgba(6,9,15,0), rgba(6,9,15,0.9))", pointerEvents: "none" }} />
-            <div className={inputFocused ? "input-box input-focus-glow" : "input-box"} style={{ position: "relative", zIndex: 1, maxWidth: showPreview ? "100%" : 820, margin: "0 auto", borderRadius: draftAttachments.length ? 18 : 999, border: `1px solid ${inputFocused ? C.borderHover : C.border}`, background: C.bgInput, boxShadow: `0 4px 24px rgba(0,0,0,0.3)`, transition: "border-color 500ms cubic-bezier(0.32,0.72,0,1), box-shadow 500ms cubic-bezier(0.32,0.72,0,1)" }}>
+            <div className={inputFocused ? "input-box input-focus-glow" : "input-box"} style={{ position: "relative", zIndex: 1, maxWidth: showPreview ? "100%" : 820, margin: "0 auto", borderRadius: 24, border: `1px solid ${inputFocused ? C.borderHover : C.border}`, background: C.bgInput, boxShadow: `0 4px 24px rgba(0,0,0,0.3)`, transition: "border-color 500ms cubic-bezier(0.32,0.72,0,1), box-shadow 500ms cubic-bezier(0.32,0.72,0,1)" }}>
               <style>{`
                 .input-focus-glow {
                   animation: inputRingIn 600ms cubic-bezier(0.32,0.72,0,1) forwards, inputRingOut 600ms cubic-bezier(0.32,0.72,0,1) 500ms forwards;
@@ -2727,13 +2739,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {(goalModalOpen || goalClosing) && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", transformOrigin: goalOriginRef.current ? `${goalOriginRef.current.x}px ${goalOriginRef.current.y}px` : "center center", animation: `${goalClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: goalClosing ? "none" : undefined }}>
-            <div onClick={closeGoalModal} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }} />
-            <div style={{ position: "relative", width: 420, maxWidth: "90vw", borderRadius: 20, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.88)", backdropFilter: "blur(40px) saturate(1.8)", WebkitBackdropFilter: "blur(40px) saturate(1.8)", boxShadow: "0 32px 80px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", padding: 0, overflow: "hidden" }}>
+          <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(3,5,8,0.75)", backdropFilter: "blur(24px) saturate(1.3)", WebkitBackdropFilter: "blur(24px) saturate(1.3)", transformOrigin: goalOriginRef.current ? `${goalOriginRef.current.x}px ${goalOriginRef.current.y}px` : "center center", animation: `${goalClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: goalClosing ? "none" : undefined }}>
+            <div onClick={closeGoalModal} style={{ position: "absolute", inset: 0 }} />
+            <div style={{ position: "relative", width: 420, maxWidth: "90vw", borderRadius: 22, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.012) 50%, rgba(255,255,255,0.02) 100%)", backdropFilter: "blur(64px) saturate(1.6) brightness(1.04)", WebkitBackdropFilter: "blur(64px) saturate(1.6) brightness(1.04)", boxShadow: "0 0.5px 0 0 rgba(255,255,255,0.06) inset, 0 -0.5px 0 0 rgba(255,255,255,0.02) inset, 0 1px 3px rgba(0,0,0,0.12), 0 8px 40px rgba(0,0,0,0.22)", padding: 0, overflow: "hidden" }}>
               {/* Glass header */}
-              <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ padding: "20px 24px 16px", borderBottom: `0.5px solid rgba(255,255,255,0.055)` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: 10, background: `${C.accent}15`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 12, background: `linear-gradient(135deg, ${C.accent}20, ${C.accent}08)`, border: `0.5px solid ${C.accent}25`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 0 20px ${C.accent}10` }}>
                     <Ic n="goal" style={{ width: 16, height: 16, color: C.accent }} />
                   </div>
                   <div>
@@ -2746,24 +2758,24 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               <div style={{ padding: "20px 24px" }}>
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>What's your main goal?</label>
-                  <input value={goalDraft.text} onChange={(e) => setGoalDraft(d => ({ ...d, text: e.target.value }))} placeholder="e.g., Build a sustainable freelance business, Replace my 9-5 income" style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.04)", color: C.text, fontSize: 14, outline: "none" }} />
+                  <input value={goalDraft.text} onChange={(e) => setGoalDraft(d => ({ ...d, text: e.target.value }))} placeholder="e.g., Build a sustainable freelance business, Replace my 9-5 income" style={{ width: "100%", padding: "11px 16px", borderRadius: 14, border: `0.5px solid rgba(255,255,255,0.055)`, background: "rgba(255,255,255,0.025)", backdropFilter: "blur(20px) brightness(1.04)", WebkitBackdropFilter: "blur(20px) brightness(1.04)", color: C.text, fontSize: 13, fontWeight: 500, fontFamily: "inherit", outline: "none", letterSpacing: "-0.01em", transition: "all 400ms cubic-bezier(0.22,1,0.36,1)", boxShadow: "0 0.5px 0 rgba(255,255,255,0.04) inset" }} onFocus={e => { e.currentTarget.style.borderColor = "rgba(59,130,246,0.3)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.06), 0 0 16px rgba(59,130,246,0.04)"; }} onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.055)"; e.currentTarget.style.boxShadow = "0 0.5px 0 rgba(255,255,255,0.04) inset"; }} />
                 </div>
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>Revenue target (optional)</label>
-                  <input value={goalDraft.target} onChange={(e) => setGoalDraft(d => ({ ...d, target: e.target.value }))} placeholder="e.g., $5,000/month, $100K/year" style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.04)", color: C.text, fontSize: 14, outline: "none" }} />
+                  <input value={goalDraft.target} onChange={(e) => setGoalDraft(d => ({ ...d, target: e.target.value }))} placeholder="e.g., $5,000/month, $100K/year" style={{ width: "100%", padding: "11px 16px", borderRadius: 14, border: `0.5px solid rgba(255,255,255,0.055)`, background: "rgba(255,255,255,0.025)", backdropFilter: "blur(20px) brightness(1.04)", WebkitBackdropFilter: "blur(20px) brightness(1.04)", color: C.text, fontSize: 13, fontWeight: 500, fontFamily: "inherit", outline: "none", letterSpacing: "-0.01em", transition: "all 400ms cubic-bezier(0.22,1,0.36,1)", boxShadow: "0 0.5px 0 rgba(255,255,255,0.04) inset" }} onFocus={e => { e.currentTarget.style.borderColor = "rgba(59,130,246,0.3)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.06), 0 0 16px rgba(59,130,246,0.04)"; }} onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.055)"; e.currentTarget.style.boxShadow = "0 0.5px 0 rgba(255,255,255,0.04) inset"; }} />
                 </div>
                 <div style={{ marginBottom: 20 }}>
                   <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>Target date (optional)</label>
-                  <input value={goalDraft.deadline} onChange={(e) => setGoalDraft(d => ({ ...d, deadline: e.target.value }))} placeholder="e.g., June 2026, 6 months" style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.04)", color: C.text, fontSize: 14, outline: "none" }} />
+                  <input value={goalDraft.deadline} onChange={(e) => setGoalDraft(d => ({ ...d, deadline: e.target.value }))} placeholder="e.g., June 2026, 6 months" style={{ width: "100%", padding: "11px 16px", borderRadius: 14, border: `0.5px solid rgba(255,255,255,0.055)`, background: "rgba(255,255,255,0.025)", backdropFilter: "blur(20px) brightness(1.04)", WebkitBackdropFilter: "blur(20px) brightness(1.04)", color: C.text, fontSize: 13, fontWeight: 500, fontFamily: "inherit", outline: "none", letterSpacing: "-0.01em", transition: "all 400ms cubic-bezier(0.22,1,0.36,1)", boxShadow: "0 0.5px 0 rgba(255,255,255,0.04) inset" }} onFocus={e => { e.currentTarget.style.borderColor = "rgba(59,130,246,0.3)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.06), 0 0 16px rgba(59,130,246,0.04)"; }} onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.055)"; e.currentTarget.style.boxShadow = "0 0.5px 0 rgba(255,255,255,0.04) inset"; }} />
                 </div>
               </div>
               {/* Footer */}
               <div style={{ padding: "0 24px 20px", display: "flex", gap: 10 }}>
                 {userGoal && (
-                  <button onClick={async () => { setUserGoal(null); setGoalDraft({ text: "", target: "", deadline: "" }); await db.deleteGoal(); closeGoalModal(); }} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Remove goal</button>
+                  <button onClick={async () => { setUserGoal(null); setGoalDraft({ text: "", target: "", deadline: "" }); await db.deleteGoal(); closeGoalModal(); }} className="z-glass" style={{ flex: 1, padding: "10px", borderRadius: 12, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "-0.01em" }}>Remove goal</button>
                 )}
-                <button onClick={closeGoalModal} style={{ flex: 1, padding: "10px", borderRadius: 10, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-                <button onClick={async () => { if (goalDraft.text.trim()) { const g = { text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() }; setUserGoal(g); await db.saveGoal(g); setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]); } closeGoalModal(); }} style={{ flex: 1.5, padding: "10px", borderRadius: 10, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 16px ${C.accent}40` }}>Save goal</button>
+                <button onClick={closeGoalModal} className="z-glass" style={{ flex: 1, padding: "10px", borderRadius: 12, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "-0.01em" }}>Cancel</button>
+                <button onClick={async () => { if (goalDraft.text.trim()) { const g = { text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() }; setUserGoal(g); await db.saveGoal(g); setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]); } closeGoalModal(); }} style={{ flex: 1.5, padding: "10px", borderRadius: 12, border: "none", background: `linear-gradient(135deg, ${C.accent}, ${C.accent}cc)`, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em", boxShadow: `0 4px 16px ${C.accent}40, 0 0 0 0.5px ${C.accent}60 inset` }}>Save goal</button>
               </div>
             </div>
           </div>
