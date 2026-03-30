@@ -32,6 +32,19 @@ const liquidPill: React.CSSProperties = { ...liquidGlass, borderRadius: 999, box
 const fmt = (c: number) => `$${(c / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 const fmtShort = (c: number) => c >= 100000 ? `$${(c / 100000).toFixed(1)}k` : fmt(c);
 
+const statusColor = (s: string) => ({ lead: G.amber, prospect: G.accent, active: G.green, completed: G.purple, lost: G.textMuted, draft: G.textMuted, sent: G.accent, paid: G.green, overdue: G.red, cancelled: G.textMuted, accepted: G.green, declined: G.red, expired: G.textMuted }[s] || G.textMuted);
+
+/* shared subcomponents */
+const StatusBadge = ({ status }: { status: string }) => (
+  <span style={{ padding: "4px 12px", borderRadius: 999, background: `${statusColor(status)}12`, border: `0.5px solid ${statusColor(status)}28`, fontSize: 11, fontWeight: 600, color: statusColor(status), textTransform: "capitalize", letterSpacing: "0.01em" }}>{status}</span>
+);
+const GlassBtn = ({ children, color = G.textSec, bg, ...props }: any) => (
+  <button {...props} className="crm-btn-glass" style={{ padding: "7px 16px", borderRadius: 12, border: `0.5px solid ${G.glassBorder}`, cursor: "pointer", background: bg || "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", backdropFilter: "blur(20px) brightness(1.06)", WebkitBackdropFilter: "blur(20px) brightness(1.06)", color, fontSize: 12, fontWeight: 600, letterSpacing: "-0.01em", boxShadow: "0 0.5px 0 rgba(255,255,255,0.06) inset, 0 1px 3px rgba(0,0,0,0.08)", ...props.style }}>{children}</button>
+);
+const GlassInput = ({ style, ...props }: any) => (
+  <input {...props} className="crm-input" style={{ width: "100%", ...style }} />
+);
+
 /* ─── Sliding Glass Pill Tabs ────────────────────── */
 function CRMTabs({ items, active, onChange }: { items: { id: string; label: string }[]; active: string; onChange: (id: string) => void }) {
   const refs = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -130,25 +143,12 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
     setScreenResult(data); setScreening(false);
   };
 
-  const statusColor = (s: string) => ({ lead: G.amber, prospect: G.accent, active: G.green, completed: G.purple, lost: G.textMuted, draft: G.textMuted, sent: G.accent, paid: G.green, overdue: G.red, cancelled: G.textMuted, accepted: G.green, declined: G.red, expired: G.textMuted }[s] || G.textMuted);
-
   const tabItems = [
     { id: "dashboard", label: "Dashboard" },
     { id: "clients", label: "Clients" },
     { id: "invoices", label: "Invoices" },
     { id: "contracts", label: "Contracts" },
   ];
-
-  /* shared subcomponents */
-  const StatusBadge = ({ status }: { status: string }) => (
-    <span style={{ padding: "4px 12px", borderRadius: 999, background: `${statusColor(status)}12`, border: `0.5px solid ${statusColor(status)}28`, fontSize: 11, fontWeight: 600, color: statusColor(status), textTransform: "capitalize", letterSpacing: "0.01em" }}>{status}</span>
-  );
-  const GlassBtn = ({ children, color = G.textSec, bg, ...props }: any) => (
-    <button {...props} className="crm-btn-glass" style={{ padding: "7px 16px", borderRadius: 12, border: `0.5px solid ${G.glassBorder}`, cursor: "pointer", background: bg || "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", backdropFilter: "blur(20px) brightness(1.06)", WebkitBackdropFilter: "blur(20px) brightness(1.06)", color, fontSize: 12, fontWeight: 600, letterSpacing: "-0.01em", boxShadow: "0 0.5px 0 rgba(255,255,255,0.06) inset, 0 1px 3px rgba(0,0,0,0.08)", ...props.style }}>{children}</button>
-  );
-  const GlassInput = ({ style, ...props }: any) => (
-    <input {...props} className="crm-input" style={{ width: "100%", ...style }} />
-  );
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9600, background: "rgba(3,5,8,0.75)", backdropFilter: "blur(24px) saturate(1.3)", WebkitBackdropFilter: "blur(24px) saturate(1.3)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
