@@ -227,9 +227,9 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9600,
-      background: "rgba(1,2,3,0.92)",
-      backdropFilter: "blur(100px) saturate(1.4) brightness(0.78)",
-      WebkitBackdropFilter: "blur(100px) saturate(1.4) brightness(0.78)",
+      background: "rgba(3,5,8,0.75)",
+      backdropFilter: "blur(24px) saturate(1.3)",
+      WebkitBackdropFilter: "blur(24px) saturate(1.3)",
       display: "flex", flexDirection: "column", overflow: "hidden",
       opacity: mounted ? 1 : 0,
       transition: `opacity 450ms ${EASE}`,
@@ -502,7 +502,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
         </div>
 
         <button className="or-close" onClick={onClose} style={{
-          width: 38, height: 38, borderRadius: 12,
+          width: 38, height: 38, borderRadius: 999,
           border: `0.5px solid ${G.glassBorder}`,
           background: G.glass, color: G.textSec,
           display: "flex", alignItems: "center", justifyContent: "center",

@@ -166,6 +166,13 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
         .crm-btn-glass:hover{transform:translateY(-0.5px)}
         .crm-btn-glass:hover::before{opacity:1}
         .crm-btn-glass:active{transform:scale(0.97);transition-duration:100ms}
+        /* ─ Liquid glass close button ─ */
+        .crm-close-btn{position:relative;overflow:hidden;transition:all 500ms ${EASE}!important;backdrop-filter:none;-webkit-backdrop-filter:none}
+        .crm-close-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(160deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.04) 15%,transparent 42%,transparent 58%,rgba(255,255,255,0.03) 80%,rgba(255,255,255,0.12) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -0.5px 0 rgba(255,255,255,0.04);transition:opacity 500ms ${EASE};pointer-events:none}
+        .crm-close-btn::after{content:'';position:absolute;top:-50%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 40% 25%,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.02) 35%,transparent 70%);opacity:0;transition:opacity 500ms ${EASE};pointer-events:none}
+        .crm-close-btn:hover::before,.crm-close-btn:hover::after{opacity:1}
+        .crm-close-btn:hover{background:rgba(255,255,255,0.05)!important;border-color:rgba(255,255,255,0.12)!important;backdrop-filter:blur(20px) brightness(1.22) saturate(1.6)!important;-webkit-backdrop-filter:blur(20px) brightness(1.22) saturate(1.6)!important;box-shadow:0 0 0 0.5px rgba(255,255,255,0.18),0 2px 8px rgba(0,0,0,0.08),0 8px 32px rgba(0,0,0,0.04),inset 0 1px 0 rgba(255,255,255,0.45)!important;transform:translateY(-0.5px)}
+        .crm-close-btn:active{transform:scale(0.92) translateY(0)!important;transition-duration:120ms!important}
         .crm-input{width:100%;padding:11px 16px;border-radius:14px;border:0.5px solid ${G.glassBorder};background:rgba(255,255,255,0.025);backdrop-filter:blur(20px) brightness(1.04);-webkit-backdrop-filter:blur(20px) brightness(1.04);color:${G.text};font-size:13px;font-weight:500;font-family:inherit;outline:none;letter-spacing:-0.01em;transition:all 400ms ${EASE};box-shadow:0 0.5px 0 rgba(255,255,255,0.04) inset}
         .crm-input:focus{border-color:rgba(59,130,246,0.3);box-shadow:0 0 0 3px rgba(59,130,246,0.06),0 0 16px rgba(59,130,246,0.04)}
         .crm-input::placeholder{color:${G.textMuted};font-weight:400}
@@ -184,7 +191,7 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
 
       {/* ─── Header ──────────────────────────────────── */}
       <div style={{ padding: "18px 28px", borderBottom: `0.5px solid ${G.glassBorder}`, position: "relative" }}>
-        <div className="crm-header-inner" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: 1000, margin: "0 auto" }}>
+        <div className="crm-header-inner" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ width: 40, height: 40, borderRadius: 14, background: `linear-gradient(135deg, ${G.accent}20, ${G.accent}08)`, border: `0.5px solid ${G.accent}25`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 0 20px ${G.accent}10` }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={G.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -197,7 +204,7 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
           <div className="crm-tabs-wrap" style={{ display: "flex" }}>
             <CRMTabs items={tabItems} active={tab} onChange={v => setTab(v as any)} />
           </div>
-          <button className="crm-btn-glass crm-close-btn" onClick={onClose} style={{ width: 38, height: 38, borderRadius: 12, border: `0.5px solid ${G.glassBorder}`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", backdropFilter: "blur(20px) brightness(1.06)", WebkitBackdropFilter: "blur(20px) brightness(1.06)", color: G.textSec, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 0.5px 0 rgba(255,255,255,0.06) inset, 0 1px 3px rgba(0,0,0,0.08)" }}>
+          <button className="crm-btn-glass crm-close-btn" onClick={onClose} style={{ width: 38, height: 38, borderRadius: 999, border: `0.5px solid ${G.glassBorder}`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", backdropFilter: "blur(20px) brightness(1.06)", WebkitBackdropFilter: "blur(20px) brightness(1.06)", color: G.textSec, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 0.5px 0 rgba(255,255,255,0.06) inset, 0 1px 3px rgba(0,0,0,0.08)" }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>

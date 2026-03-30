@@ -251,6 +251,13 @@ export function WeeklySummaries({
         .zs-gs::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:999px}
         .zs-gs::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.15)}
         .zs-chat-input:focus{outline:none;border-color:${G.accent}40!important;box-shadow:0 0 0 3px ${G.accent}10}
+        /* ─ Liquid glass close button ─ */
+        .zs-close-btn{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.22,1,0.36,1)!important;backdrop-filter:none;-webkit-backdrop-filter:none}
+        .zs-close-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(160deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.04) 15%,transparent 42%,transparent 58%,rgba(255,255,255,0.03) 80%,rgba(255,255,255,0.12) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -0.5px 0 rgba(255,255,255,0.04);transition:opacity 500ms cubic-bezier(0.22,1,0.36,1);pointer-events:none}
+        .zs-close-btn::after{content:'';position:absolute;top:-50%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 40% 25%,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.02) 35%,transparent 70%);opacity:0;transition:opacity 500ms cubic-bezier(0.22,1,0.36,1);pointer-events:none}
+        .zs-close-btn:hover::before,.zs-close-btn:hover::after{opacity:1}
+        .zs-close-btn:hover{background:rgba(255,255,255,0.05)!important;border-color:rgba(255,255,255,0.12)!important;backdrop-filter:blur(20px) brightness(1.22) saturate(1.6)!important;-webkit-backdrop-filter:blur(20px) brightness(1.22) saturate(1.6)!important;box-shadow:0 0 0 0.5px rgba(255,255,255,0.18),0 2px 8px rgba(0,0,0,0.08),0 8px 32px rgba(0,0,0,0.04),inset 0 1px 0 rgba(255,255,255,0.45)!important;transform:translateY(-0.5px)}
+        .zs-close-btn:active{transform:scale(0.92) translateY(0);transition-duration:120ms}
         @media(max-width:768px){
           .zs-header-actions{flex-wrap:wrap;gap:6px!important}
           .zs-header-actions button{font-size:11px!important;padding:8px 14px!important;min-height:38px}
