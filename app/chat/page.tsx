@@ -409,6 +409,12 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [goalDraft, setGoalDraft] = useState({ text: "", target: "", deadline: "" });
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<Array<{ id: string; text: string; time: number; read: boolean }>>([]);
+  const [notifPage, setNotifPage] = useState(1);
+
+  // Smart notification helper
+  const addNotification = useCallback((text: string) => {
+    setNotifications(prev => [{ id: uid("n"), text, time: Date.now(), read: false }, ...prev]);
+  }, []);
 
   // ─── Settings state (persisted to localStorage) ────────────────────
   const [zelrexSettings, setZelrexSettings] = useState({
@@ -575,6 +581,45 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       setDataLoaded(true);
     });
   }, [isSignedIn, clerkUser?.id]);
+
+  // Smart notification triggers — check for business-critical events
+  useEffect(() => {
+    if (!dataLoaded || !clerkUser?.id) return;
+    const checkInterval = setInterval(async () => {
+      try {
+        // Check CRM for overdue invoices and unsigned contracts
+        const crmRes = await fetch("/api/z/crm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dashboard", userId: clerkUser.id }) });
+        const crm = await crmRes.json();
+        if (crm.overdueInvoices > 0) {
+          const key = `notif_overdue_${new Date().toISOString().slice(0, 10)}`;
+          if (!sessionStorage.getItem(key)) {
+            addNotification(`💰 You have ${crm.overdueInvoices} overdue invoice${crm.overdueInvoices > 1 ? "s" : ""}. Send a reminder to get paid.`);
+            sessionStorage.setItem(key, "1");
+          }
+        }
+      } catch {}
+    }, 120000); // Check every 2 minutes
+    // Run once on load after 5 seconds
+    const initialCheck = setTimeout(async () => {
+      try {
+        const crmRes = await fetch("/api/z/crm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dashboard", userId: clerkUser.id }) });
+        const crm = await crmRes.json();
+        if (crm.overdueInvoices > 0) {
+          const key = `notif_overdue_${new Date().toISOString().slice(0, 10)}`;
+          if (!sessionStorage.getItem(key)) {
+            addNotification(`💰 You have ${crm.overdueInvoices} overdue invoice${crm.overdueInvoices > 1 ? "s" : ""}. Send a reminder to get paid.`);
+            sessionStorage.setItem(key, "1");
+          }
+        }
+        // Positive encouragement (once per session)
+        if (!sessionStorage.getItem("notif_welcome") && crm.totalClients > 0) {
+          addNotification(`👋 Welcome back! You have ${crm.totalClients} client${crm.totalClients > 1 ? "s" : ""} and ${crm.activeClients || 0} active. Keep going!`);
+          sessionStorage.setItem("notif_welcome", "1");
+        }
+      } catch {}
+    }, 5000);
+    return () => { clearInterval(checkInterval); clearTimeout(initialCheck); };
+  }, [dataLoaded, clerkUser?.id, addNotification]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const filteredChats = useMemo(() => { const sorted = [...chats].sort((a, b) => b.updatedAt - a.updatedAt); const q = searchQuery.trim().toLowerCase(); if (!q) return sorted; return sorted.filter((c) => c.title?.toLowerCase().includes(q) || c.messages.some((m) => m.content.toLowerCase().includes(q))); }, [chats, searchQuery]);
@@ -1393,6 +1438,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
       const dd = { projectId: data.projectId, url: data.url, projectName: data.projectName || "" };
       saveDeployData(dd);
+      addNotification(`🚀 Your website is live at ${data.url}`);
 
       pushAssistantMsg(
         `**Your site is live!** 🚀\n\n` +
@@ -1602,6 +1648,26 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
     setIsSending(true); setOpenMsgMenuId(null);
     const userMsg: Msg = { id: uid("m"), role: "user", content: text, createdAt: Date.now() };
+
+    // Convert attachments to base64
+    const attachmentData: any[] = [];
+    for (const att of draftAttachments) {
+      try {
+        const base64: string = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(r.result as string);
+          r.onerror = () => reject();
+          r.readAsDataURL(att.file);
+        });
+        attachmentData.push({ name: att.file.name, type: att.file.type, kind: att.kind, data: base64 });
+      } catch {}
+    }
+    if (attachmentData.length > 0) {
+      userMsg.content = text + (attachmentData.length === 1 ? `\n\n[Attached: ${attachmentData[0].name}]` : `\n\n[Attached: ${attachmentData.length} files]`);
+    }
+    // Clear attachments
+    setDraftAttachments((p) => { for (const a of p) if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); return []; });
+
     const autoTitle = activeChat.messages.length === 0;
     const isBuild = /\b(build|make|create|generate|launch)\b.*\b(website|site|page|link|business)\b/i.test(text);
     if (isBuild && !surveyData) {
@@ -1627,6 +1693,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       const ctrl = new AbortController(); abortRef.current = ctrl;
       // If this is a website rebuild, include existing survey data so the API has full context
       const requestBody: any = { messages: [...activeChat.messages, userMsg], userId: clerkUser?.id, userEmail: clerkUser?.primaryEmailAddress?.emailAddress, responseStyle: zelrexSettings.responseStyle };
+      if (attachmentData.length > 0) requestBody.attachments = attachmentData;
       if (isBuild && surveyData) { requestBody.surveyData = surveyData; requestBody.action = "buildWebsite"; }
       const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal, body: JSON.stringify(requestBody) });
       const raw = await res.text(); let data: { reply?: string; previewUrl?: string; websiteData?: any; stripeCheckoutUrls?: any } = {}; try { data = JSON.parse(raw); } catch {}
@@ -1648,7 +1715,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       const shouldAutoTitle = activeChat.messages.length <= 1 || activeChat.title === "New business";
       const newTitle = shouldAutoTitle ? autoTitleFromReply(text, reply) : undefined;
       setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, ...(newTitle ? { title: newTitle } : {}), messages: [...c.messages, { id: uid("m"), role: "assistant" as const, content: reply, createdAt: Date.now(), previewUrl: data.previewUrl || undefined }], updatedAt: Date.now() } : c));
-      if (data.previewUrl) { setTimeout(() => fireConfetti(), 300); }
+      if (data.previewUrl) { setTimeout(() => fireConfetti(), 300); addNotification("✨ Your website has been built! Preview it and deploy when ready."); }
     } catch { setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, messages: [...c.messages, { id: uid("m"), role: "assistant" as const, content: "Something went wrong. Please try again.", createdAt: Date.now() }], updatedAt: Date.now() } : c)); }
     finally { setIsSending(false); setBuildStage(""); }
   }
@@ -1814,25 +1881,37 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 )}
               </HBtn>
               {(notifOpen || notifClosing) && (
-                <div style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 300, borderRadius: 16, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.92)", backdropFilter: "blur(40px) saturate(1.6)", WebkitBackdropFilter: "blur(40px) saturate(1.6)", boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", overflow: "hidden", transformOrigin: "top right", animation: `${notifClosing ? "dropdownVacuumOut" : "dropdownVacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards` }}>
+                <div onMouseDown={e => e.stopPropagation()} style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 340, borderRadius: 16, border: `1px solid ${C.border}`, background: "rgba(12,16,24,0.92)", backdropFilter: "blur(40px) saturate(1.6)", WebkitBackdropFilter: "blur(40px) saturate(1.6)", boxShadow: "0 20px 60px rgba(0,0,0,0.6), inset 0 0.5px 0 rgba(255,255,255,0.08)", overflow: "hidden", transformOrigin: "top right", animation: `${notifClosing ? "dropdownVacuumOut" : "dropdownVacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards` }}>
                   <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Notifications</span>
-                    {notifications.length > 0 && <button onClick={() => { setNotifications(ns => ns.map(n => ({ ...n, read: true }))); db.markNotificationsRead(); }} style={{ background: "none", border: "none", color: C.accent, fontSize: 11, cursor: "pointer", fontWeight: 600 }}>Mark all read</button>}
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Notifications {notifications.filter(n => !n.read).length > 0 && <span style={{ fontSize: 10, fontWeight: 500, color: C.accent, marginLeft: 4 }}>({notifications.filter(n => !n.read).length})</span>}</span>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {notifications.some(n => !n.read) && <button onClick={() => { setNotifications(ns => ns.map(n => ({ ...n, read: true }))); db.markNotificationsRead(); }} style={{ background: "none", border: "none", color: C.accent, fontSize: 10, cursor: "pointer", fontWeight: 600 }}>Read all</button>}
+                      {notifications.length > 0 && <button onClick={() => { setNotifications([]); }} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 10, cursor: "pointer", fontWeight: 600 }}>Clear all</button>}
+                    </div>
                   </div>
-                  <div style={{ maxHeight: 280, overflowY: "auto" }}>
+                  <div style={{ maxHeight: 380, overflowY: "auto" }}>
                     {notifications.length === 0 ? (
                       <div style={{ padding: "32px 16px", textAlign: "center" }}>
                         <Ic n="bell" style={{ width: 28, height: 28, color: C.textMuted, opacity: 0.4, margin: "0 auto 10px", display: "block" }} />
                         <div style={{ fontSize: 13, color: C.textMuted }}>No notifications yet</div>
-                        <div style={{ fontSize: 11, color: C.textMuted, opacity: 0.6, marginTop: 4 }}>Zelrex will send updates about your business and goals here.</div>
+                        <div style={{ fontSize: 11, color: C.textMuted, opacity: 0.6, marginTop: 4 }}>Zelrex will notify you about important business updates.</div>
                       </div>
                     ) : (
-                      notifications.map(n => (
-                        <div key={n.id} style={{ padding: "10px 16px", borderBottom: `1px solid ${C.border}`, background: n.read ? "transparent" : `${C.accent}08`, cursor: "pointer" }} onClick={() => setNotifications(ns => ns.map(x => x.id === n.id ? { ...x, read: true } : x))}>
-                          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{n.text}</div>
-                          <div style={{ fontSize: 10, color: C.textMuted, marginTop: 4 }}>{new Date(n.time).toLocaleString()}</div>
+                      notifications.slice(0, notifPage * 10).map(n => (
+                        <div key={n.id} style={{ padding: "10px 16px", borderBottom: `1px solid ${C.border}`, background: n.read ? "transparent" : `${C.accent}06`, display: "flex", alignItems: "flex-start", gap: 10 }}>
+                          <div style={{ flex: 1, cursor: "pointer" }} onClick={() => setNotifications(ns => ns.map(x => x.id === n.id ? { ...x, read: true } : x))}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              {!n.read && <div style={{ width: 6, height: 6, borderRadius: 999, background: C.accent, flexShrink: 0 }} />}
+                              <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{n.text}</div>
+                            </div>
+                            <div style={{ fontSize: 10, color: C.textMuted, marginTop: 4 }}>{(() => { const ago = Date.now() - n.time; if (ago < 60000) return "Just now"; if (ago < 3600000) return `${Math.floor(ago / 60000)}m ago`; if (ago < 86400000) return `${Math.floor(ago / 3600000)}h ago`; return new Date(n.time).toLocaleDateString("en-US", { month: "short", day: "numeric" }); })()}</div>
+                          </div>
+                          <button onClick={() => setNotifications(ns => ns.filter(x => x.id !== n.id))} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, padding: "2px 4px", flexShrink: 0, opacity: 0.5 }}>×</button>
                         </div>
                       ))
+                    )}
+                    {notifications.length > notifPage * 10 && (
+                      <button onClick={() => setNotifPage(p => p + 1)} style={{ width: "100%", padding: "10px", background: "none", border: "none", borderTop: `1px solid ${C.border}`, color: C.accent, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Show more ({notifications.length - notifPage * 10} remaining)</button>
                     )}
                   </div>
                 </div>

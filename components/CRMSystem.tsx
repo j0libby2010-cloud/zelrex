@@ -71,6 +71,9 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
   const [showAddClient, setShowAddClient] = useState(false);
   const [showAddInvoice, setShowAddInvoice] = useState(false);
   const [showScreen, setShowScreen] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [viewContract, setViewContract] = useState<Contract | null>(null);
+  const [screenHistory, setScreenHistory] = useState<any[]>([]);
 
   // Forms
   const [formName, setFormName] = useState(""); const [formEmail, setFormEmail] = useState(""); const [formCompany, setFormCompany] = useState(""); const [formPhone, setFormPhone] = useState(""); const [formNotes, setFormNotes] = useState(""); const [formSource, setFormSource] = useState("manual");
@@ -100,7 +103,19 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
   };
 
   const updateClientStatus = async (id: string, status: string) => { await api("clients-update", { clientId: id, status }); loadAll(); };
-  const deleteClient = async (id: string) => { if (confirm("Delete this client and all their invoices/contracts?")) { await api("clients-delete", { clientId: id }); setSelectedClient(null); loadAll(); } };
+  const deleteClient = async (id: string) => { if (confirm("Delete this client and all their invoices/contracts?")) { await api("clients-delete", { clientId: id }); setSelectedClient(null); setEditingClient(null); loadAll(); } };
+
+  const saveEditClient = async () => {
+    if (!editingClient) return;
+    await api("clients-update", { clientId: editingClient.id, name: editingClient.name, email: editingClient.email, company: editingClient.company, phone: editingClient.phone, notes: editingClient.notes });
+    setEditingClient(null); loadAll();
+  };
+
+  const deleteInvoice = async (id: string) => { if (confirm("Delete this invoice?")) { await api("invoices-update", { invoiceId: id, status: "cancelled" }); loadAll(); } };
+  const markInvoiceUnpaid = async (id: string) => { await api("invoices-update", { invoiceId: id, status: "sent", paid_date: null }); loadAll(); };
+
+  const deleteContract = async (id: string) => { if (confirm("Delete this contract?")) { await api("contracts-update", { contractId: id, status: "expired" }); loadAll(); } };
+  const markContractNotAccepted = async (id: string) => { await api("contracts-update", { contractId: id, status: "draft", accepted_at: null }); loadAll(); };
 
   const createInvoice = async () => {
     if (!invClientId || invItems.every(i => !i.description)) return;
@@ -140,8 +155,11 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
     if (!screenText.trim()) return;
     setScreening(true); setScreenResult(null);
     const data = await api("screen-client", { description: screenText });
-    setScreenResult(data); setScreening(false);
+    setScreenResult(data);
+    setScreenHistory(prev => [{ id: Date.now().toString(), text: screenText.slice(0, 80), ...data, date: new Date().toISOString() }, ...prev]);
+    setScreening(false);
   };
+  const deleteScreen = (id: string) => { setScreenHistory(prev => prev.filter(s => s.id !== id)); };
 
   const tabItems = [
     { id: "dashboard", label: "Dashboard" },
@@ -176,6 +194,9 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
         .crm-input{width:100%;padding:11px 16px;border-radius:14px;border:0.5px solid ${G.glassBorder};background:rgba(255,255,255,0.025);backdrop-filter:blur(20px) brightness(1.04);-webkit-backdrop-filter:blur(20px) brightness(1.04);color:${G.text};font-size:13px;font-weight:500;font-family:inherit;outline:none;letter-spacing:-0.01em;transition:all 400ms ${EASE};box-shadow:0 0.5px 0 rgba(255,255,255,0.04) inset}
         .crm-input:focus{border-color:rgba(59,130,246,0.3);box-shadow:0 0 0 3px rgba(59,130,246,0.06),0 0 16px rgba(59,130,246,0.04)}
         .crm-input::placeholder{color:${G.textMuted};font-weight:400}
+        select.crm-input{cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.35)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+        select.crm-input option{background:#0D1320;color:${G.text};padding:8px;font-size:13px}
+        select.crm-input:hover{border-color:rgba(255,255,255,0.10);background-color:rgba(255,255,255,0.035)}
         .crm-gs::-webkit-scrollbar{width:5px}.crm-gs::-webkit-scrollbar-track{background:transparent}.crm-gs::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:999px}.crm-gs::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.1)}
         @media(max-width:768px){
           .crm-header-inner{flex-direction:column!important;gap:12px!important}
@@ -316,6 +337,23 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
                   {screenResult.green_lights?.length > 0 && <div style={{ marginBottom: 10 }}>{screenResult.green_lights.map((g: string, i: number) => <div key={i} style={{ fontSize: 12, color: G.green, padding: "3px 0", display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10 }}>✓</span>{g}</div>)}</div>}
                   <div style={{ fontSize: 12, color: G.textSec, lineHeight: 1.7, marginTop: 10, padding: 14, borderRadius: 14, background: "rgba(255,255,255,0.02)", border: `0.5px solid ${G.glassBorder}` }}>{screenResult.recommendation}</div>
                   <div style={{ fontSize: 10, color: G.textMuted, marginTop: 10, fontStyle: "italic", opacity: 0.7 }}>AI analysis for informational purposes only.</div>
+                  <GlassBtn onClick={() => { setScreenResult(null); setScreenText(""); }} color={G.textMuted} style={{ fontSize: 10, marginTop: 8 }}>Clear</GlassBtn>
+                </div>
+              )}
+
+              {/* Screen History */}
+              {screenHistory.length > 0 && !screenResult && (
+                <div style={{ marginTop: 18 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: G.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Past Screenings</div>
+                  {screenHistory.map((s, i) => (
+                    <div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 12, background: "rgba(255,255,255,0.015)", border: `0.5px solid ${G.glassBorder}`, marginBottom: 6, animation: `crmFadeUp 200ms ${EASE} ${i * 30}ms both` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 8, background: `${s.score >= 70 ? G.green : s.score >= 40 ? G.amber : G.red}15`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800, color: s.score >= 70 ? G.green : s.score >= 40 ? G.amber : G.red, flexShrink: 0 }}>{s.score}</div>
+                        <div style={{ fontSize: 12, color: G.textSec, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.text}...</div>
+                      </div>
+                      <GlassBtn onClick={() => deleteScreen(s.id)} color={G.red} style={{ fontSize: 10, padding: "3px 8px" }}>×</GlassBtn>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -372,11 +410,26 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
                     </div>
                     <div style={{ fontSize: 10, fontWeight: 700, color: G.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Actions</div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <GlassBtn onClick={() => setEditingClient(editingClient?.id === c.id ? null : { ...c })} color={G.accent} style={{ fontSize: 11 }}>{editingClient?.id === c.id ? "Cancel Edit" : "Edit Info"}</GlassBtn>
                       <GlassBtn onClick={() => { setInvClientId(c.id); setShowAddInvoice(true); setTab("invoices"); }} color={G.accent} style={{ fontSize: 11 }}>Create Invoice</GlassBtn>
-                      <GlassBtn onClick={() => generateContract(c.id, "contract")} disabled={generating} color={G.purple} style={{ fontSize: 11, opacity: generating ? 0.5 : 1 }}>{generating ? "..." : "Generate Contract"}</GlassBtn>
-                      <GlassBtn onClick={() => generateContract(c.id, "proposal")} disabled={generating} color={G.amber} style={{ fontSize: 11, opacity: generating ? 0.5 : 1 }}>{generating ? "..." : "Generate Proposal"}</GlassBtn>
+                      <GlassBtn onClick={() => generateContract(c.id, "contract")} disabled={generating} color={G.purple} style={{ fontSize: 11, opacity: generating ? 0.5 : 1 }}>{generating ? <><span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 999, border: "1.5px solid transparent", borderTopColor: G.purple, animation: "crmSpin 0.8s linear infinite", marginRight: 6, verticalAlign: "middle" }}/>Generating...</> : "Generate Contract"}</GlassBtn>
+                      <GlassBtn onClick={() => generateContract(c.id, "proposal")} disabled={generating} color={G.amber} style={{ fontSize: 11, opacity: generating ? 0.5 : 1 }}>{generating ? <><span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 999, border: "1.5px solid transparent", borderTopColor: G.amber, animation: "crmSpin 0.8s linear infinite", marginRight: 6, verticalAlign: "middle" }}/>Generating...</> : "Generate Proposal"}</GlassBtn>
                       <GlassBtn onClick={() => deleteClient(c.id)} color={G.red} style={{ fontSize: 11 }}>Delete</GlassBtn>
                     </div>
+
+                    {/* Edit client form */}
+                    {editingClient?.id === c.id && (
+                      <div style={{ marginTop: 14, padding: 16, borderRadius: 14, background: "rgba(255,255,255,0.02)", border: `0.5px solid ${G.glassBorder}`, animation: "crmFadeUp 200ms ease" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                          <GlassInput placeholder="Name" value={editingClient.name} onChange={(e: any) => setEditingClient({ ...editingClient, name: e.target.value })} />
+                          <GlassInput placeholder="Email" value={editingClient.email} onChange={(e: any) => setEditingClient({ ...editingClient, email: e.target.value })} />
+                          <GlassInput placeholder="Company" value={editingClient.company} onChange={(e: any) => setEditingClient({ ...editingClient, company: e.target.value })} />
+                          <GlassInput placeholder="Phone" value={editingClient.phone} onChange={(e: any) => setEditingClient({ ...editingClient, phone: e.target.value })} />
+                        </div>
+                        <textarea className="crm-input" placeholder="Notes" value={editingClient.notes || ""} onChange={e => setEditingClient({ ...editingClient, notes: e.target.value })} style={{ minHeight: 50, resize: "vertical", marginBottom: 10, borderRadius: 14 }} />
+                        <GlassBtn onClick={saveEditClient} color={G.green} bg={`${G.green}12`} style={{ border: `0.5px solid ${G.green}25` }}>Save Changes</GlassBtn>
+                      </div>
+                    )}
                     {c.notes && <div style={{ fontSize: 12, color: G.textSec, marginTop: 14, lineHeight: 1.6, padding: 12, borderRadius: 12, background: "rgba(255,255,255,0.015)", border: `0.5px solid ${G.glassBorder}` }}>{c.notes}</div>}
                   </div>
                 )}
@@ -443,7 +496,9 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
                   {inv.status !== "paid" && <GlassBtn onClick={() => markInvoicePaid(inv.id)} color={G.green} bg={`${G.green}08`} style={{ border: `0.5px solid ${G.green}25`, fontSize: 11 }}>Mark Paid</GlassBtn>}
+                  {inv.status === "paid" && <GlassBtn onClick={() => markInvoiceUnpaid(inv.id)} color={G.amber} bg={`${G.amber}08`} style={{ border: `0.5px solid ${G.amber}25`, fontSize: 11 }}>Mark Unpaid</GlassBtn>}
                   {(inv.status === "sent" || inv.status === "overdue") && <GlassBtn onClick={() => sendInvoiceReminder(inv)} color={G.amber} bg={`${G.amber}08`} style={{ border: `0.5px solid ${G.amber}25`, fontSize: 11 }}>Send Reminder</GlassBtn>}
+                  <GlassBtn onClick={() => deleteInvoice(inv.id)} color={G.red} style={{ fontSize: 11 }}>Delete</GlassBtn>
                 </div>
               </div>
             ))}
@@ -467,10 +522,18 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
                   <StatusBadge status={con.status} />
                 </div>
                 <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                  <GlassBtn onClick={() => setViewContract(viewContract?.id === con.id ? null : con)} color={G.textSec} style={{ fontSize: 11 }}>{viewContract?.id === con.id ? "Hide" : "View"}</GlassBtn>
                   {con.status === "draft" && <GlassBtn onClick={() => sendContractEmail(con)} color={G.accent} bg={`${G.accent}08`} style={{ border: `0.5px solid ${G.accent}25`, fontSize: 11 }}>Send to Client ↗</GlassBtn>}
                   <GlassBtn onClick={() => { navigator.clipboard.writeText(con.content); }} color={G.textSec} style={{ fontSize: 11 }}>Copy</GlassBtn>
                   {con.status === "sent" && <GlassBtn onClick={() => api("contracts-update", { contractId: con.id, status: "accepted", accepted_at: new Date().toISOString() }).then(loadAll)} color={G.green} bg={`${G.green}08`} style={{ border: `0.5px solid ${G.green}25`, fontSize: 11 }}>Mark Accepted</GlassBtn>}
+                  {con.status === "accepted" && <GlassBtn onClick={() => markContractNotAccepted(con.id)} color={G.amber} bg={`${G.amber}08`} style={{ border: `0.5px solid ${G.amber}25`, fontSize: 11 }}>Mark Not Accepted</GlassBtn>}
+                  <GlassBtn onClick={() => deleteContract(con.id)} color={G.red} style={{ fontSize: 11 }}>Delete</GlassBtn>
                 </div>
+                {viewContract?.id === con.id && (
+                  <div style={{ marginTop: 14, padding: 18, borderRadius: 16, background: "rgba(255,255,255,0.015)", border: `0.5px solid ${G.glassBorder}`, animation: "crmFadeUp 200ms ease", maxHeight: 400, overflowY: "auto" }}>
+                    <pre style={{ fontSize: 12, color: G.textSec, lineHeight: 1.8, whiteSpace: "pre-wrap", wordWrap: "break-word", fontFamily: "-apple-system, 'SF Pro Text', 'Inter', sans-serif", margin: 0 }}>{con.content}</pre>
+                  </div>
+                )}
               </div>
             ))}
           </div>
