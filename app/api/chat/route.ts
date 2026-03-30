@@ -315,6 +315,7 @@ export async function POST(req: Request) {
     const messages = body.messages ?? [];
     const surveyData = body.surveyData;
     const responseStyle: string = body.responseStyle || "direct";
+    const attachments: any[] = body.attachments || [];
 
     // Communication style modifier
     const responseStyles: Record<string, string> = {
@@ -693,10 +694,28 @@ export async function POST(req: Request) {
         const dynamicSystemPrompt = buildSystemPromptFn(userContext) + styleInstruction;
 
         // 3. Call Claude with tools in a loop
-        let currentMessages: any[] = messages.map((m: any) => ({
-          role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
-          content: m.content,
-        }));
+        let currentMessages: any[] = messages.map((m: any, idx: number) => {
+          // Check if this is the last user message and has attachments
+          const isLastUser = m.role === "user" && idx === messages.length - 1;
+          if (isLastUser && attachments.length > 0) {
+            const content: any[] = [];
+            // Add images first
+            for (const att of attachments) {
+              if (att.kind === "image" && att.data) {
+                const base64Data = att.data.split(",")[1] || att.data;
+                const mediaType = att.type || "image/png";
+                content.push({ type: "image", source: { type: "base64", media_type: mediaType, data: base64Data } });
+              }
+            }
+            // Then add the text
+            content.push({ type: "text", text: m.content });
+            return { role: "user" as const, content };
+          }
+          return {
+            role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
+            content: m.content,
+          };
+        });
         let finalResponse: any = null;
         let loops = 0;
 
@@ -776,18 +795,23 @@ export async function POST(req: Request) {
               .join('')
           : "Tell me what outcome you want to reach.";
 
-        // Business health check
-        let finalReply = reply;
-        try {
-          const healthPrefix = generateHealthCheck(messages);
-          if (healthPrefix) {
-            finalReply = healthPrefix + "\n\n---\n\n" + reply;
-          }
-        } catch (e) {
-          console.warn('[ZELREX] Health check failed (non-fatal):', (e as Error).message);
-        }
+        // Health check moved to notification center — no longer injected in chat
+        const finalReply = reply;
 
-        return NextResponse.json({ reply: finalReply, sessionState });
+        // CRM auto-extraction: detect client/project mentions and include suggestions
+        let crmSuggestion = "";
+        try {
+          const lastUser = messages[messages.length - 1]?.content || "";
+          const clientMentionMatch = lastUser.match(/(?:finished|completed|delivered|sent|invoiced?|billed?|worked? (?:for|with))\s+(?:for\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
+          const invoiceMatch = lastUser.match(/\$(\d+(?:,\d{3})*(?:\.\d{2})?)/);
+          if (clientMentionMatch && invoiceMatch) {
+            crmSuggestion = `\n\n---\n💡 *I noticed you mentioned ${clientMentionMatch[1]} and $${invoiceMatch[1]}. Want me to add them to your Client Manager and create an invoice? Just say "yes, add them."*`;
+          } else if (clientMentionMatch) {
+            crmSuggestion = `\n\n---\n💡 *I noticed you mentioned ${clientMentionMatch[1]}. Want me to add them to your Client Manager? Just say "yes, add them."*`;
+          }
+        } catch {}
+
+        return NextResponse.json({ reply: finalReply + crmSuggestion, sessionState });
 
       } catch (v5Error) {
         // v5 failed — log the SPECIFIC error and fall through to v3
@@ -802,10 +826,25 @@ export async function POST(req: Request) {
     // --- ATTEMPT 2: v3 fallback (static prompt, no tools, no memory) ---
     console.log('[ZELREX] Using v3 fallback path (static prompt, no tools)');
     try {
-      const currentMessages = messages.map((m: any) => ({
-        role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
-        content: m.content,
-      }));
+      const currentMessages = messages.map((m: any, idx: number) => {
+        const isLastUser = m.role === "user" && idx === messages.length - 1;
+        if (isLastUser && attachments.length > 0) {
+          const content: any[] = [];
+          for (const att of attachments) {
+            if (att.kind === "image" && att.data) {
+              const base64Data = att.data.split(",")[1] || att.data;
+              const mediaType = att.type || "image/png";
+              content.push({ type: "image", source: { type: "base64", media_type: mediaType, data: base64Data } });
+            }
+          }
+          content.push({ type: "text", text: m.content });
+          return { role: "user" as const, content };
+        }
+        return {
+          role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
+          content: m.content,
+        };
+      });
 
       const response = await anthropic.messages.create({
         model: 'claude-opus-4-6',
@@ -819,15 +858,7 @@ export async function POST(req: Request) {
         .map((b: any) => b.text)
         .join('');
 
-      let finalReply = reply;
-      try {
-        const healthPrefix = generateHealthCheck(messages);
-        if (healthPrefix) {
-          finalReply = healthPrefix + "\n\n---\n\n" + reply;
-        }
-      } catch (e) {
-        // non-fatal
-      }
+      const finalReply = reply;
 
       return NextResponse.json({ reply: finalReply, sessionState });
 
