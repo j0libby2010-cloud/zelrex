@@ -115,6 +115,7 @@ function Ic({ n, className, style }: { n: string; className?: string; style?: Re
     briefcase: <><rect x="2" y="7" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.4" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" stroke="currentColor" strokeWidth="1.4" /><path d="M2 13h20" stroke="currentColor" strokeWidth="1.4" /></>,
     globe: <><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.4" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" strokeWidth="1.4" /></>,
     credit: <><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.4" /><path d="M2 10h20" stroke="currentColor" strokeWidth="1.4" /><path d="M6 15h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></>,
+    shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />,
     shield: <><path d="M12 2l8 4v5c0 5.55-3.84 10.74-8 12-4.16-1.26-8-6.45-8-12V6l8-4z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" /><path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></>,
   };
   return <svg className={cls} style={style} viewBox="0 0 24 24" fill="none">{d[n]}</svg>;
@@ -396,7 +397,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [previewWidth, setPreviewWidth] = useState(0); // 0 = auto (flex: 1)
   const dragRef = useRef<{ startX: number; startW: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<"account"|"subscription"|"features"|"notifications">("account");
+  const [settingsTab, setSettingsTab] = useState<"account"|"subscription"|"features"|"notifications"|"data">("account");
   const [expandedBizId, setExpandedBizId] = useState<string | null>(null);
   const [showSurvey, setShowSurvey] = useState(false);
   const [surveyData, setSurveyData] = useState<SurveyData | null>(null);
@@ -435,6 +436,26 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     emailProductUpdates: false,
     inAppSuggestions: true,
     inAppDeployStatus: true,
+    // Zelrex Permissions
+    permAutoExtractClients: true,
+    permAutoSuggestInvoices: true,
+    permProactiveFollowups: true,
+    permAutoAnalytics: true,
+    // Notification granularity
+    notifOverdueInvoices: true,
+    notifContractReminders: true,
+    notifGoalProgress: true,
+    notifTrafficDrops: true,
+    notifRevenueChanges: true,
+    notifPositiveEncouragement: true,
+    // Business Profile
+    freelanceNiche: "",
+    experienceLevel: "intermediate" as "beginner" | "intermediate" | "expert",
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Denver",
+    // Language
+    language: "en" as string,
+    // Data
+    chatHistoryEnabled: true,
   });
   useEffect(() => { try { const s = localStorage.getItem("zelrex_settings"); if (s) setZelrexSettings(prev => ({ ...prev, ...JSON.parse(s) })); } catch {} }, []);
   const updateSetting = <K extends keyof typeof zelrexSettings>(key: K, val: (typeof zelrexSettings)[K]) => {
@@ -2472,6 +2493,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   ["subscription", "credit", "Subscription"],
                   ["features", "bolt", "Features"],
                   ["notifications", "bell", "Notifications"],
+                  ["data", "shield", "Data & Privacy"],
                 ] as const).map(([id, icon, label]) => (
                   <button key={id} className={`stg-tab ${settingsTab === id ? "stg-tab-active" : ""}`} onClick={() => setSettingsTab(id as any)}>
                     <Ic n={icon} style={{ width: 16, height: 16, flexShrink: 0 }} /> {label}
@@ -2493,12 +2515,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                     {settingsTab === "subscription" && "Subscription & Billing"}
                     {settingsTab === "features" && "Zelrex Features"}
                     {settingsTab === "notifications" && "Notifications"}
+                    {settingsTab === "data" && "Data & Privacy"}
                   </div>
                   <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4, letterSpacing: "-0.005em" }}>
                     {settingsTab === "account" && "Manage your profile and connected services"}
                     {settingsTab === "subscription" && "Your plan, billing, and upgrade options"}
                     {settingsTab === "features" && "Customize how Zelrex works for you"}
                     {settingsTab === "notifications" && "Control what you get notified about"}
+                    {settingsTab === "data" && "Manage your data, exports, and privacy"}
                   </div>
                 </div>
                 <button onClick={closeSettings} className="stg-btn" style={{ width: 38, height: 38, borderRadius: 11, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -2547,6 +2571,72 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                         ) : (
                           <button className="stg-btn" onClick={() => { closeSettings(); const msg = "Connect my Stripe account"; setInput(msg); setTimeout(() => sendMessage(msg), 100); }}><span>Connect</span></button>
                         )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Business Profile</div>
+                    <div className="stg-card" style={{ padding: 0 }}>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Freelance Niche</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Your primary service area</div>
+                        </div>
+                        <select className="stg-select" value={zelrexSettings.freelanceNiche} onChange={e => updateSetting("freelanceNiche", e.target.value)}>
+                          <option value="">Not set</option>
+                          <option value="video-editing">Video Editing</option>
+                          <option value="graphic-design">Graphic Design</option>
+                          <option value="web-design">Web Design</option>
+                          <option value="copywriting">Copywriting</option>
+                          <option value="social-media">Social Media</option>
+                          <option value="virtual-assistant">Virtual Assistant</option>
+                          <option value="coaching">Coaching</option>
+                          <option value="consulting">Consulting</option>
+                          <option value="photography">Photography</option>
+                          <option value="development">Development</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Experience Level</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Helps Zelrex calibrate advice</div>
+                        </div>
+                        <select className="stg-select" value={zelrexSettings.experienceLevel} onChange={e => updateSetting("experienceLevel", e.target.value as any)}>
+                          <option value="beginner">Beginner (0-1 years)</option>
+                          <option value="intermediate">Intermediate (1-3 years)</option>
+                          <option value="expert">Expert (3+ years)</option>
+                        </select>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Timezone</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>For scheduling and time-based features</div>
+                        </div>
+                        <select className="stg-select" value={zelrexSettings.timezone} onChange={e => updateSetting("timezone", e.target.value)} style={{ maxWidth: 200 }}>
+                          {["America/New_York","America/Chicago","America/Denver","America/Los_Angeles","America/Anchorage","Pacific/Honolulu","Europe/London","Europe/Paris","Europe/Berlin","Asia/Tokyo","Asia/Shanghai","Asia/Kolkata","Asia/Dubai","Australia/Sydney","America/Sao_Paulo","America/Toronto","Africa/Lagos"].map(tz => (
+                            <option key={tz} value={tz}>{tz.replace(/_/g," ").replace("America/","").replace("Europe/","").replace("Asia/","").replace("Pacific/","").replace("Australia/","").replace("Africa/","")}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Security</div>
+                    <div className="stg-card" style={{ padding: 0 }}>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Manage Account</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Update password, email, or profile picture via Clerk</div>
+                        </div>
+                        <button className="stg-btn" onClick={() => { (window as any).Clerk?.openUserProfile?.(); }}><span>Manage</span></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Sign-In Method</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{clerkUser?.externalAccounts?.[0]?.provider ? `Signed in via ${clerkUser.externalAccounts[0].provider}` : "Email & password"}</div>
+                        </div>
+                        <span style={{ padding: "6px 14px", borderRadius: 999, background: "rgba(16,185,129,0.10)", border: "1px solid rgba(16,185,129,0.20)", color: "#10B981", fontSize: 12, fontWeight: 600 }}>Active</span>
                       </div>
                     </div>
                   </div>
@@ -2686,6 +2776,62 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                       </div>
                     </div>
                   </div>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Zelrex Permissions</div>
+                    <div className="stg-card" style={{ padding: 0 }}>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Auto-Extract Clients</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Detect client mentions in chat and suggest adding to CRM</div>
+                        </div>
+                        <button className={tglClass("permAutoExtractClients")} onClick={() => handleToggle("permAutoExtractClients")}><span className="stg-knob" /></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Auto-Suggest Invoices</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Suggest creating invoices when amounts are mentioned</div>
+                        </div>
+                        <button className={tglClass("permAutoSuggestInvoices")} onClick={() => handleToggle("permAutoSuggestInvoices")}><span className="stg-knob" /></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Proactive Follow-ups</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Zelrex reminds you to follow up with clients</div>
+                        </div>
+                        <button className={tglClass("permProactiveFollowups")} onClick={() => handleToggle("permProactiveFollowups")}><span className="stg-knob" /></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Auto Analytics Insights</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Automatically analyze traffic and revenue patterns</div>
+                        </div>
+                        <button className={tglClass("permAutoAnalytics")} onClick={() => handleToggle("permAutoAnalytics")}><span className="stg-knob" /></button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Language & Region</div>
+                    <div className="stg-card" style={{ padding: 0 }}>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Language</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Zelrex interface and AI response language</div>
+                        </div>
+                        <select className="stg-select" value={zelrexSettings.language} onChange={e => updateSetting("language", e.target.value)}>
+                          <option value="en">English</option>
+                          <option value="es">Español</option>
+                          <option value="fr">Français</option>
+                          <option value="de">Deutsch</option>
+                          <option value="pt">Português</option>
+                          <option value="ja">日本語</option>
+                          <option value="zh">中文</option>
+                          <option value="ko">한국어</option>
+                          <option value="ar">العربية</option>
+                          <option value="hi">हिन्दी</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
                 </>)}
 
                 {/* ─── NOTIFICATIONS TAB ─── */}
@@ -2733,12 +2879,99 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                         </div>
                         <button className={tglClass("inAppSuggestions")} onClick={() => handleToggle("inAppSuggestions")}><span className="stg-knob" /></button>
                       </div>
-                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Deploy Status</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Website deployment success or failure</div>
                         </div>
                         <button className={tglClass("inAppDeployStatus")} onClick={() => handleToggle("inAppDeployStatus")}><span className="stg-knob" /></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Overdue Invoices</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Reminders when invoices pass their due date</div>
+                        </div>
+                        <button className={tglClass("notifOverdueInvoices")} onClick={() => handleToggle("notifOverdueInvoices")}><span className="stg-knob" /></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Contract Reminders</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Unsigned or expiring contracts</div>
+                        </div>
+                        <button className={tglClass("notifContractReminders")} onClick={() => handleToggle("notifContractReminders")}><span className="stg-knob" /></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Goal Progress</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Updates on your progress toward your goal</div>
+                        </div>
+                        <button className={tglClass("notifGoalProgress")} onClick={() => handleToggle("notifGoalProgress")}><span className="stg-knob" /></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Traffic & Revenue Drops</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Alert when website traffic or revenue drops significantly</div>
+                        </div>
+                        <button className={tglClass("notifTrafficDrops")} onClick={() => handleToggle("notifTrafficDrops")}><span className="stg-knob" /></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Positive Encouragement</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Occasional motivational messages from Zelrex</div>
+                        </div>
+                        <button className={tglClass("notifPositiveEncouragement")} onClick={() => handleToggle("notifPositiveEncouragement")}><span className="stg-knob" /></button>
+                      </div>
+                    </div>
+                  </div>
+                </>)}
+
+                {/* ─── DATA & PRIVACY TAB ─── */}
+                {settingsTab === "data" && (<>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Chat Data</div>
+                    <div className="stg-card" style={{ padding: 0 }}>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Chat History</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Save conversation history for continuity</div>
+                        </div>
+                        <button className={tglClass("chatHistoryEnabled")} onClick={() => handleToggle("chatHistoryEnabled")}><span className="stg-knob" /></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Export All Data</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Download all your chats, clients, invoices, and settings</div>
+                        </div>
+                        <button className="stg-btn" onClick={() => {
+                          const exportData = { chats: chats.map(c => ({ title: c.title, messages: c.messages.map(m => ({ role: m.role, content: m.content, time: m.createdAt })) })), settings: zelrexSettings, goal: userGoal, exportedAt: new Date().toISOString() };
+                          const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a"); a.href = url; a.download = `zelrex-export-${new Date().toISOString().slice(0,10)}.json`; a.click();
+                          URL.revokeObjectURL(url);
+                        }}><span>Export</span></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#EF4444", letterSpacing: "-0.01em" }}>Delete All Chats</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Permanently remove all conversation history</div>
+                        </div>
+                        <button className="stg-btn stg-btn-danger" onClick={() => {
+                          if (window.confirm("Delete all your chats? This cannot be undone.")) {
+                            setChats([]); setActiveChatId(null);
+                            try { localStorage.removeItem("zelrex_chats"); } catch {}
+                          }
+                        }}><span>Delete all</span></button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Privacy</div>
+                    <div className="stg-card" style={{ padding: "20px 22px" }}>
+                      <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.7 }}>
+                        Zelrex processes your data to provide personalized business recommendations. Your conversations, client data, and analytics are stored securely and never shared with third parties. Zelrex does not use your data to train AI models.
+                      </div>
+                      <div style={{ marginTop: 14, fontSize: 12, color: C.textMuted }}>
+                        For full details, see our <span style={{ color: C.accent, cursor: "pointer" }} onClick={() => window.open("/privacy", "_blank")}>Privacy Policy</span> and <span style={{ color: C.accent, cursor: "pointer" }} onClick={() => window.open("/terms", "_blank")}>Terms of Service</span>.
                       </div>
                     </div>
                   </div>
