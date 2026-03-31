@@ -449,6 +449,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     notifRevenueChanges: true,
     notifPositiveEncouragement: true,
     // Business Profile
+    displayName: "",
     freelanceNiche: "",
     experienceLevel: "intermediate" as "beginner" | "intermediate" | "expert",
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Denver",
@@ -2493,7 +2494,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   ["subscription", "credit", "Subscription"],
                   ["features", "bolt", "Features"],
                   ["notifications", "bell", "Notifications"],
-                  ["data", "shield", "Data & Privacy"],
+                  ["data", "shield", "TOS & Privacy"],
                 ] as const).map(([id, icon, label]) => (
                   <button key={id} className={`stg-tab ${settingsTab === id ? "stg-tab-active" : ""}`} onClick={() => setSettingsTab(id as any)}>
                     <Ic n={icon} style={{ width: 16, height: 16, flexShrink: 0 }} /> {label}
@@ -2515,14 +2516,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                     {settingsTab === "subscription" && "Subscription & Billing"}
                     {settingsTab === "features" && "Zelrex Features"}
                     {settingsTab === "notifications" && "Notifications"}
-                    {settingsTab === "data" && "Data & Privacy"}
+                    {settingsTab === "data" && "TOS & Privacy"}
                   </div>
                   <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4, letterSpacing: "-0.005em" }}>
                     {settingsTab === "account" && "Manage your profile and connected services"}
                     {settingsTab === "subscription" && "Your plan, billing, and upgrade options"}
                     {settingsTab === "features" && "Customize how Zelrex works for you"}
                     {settingsTab === "notifications" && "Control what you get notified about"}
-                    {settingsTab === "data" && "Manage your data, exports, and privacy"}
+                    {settingsTab === "data" && "Terms of Service and Privacy Policy"}
                   </div>
                 </div>
                 <button onClick={closeSettings} className="stg-btn" style={{ width: 38, height: 38, borderRadius: 11, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -2544,7 +2545,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                         <div style={{ position: "absolute", bottom: -2, right: -2, width: 20, height: 20, borderRadius: 999, background: "#10B981", border: "2.5px solid #0A0F1A", boxShadow: "0 1px 4px rgba(0,0,0,0.3)" }} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: "-0.02em" }}>{clerkUser?.fullName || clerkUser?.firstName || "User"}</div>
+                        <div style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: "-0.02em" }}>{zelrexSettings.displayName || clerkUser?.fullName || clerkUser?.firstName || "User"}</div>
                         <div style={{ fontSize: 13.5, color: C.textMuted, marginTop: 4, letterSpacing: "-0.005em" }}>{clerkUser?.primaryEmailAddress?.emailAddress || ""}</div>
                         <div style={{ marginTop: 8, display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 12px", borderRadius: 999, background: `${C.accent}12`, border: `1px solid ${C.accent}18`, fontSize: 11, fontWeight: 700, color: C.accent, letterSpacing: "0.06em" }}>
                           <span style={{ width: 5, height: 5, borderRadius: 999, background: C.accent, boxShadow: `0 0 6px ${C.accent}` }} />
@@ -2613,23 +2614,62 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Timezone</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>For scheduling and time-based features</div>
                         </div>
-                        <select className="stg-select" value={zelrexSettings.timezone} onChange={e => updateSetting("timezone", e.target.value)} style={{ maxWidth: 200 }}>
-                          {["America/New_York","America/Chicago","America/Denver","America/Los_Angeles","America/Anchorage","Pacific/Honolulu","Europe/London","Europe/Paris","Europe/Berlin","Asia/Tokyo","Asia/Shanghai","Asia/Kolkata","Asia/Dubai","Australia/Sydney","America/Sao_Paulo","America/Toronto","Africa/Lagos"].map(tz => (
-                            <option key={tz} value={tz}>{tz.replace(/_/g," ").replace("America/","").replace("Europe/","").replace("Asia/","").replace("Pacific/","").replace("Australia/","").replace("Africa/","")}</option>
+                        <select className="stg-select" value={zelrexSettings.timezone} onChange={e => updateSetting("timezone", e.target.value)} style={{ maxWidth: 220 }}>
+                          {([
+                            ["Pacific/Honolulu", "Hawaii Time (UTC-10)"],
+                            ["America/Anchorage", "Alaska Time (UTC-9)"],
+                            ["America/Los_Angeles", "Pacific Time (UTC-8)"],
+                            ["America/Denver", "Mountain Time (UTC-7)"],
+                            ["America/Chicago", "Central Time (UTC-6)"],
+                            ["America/New_York", "Eastern Time (UTC-5)"],
+                            ["America/Halifax", "Atlantic Time (UTC-4)"],
+                            ["America/St_Johns", "Newfoundland Time (UTC-3:30)"],
+                            ["America/Sao_Paulo", "Brasilia Time (UTC-3)"],
+                            ["America/Argentina/Buenos_Aires", "Argentina Time (UTC-3)"],
+                            ["America/Toronto", "Eastern Time — Canada (UTC-5)"],
+                            ["Atlantic/Reykjavik", "Iceland Time (UTC+0)"],
+                            ["Europe/London", "Greenwich Mean Time (UTC+0)"],
+                            ["Europe/Paris", "Central European Time (UTC+1)"],
+                            ["Europe/Berlin", "Central European Time — Berlin (UTC+1)"],
+                            ["Europe/Helsinki", "Eastern European Time (UTC+2)"],
+                            ["Europe/Moscow", "Moscow Time (UTC+3)"],
+                            ["Africa/Lagos", "West Africa Time (UTC+1)"],
+                            ["Africa/Cairo", "Eastern Africa Time (UTC+2)"],
+                            ["Africa/Nairobi", "East Africa Time (UTC+3)"],
+                            ["Asia/Dubai", "Gulf Standard Time (UTC+4)"],
+                            ["Asia/Karachi", "Pakistan Time (UTC+5)"],
+                            ["Asia/Kolkata", "India Standard Time (UTC+5:30)"],
+                            ["Asia/Dhaka", "Bangladesh Time (UTC+6)"],
+                            ["Asia/Bangkok", "Indochina Time (UTC+7)"],
+                            ["Asia/Shanghai", "China Standard Time (UTC+8)"],
+                            ["Asia/Singapore", "Singapore Time (UTC+8)"],
+                            ["Asia/Tokyo", "Japan Standard Time (UTC+9)"],
+                            ["Asia/Seoul", "Korea Standard Time (UTC+9)"],
+                            ["Australia/Sydney", "Australian Eastern Time (UTC+10)"],
+                            ["Pacific/Auckland", "New Zealand Time (UTC+12)"],
+                          ] as const).map(([val, label]) => (
+                            <option key={val} value={val}>{label}</option>
                           ))}
                         </select>
                       </div>
                     </div>
                   </div>
                   <div className="stg-section">
-                    <div className="stg-section-title">Security</div>
+                    <div className="stg-section-title">Account Management</div>
                     <div className="stg-card" style={{ padding: 0 }}>
                       <div className="stg-row" style={{ padding: "16px 22px" }}>
                         <div>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Manage Account</div>
-                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Update password, email, or profile picture via Clerk</div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Display Name</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Your name shown across Zelrex</div>
                         </div>
-                        <button className="stg-btn" onClick={() => { (window as any).Clerk?.openUserProfile?.(); }}><span>Manage</span></button>
+                        <input className="stg-input" value={zelrexSettings.displayName} onChange={e => updateSetting("displayName", e.target.value)} placeholder={clerkUser?.fullName || "Your name"} style={{ maxWidth: 200, padding: "9px 14px", fontSize: 13 }} />
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Email Address</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Your account email</div>
+                        </div>
+                        <div style={{ padding: "9px 14px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.04)", background: "rgba(255,255,255,0.015)", color: C.textSec, fontSize: 13, maxWidth: 200, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clerkUser?.primaryEmailAddress?.emailAddress || "—"}</div>
                       </div>
                       <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
                         <div>
@@ -2925,54 +2965,34 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   </div>
                 </>)}
 
-                {/* ─── DATA & PRIVACY TAB ─── */}
+                {/* ─── TOS & PRIVACY TAB ─── */}
                 {settingsTab === "data" && (<>
                   <div className="stg-section">
-                    <div className="stg-section-title">Chat Data</div>
-                    <div className="stg-card" style={{ padding: 0 }}>
-                      <div className="stg-row" style={{ padding: "16px 22px" }}>
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Chat History</div>
-                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Save conversation history for continuity</div>
-                        </div>
-                        <button className={tglClass("chatHistoryEnabled")} onClick={() => handleToggle("chatHistoryEnabled")}><span className="stg-knob" /></button>
+                    <div className="stg-section-title">Terms of Service</div>
+                    <div className="stg-card" style={{ padding: "24px 22px" }}>
+                      <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.8, letterSpacing: "-0.005em" }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12, letterSpacing: "-0.02em" }}>Zelrex Terms of Service</div>
+                        <p style={{ marginBottom: 12 }}>By using Zelrex, you agree to the following terms and conditions. Zelrex provides AI-powered business tools including website building, client management, and business analytics.</p>
+                        <p style={{ marginBottom: 12 }}>You are responsible for the content you create and publish through our platform. Zelrex reserves the right to suspend accounts that violate these terms or engage in prohibited activities.</p>
+                        <p style={{ marginBottom: 12 }}>All websites built and deployed through Zelrex remain your intellectual property. Zelrex provides the infrastructure and tools but does not claim ownership over your content, designs, or business data.</p>
+                        <p style={{ marginBottom: 12 }}>Zelrex offers both free and paid subscription tiers. Paid features are subject to the terms of your subscription plan. Refunds are handled on a case-by-case basis within 14 days of purchase.</p>
+                        <p style={{ marginBottom: 0 }}>These terms may be updated periodically. Continued use of Zelrex constitutes acceptance of any modifications.</p>
                       </div>
-                      <div className="stg-row" style={{ padding: "16px 22px" }}>
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Export All Data</div>
-                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Download all your chats, clients, invoices, and settings</div>
-                        </div>
-                        <button className="stg-btn" onClick={() => {
-                          const exportData = { chats: chats.map(c => ({ title: c.title, messages: c.messages.map(m => ({ role: m.role, content: m.content, time: m.createdAt })) })), settings: zelrexSettings, goal: userGoal, exportedAt: new Date().toISOString() };
-                          const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
-                          const url = URL.createObjectURL(blob);
-                          const a = document.createElement("a"); a.href = url; a.download = `zelrex-export-${new Date().toISOString().slice(0,10)}.json`; a.click();
-                          URL.revokeObjectURL(url);
-                        }}><span>Export</span></button>
-                      </div>
-                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
-                        <div>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: "#EF4444", letterSpacing: "-0.01em" }}>Delete All Chats</div>
-                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Permanently remove all conversation history</div>
-                        </div>
-                        <button className="stg-btn stg-btn-danger" onClick={() => {
-                          if (window.confirm("Delete all your chats? This cannot be undone.")) {
-                            setChats([]); setActiveChatId(null);
-                            try { localStorage.removeItem("zelrex_chats"); } catch {}
-                          }
-                        }}><span>Delete all</span></button>
-                      </div>
+                      <div style={{ marginTop: 16, fontSize: 11, color: C.textMuted }}>Last updated: January 2025</div>
                     </div>
                   </div>
                   <div className="stg-section">
-                    <div className="stg-section-title">Privacy</div>
-                    <div className="stg-card" style={{ padding: "20px 22px" }}>
-                      <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.7 }}>
-                        Zelrex processes your data to provide personalized business recommendations. Your conversations, client data, and analytics are stored securely and never shared with third parties. Zelrex does not use your data to train AI models.
+                    <div className="stg-section-title">Privacy Policy</div>
+                    <div className="stg-card" style={{ padding: "24px 22px" }}>
+                      <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.8, letterSpacing: "-0.005em" }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12, letterSpacing: "-0.02em" }}>Zelrex Privacy Policy</div>
+                        <p style={{ marginBottom: 12 }}>Zelrex is committed to protecting your privacy. This policy explains how we collect, use, and safeguard your personal information.</p>
+                        <p style={{ marginBottom: 12 }}>We collect information you provide directly, including your name, email address, business details, and content created through the platform. We also collect usage data to improve our services.</p>
+                        <p style={{ marginBottom: 12 }}>Your data is used solely to provide and improve Zelrex services. We do not sell, share, or distribute your personal data to third parties for marketing purposes. Your conversations and business data are never used to train AI models.</p>
+                        <p style={{ marginBottom: 12 }}>All data is encrypted in transit and at rest. We use industry-standard security measures to protect your information from unauthorized access.</p>
+                        <p style={{ marginBottom: 0 }}>You have the right to access, export, or delete your data at any time through the Account settings. For data-related requests, contact support@zelrex.com.</p>
                       </div>
-                      <div style={{ marginTop: 14, fontSize: 12, color: C.textMuted }}>
-                        For full details, see our <span style={{ color: C.accent, cursor: "pointer" }} onClick={() => window.open("/privacy", "_blank")}>Privacy Policy</span> and <span style={{ color: C.accent, cursor: "pointer" }} onClick={() => window.open("/terms", "_blank")}>Terms of Service</span>.
-                      </div>
+                      <div style={{ marginTop: 16, fontSize: 11, color: C.textMuted }}>Last updated: January 2025</div>
                     </div>
                   </div>
                 </>)}
