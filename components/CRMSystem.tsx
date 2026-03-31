@@ -206,12 +206,23 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
           .crm-stat-grid{grid-template-columns:1fr 1fr!important}
           .crm-dual-grid{grid-template-columns:1fr!important}
           .crm-close-btn{position:absolute!important;top:14px!important;right:14px!important}
+          .crm-header-wrap{padding:14px 16px!important}
+          .crm-input{font-size:16px!important;padding:13px 16px!important;min-height:44px!important}
+          .crm-invoice-grid{grid-template-columns:1fr!important;gap:8px!important}
+          .crm-new-form{grid-template-columns:1fr!important}
+          .crm-action-btns button{min-height:40px!important;font-size:12px!important}
+          .crm-gs{-webkit-overflow-scrolling:touch!important}
         }
         @media(max-width:480px){.crm-stat-grid{grid-template-columns:1fr!important}}
+        @supports(padding-bottom:env(safe-area-inset-bottom)){.crm-content{padding-bottom:calc(14px + env(safe-area-inset-bottom))!important}}
+        @media(hover:none){
+          .crm-btn-glass:active{transform:scale(0.95)!important;transition-duration:80ms!important}
+          .crm-close-btn:active{transform:scale(0.90)!important;transition-duration:80ms!important}
+        }
       `}</style>
 
       {/* ─── Header ──────────────────────────────────── */}
-      <div style={{ padding: "18px 28px", borderBottom: `0.5px solid ${G.glassBorder}`, position: "relative" }}>
+      <div className="crm-header-wrap" style={{ padding: "18px 28px", borderBottom: `0.5px solid ${G.glassBorder}`, position: "relative" }}>
         <div className="crm-header-inner" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div style={{ width: 40, height: 40, borderRadius: 14, background: `linear-gradient(135deg, ${G.accent}20, ${G.accent}08)`, border: `0.5px solid ${G.accent}25`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 0 20px ${G.accent}10` }}>
@@ -371,7 +382,7 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
             {showAddClient && (
               <div style={{ ...liquidGlass, padding: 24, marginBottom: 20, animation: "crmFadeUp 300ms ease" }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: G.text, letterSpacing: "-0.02em", marginBottom: 16 }}>New Client</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+                <div className="crm-new-form" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
                   <GlassInput placeholder="Name *" value={formName} onChange={(e: any) => setFormName(e.target.value)} />
                   <GlassInput placeholder="Email" value={formEmail} onChange={(e: any) => setFormEmail(e.target.value)} />
                   <GlassInput placeholder="Company" value={formCompany} onChange={(e: any) => setFormCompany(e.target.value)} />
@@ -409,7 +420,7 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
                       ))}
                     </div>
                     <div style={{ fontSize: 10, fontWeight: 700, color: G.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 10 }}>Actions</div>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <div className="crm-action-btns" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <GlassBtn onClick={() => setEditingClient(editingClient?.id === c.id ? null : { ...c })} color={G.accent} style={{ fontSize: 11 }}>{editingClient?.id === c.id ? "Cancel Edit" : "Edit Info"}</GlassBtn>
                       <GlassBtn onClick={() => { setInvClientId(c.id); setShowAddInvoice(true); setTab("invoices"); }} color={G.accent} style={{ fontSize: 11 }}>Create Invoice</GlassBtn>
                       <GlassBtn onClick={() => generateContract(c.id, "contract")} disabled={generating} color={G.purple} style={{ fontSize: 11, opacity: generating ? 0.5 : 1 }}>{generating ? <><span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 999, border: "1.5px solid transparent", borderTopColor: G.purple, animation: "crmSpin 0.8s linear infinite", marginRight: 6, verticalAlign: "middle" }}/>Generating...</> : "Generate Contract"}</GlassBtn>
@@ -420,7 +431,7 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
                     {/* Edit client form */}
                     {editingClient?.id === c.id && (
                       <div style={{ marginTop: 14, padding: 16, borderRadius: 14, background: "rgba(255,255,255,0.02)", border: `0.5px solid ${G.glassBorder}`, animation: "crmFadeUp 200ms ease" }}>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                        <div className="crm-new-form" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
                           <GlassInput placeholder="Name" value={editingClient.name} onChange={(e: any) => setEditingClient({ ...editingClient, name: e.target.value })} />
                           <GlassInput placeholder="Email" value={editingClient.email} onChange={(e: any) => setEditingClient({ ...editingClient, email: e.target.value })} />
                           <GlassInput placeholder="Company" value={editingClient.company} onChange={(e: any) => setEditingClient({ ...editingClient, company: e.target.value })} />
@@ -454,7 +465,7 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
                   {clients.map(c => <option key={c.id} value={c.id}>{c.name} {c.company ? `(${c.company})` : ""}</option>)}
                 </select>
                 {invItems.map((item, idx) => (
-                  <div key={idx} style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr auto", gap: 8, marginBottom: 8 }}>
+                  <div key={idx} className="crm-invoice-grid" style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr auto", gap: 8, marginBottom: 8 }}>
                     <GlassInput placeholder="Description" value={item.description} onChange={(e: any) => { const n = [...invItems]; n[idx].description = e.target.value; setInvItems(n); }} />
                     <GlassInput placeholder="Qty" type="number" value={item.qty} onChange={(e: any) => { const n = [...invItems]; n[idx].qty = parseInt(e.target.value) || 1; setInvItems(n); }} />
                     <GlassInput placeholder="Rate ($)" type="number" value={item.rate_cents / 100 || ""} onChange={(e: any) => { const n = [...invItems]; n[idx].rate_cents = Math.round(parseFloat(e.target.value || "0") * 100); setInvItems(n); }} />

@@ -301,18 +301,18 @@ function WelcomeScreen({ onAction }: { onAction: (t: string) => void }) {
     { icon: "bolt", title: "Stress test my offer", sub: "Fix weak spots before launch", action: "Stress test my freelance offer" },
   ];
   return (
-    <div style={{ display: "flex", flex: 1, flexDirection: "column", alignItems: "center", justifyContent: "center", paddingBottom: 40, paddingTop: 48, padding: "48px 20px 40px" }}>
+    <div style={{ display: "flex", flex: 1, flexDirection: "column", alignItems: "center", justifyContent: "center", paddingBottom: 40, paddingTop: 48, padding: "48px 16px 40px" }}>
       <h1 className="welcome-h1" style={{ fontSize: 44, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.1, textAlign: "center", color: C.text }}>Go independent. Get paid.</h1>
-      <p style={{ marginTop: 12, fontSize: 16, lineHeight: 1.6, color: C.textSec, textAlign: "center", maxWidth: 520 }}>
+      <p className="welcome-sub" style={{ marginTop: 12, fontSize: 16, lineHeight: 1.6, color: C.textSec, textAlign: "center", maxWidth: 520 }}>
         Stop losing 20% to platforms. Zelrex builds your premium freelance site, connects Stripe, and helps you land higher-paying clients directly.
       </p>
       <div className="welcome-grid" style={{ marginTop: 36, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, width: "100%", maxWidth: 540 }}>
         {cards.map((c) => (
-          <button key={c.title} type="button" onClick={() => onAction(c.action)} className="z-glass"
+          <button key={c.title} type="button" onClick={() => onAction(c.action)} className="z-glass welcome-card"
             style={{ textAlign: "left", padding: "20px 16px", borderRadius: 16, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)", cursor: "pointer", color: C.text }}>
             <Ic n={c.icon} className="h-5 w-5" style={{ color: C.accent }} />
-            <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>{c.title}</div>
-            <div style={{ marginTop: 4, fontSize: 12, color: C.textMuted, lineHeight: 1.4 }}>{c.sub}</div>
+            <div className="welcome-card-title" style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>{c.title}</div>
+            <div className="welcome-card-sub" style={{ marginTop: 4, fontSize: 12, color: C.textMuted, lineHeight: 1.4 }}>{c.sub}</div>
           </button>
         ))}
       </div>
@@ -1880,27 +1880,63 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         @media(max-width:768px){
           .hide-mobile{display:none!important}
           .welcome-h1{font-size:28px!important}
-          .welcome-grid{grid-template-columns:1fr!important;max-width:300px!important}
+          .welcome-grid{grid-template-columns:1fr!important;max-width:340px!important}
+          .welcome-sub{font-size:14px!important;max-width:360px!important}
+          .welcome-card{padding:18px 18px!important;min-height:72px!important}
+          .welcome-card-title{font-size:14px!important}
+          .welcome-card-sub{font-size:12px!important}
           .msg-actions{opacity:1}
           .user-actions{opacity:1}
+          .msg-act{width:36px!important;height:34px!important}
+          .msg-act svg{width:17px!important;height:17px!important}
+          .msg-bubble-user{padding:10px 16px!important;font-size:15px!important}
+          .msg-bubble-ai{padding:6px 0 6px 14px!important}
+          .msg-content{font-size:15px!important;line-height:1.7!important}
+          .msg-img{max-width:260px!important;max-height:220px!important;border-radius:14px!important}
+          .msg-file{padding:10px 16px!important;font-size:13px!important}
+          .chat-row{padding:10px 10px!important}
+          .chat-title{font-size:13px!important;max-width:180px!important}
+          .chat-dots{width:32px!important;height:32px!important}
+          .user-time{font-size:12px!important}
+          .burger-btn{width:40px!important;height:40px!important}
+          .notif-overlay{width:calc(100vw - 24px)!important;max-width:380px!important;right:-8px!important}
+          .notif-item{padding:14px 16px!important}
+          .notif-text{font-size:14px!important}
+          .notif-time{font-size:11px!important}
+          .att-thumb{width:72px!important;height:72px!important}
+          .att-remove{width:22px!important;height:22px!important;font-size:14px!important}
         }
         @media(max-width:480px){
           .welcome-h1{font-size:24px!important}
+          .welcome-grid{max-width:100%!important;gap:10px!important}
+          .notif-overlay{width:calc(100vw - 16px)!important;right:-4px!important}
         }
         /* Mobile safe area for input */
         @supports(padding-bottom: env(safe-area-inset-bottom)){
-          .z-input-area{padding-bottom:calc(10px + env(safe-area-inset-bottom))!important}
+          .z-input-area{padding-bottom:calc(12px + env(safe-area-inset-bottom))!important}
+        }
+        @supports(padding-top: env(safe-area-inset-top)){
+          .z-header-safe{padding-top:env(safe-area-inset-top)!important}
         }
         /* Mobile touch improvements */
         @media(hover:none){
           .z-glass:active{transform:scale(0.97)!important;transition-duration:100ms!important}
           .z-glass-accent:active{transform:scale(0.97)!important;transition-duration:100ms!important}
+          .z-glass-danger:active{transform:scale(0.97)!important;transition-duration:100ms!important}
+          .z-glass-solid:active{transform:scale(0.97)!important;transition-duration:100ms!important}
+          .msg-act:active{transform:scale(0.90)!important;transition-duration:80ms!important}
+          .stg-tab:active{transform:scale(0.96)!important;transition-duration:80ms!important}
+          .chat-row:active{background:rgba(255,255,255,0.04)!important;transition-duration:80ms!important}
+        }
+        /* Smooth scrolling on iOS */
+        @media(max-width:768px){
+          .z-scroll{-webkit-overflow-scrolling:touch!important;scroll-behavior:smooth!important}
         }
       `}</style>
 
       {/* HEADER */}
-      <div style={{ position: "sticky", top: 0, zIndex: 100, borderBottom: `1px solid ${C.border}`, background: "rgba(6,9,15,0.82)", backdropFilter: "blur(24px)" }}>
-        <div style={{ maxWidth: 1800, margin: "0 auto", height: 52, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px" }}>
+      <div className="z-header-safe" style={{ position: "sticky", top: 0, zIndex: 100, borderBottom: `1px solid ${C.border}`, background: "rgba(6,9,15,0.82)", backdropFilter: "blur(24px)" }}>
+        <div style={{ maxWidth: 1800, margin: "0 auto", height: isMobile ? 56 : 52, display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "0 10px" : "0 14px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <button type="button" onClick={() => setSidebarOpen((v) => !v)} className="burger-btn" aria-label="Toggle sidebar">
               <span className={`burger-line burger-top ${sidebarOpen ? "open" : ""}`} />
@@ -1909,7 +1945,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             </button>
             <ZelrexWordmark size={16} />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 2 : 8 }}>
             {websiteData && (
               <HBtn onClick={() => setPreviewOpen(!previewOpen)} style={{ padding: isMobile ? "5px 8px" : "5px 12px", borderRadius: 999, border: `1px solid ${previewOpen ? C.accent + "40" : C.border}`, background: previewOpen ? C.accentSoft : "transparent", color: previewOpen ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
                 <Ic n="preview" className="h-3.5 w-3.5" />{!isMobile && " Preview"}
@@ -1928,14 +1964,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
             {/* Notifications bell */}
             <div style={{ position: "relative" }} onMouseDown={(e) => e.stopPropagation()}>
-              <HBtn onClick={openNotif} style={{ width: 38, height: 38, color: C.text, position: "relative" }}>
+              <HBtn onClick={openNotif} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: C.text, position: "relative" }}>
                 <Ic n="bell" style={{ width: 18, height: 18 }} />
                 {notifications.filter(n => !n.read).length > 0 && (
                   <span style={{ position: "absolute", top: 6, right: 6, width: 8, height: 8, borderRadius: 999, background: "#EF4444", border: "2px solid #06090F" }} />
                 )}
               </HBtn>
               {(notifOpen || notifClosing) && (
-                <div onMouseDown={e => e.stopPropagation()} style={{ position: "absolute", right: 0, top: 44, zIndex: 200, width: 340, borderRadius: 22, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.012) 50%, rgba(255,255,255,0.02) 100%)", backdropFilter: "blur(64px) saturate(1.6) brightness(1.04)", WebkitBackdropFilter: "blur(64px) saturate(1.6) brightness(1.04)", boxShadow: "0 0.5px 0 0 rgba(255,255,255,0.06) inset, 0 -0.5px 0 0 rgba(255,255,255,0.02) inset, 0 1px 3px rgba(0,0,0,0.12), 0 8px 40px rgba(0,0,0,0.22)", overflow: "hidden", transformOrigin: "top right", animation: `${notifClosing ? "dropdownVacuumOut" : "dropdownVacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards` }}>
+                <div onMouseDown={e => e.stopPropagation()} className="notif-overlay" style={{ position: "absolute", right: isMobile ? -8 : 0, top: isMobile ? 48 : 44, zIndex: 200, width: isMobile ? "calc(100vw - 24px)" : 340, maxWidth: 380, borderRadius: 22, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.012) 50%, rgba(255,255,255,0.02) 100%)", backdropFilter: "blur(64px) saturate(1.6) brightness(1.04)", WebkitBackdropFilter: "blur(64px) saturate(1.6) brightness(1.04)", boxShadow: "0 0.5px 0 0 rgba(255,255,255,0.06) inset, 0 -0.5px 0 0 rgba(255,255,255,0.02) inset, 0 1px 3px rgba(0,0,0,0.12), 0 8px 40px rgba(0,0,0,0.22)", overflow: "hidden", transformOrigin: "top right", animation: `${notifClosing ? "dropdownVacuumOut" : "dropdownVacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards` }}>
                   <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Notifications {notifications.filter(n => !n.read).length > 0 && <span style={{ fontSize: 10, fontWeight: 500, color: C.accent, marginLeft: 4 }}>({notifications.filter(n => !n.read).length})</span>}</span>
                     <div style={{ display: "flex", gap: 8 }}>
@@ -1952,15 +1988,15 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                       </div>
                     ) : (
                       notifications.slice(0, notifPage * 10).map(n => (
-                        <div key={n.id} style={{ padding: "10px 16px", borderBottom: `1px solid ${C.border}`, background: n.read ? "transparent" : `${C.accent}06`, display: "flex", alignItems: "flex-start", gap: 10 }}>
+                        <div key={n.id} className="notif-item" style={{ padding: isMobile ? "14px 16px" : "10px 16px", borderBottom: `1px solid ${C.border}`, background: n.read ? "transparent" : `${C.accent}06`, display: "flex", alignItems: "flex-start", gap: 10 }}>
                           <div style={{ flex: 1, cursor: "pointer" }} onClick={() => setNotifications(ns => ns.map(x => x.id === n.id ? { ...x, read: true } : x))}>
                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                               {!n.read && <div style={{ width: 6, height: 6, borderRadius: 999, background: C.accent, flexShrink: 0 }} />}
-                              <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>{n.text}</div>
+                              <div className="notif-text" style={{ fontSize: isMobile ? 14 : 13, color: C.text, lineHeight: 1.5 }}>{n.text}</div>
                             </div>
-                            <div style={{ fontSize: 10, color: C.textMuted, marginTop: 4 }}>{(() => { const ago = Date.now() - n.time; if (ago < 60000) return "Just now"; if (ago < 3600000) return `${Math.floor(ago / 60000)}m ago`; if (ago < 86400000) return `${Math.floor(ago / 3600000)}h ago`; return new Date(n.time).toLocaleDateString("en-US", { month: "short", day: "numeric" }); })()}</div>
+                            <div className="notif-time" style={{ fontSize: isMobile ? 11 : 10, color: C.textMuted, marginTop: 4 }}>{(() => { const ago = Date.now() - n.time; if (ago < 60000) return "Just now"; if (ago < 3600000) return `${Math.floor(ago / 60000)}m ago`; if (ago < 86400000) return `${Math.floor(ago / 3600000)}h ago`; return new Date(n.time).toLocaleDateString("en-US", { month: "short", day: "numeric" }); })()}</div>
                           </div>
-                          <button onClick={() => setNotifications(ns => ns.filter(x => x.id !== n.id))} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: 14, padding: "2px 4px", flexShrink: 0, opacity: 0.5 }}>×</button>
+                          <button onClick={() => setNotifications(ns => ns.filter(x => x.id !== n.id))} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: isMobile ? 18 : 14, padding: isMobile ? "4px 6px" : "2px 4px", flexShrink: 0, opacity: 0.5 }}>×</button>
                         </div>
                       ))
                     )}
@@ -1978,7 +2014,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       <StatusBar phase={phase} businessName={businessName} sidebarOpen={sidebarOpen} isMobile={isMobile} userGoal={userGoal} onAddGoal={openGoalModal} />
 
       {/* LAYOUT: sidebar + chat + preview */}
-      <div style={{ display: "flex", height: `calc(100vh - 81px)`, position: "relative" }}>
+      <div style={{ display: "flex", height: `calc(100vh - ${isMobile ? 85 : 81}px)`, position: "relative" }}>
 
         {/* SIDEBAR BACKDROP (mobile only) */}
         {sidebarOpen && isMobile && (
@@ -1986,15 +2022,15 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {/* SIDEBAR */}
-        <aside style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, borderRight: sidebarOpen ? `1px solid ${C.border}` : "none", background: C.bg, transition: "all 500ms cubic-bezier(0.32,0.72,0,1)", overflow: "hidden", display: "flex", flexDirection: "column", position: isMobile ? "fixed" : "absolute", top: isMobile ? 0 : -81, bottom: 0, left: 0, paddingTop: isMobile ? 60 : 81, zIndex: 20 }}>
+        <aside style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, borderRight: sidebarOpen ? `1px solid ${C.border}` : "none", background: C.bg, transition: "all 500ms cubic-bezier(0.32,0.72,0,1)", overflow: "hidden", display: "flex", flexDirection: "column", position: isMobile ? "fixed" : "absolute", top: isMobile ? 0 : -81, bottom: 0, left: 0, paddingTop: isMobile ? 64 : 81, zIndex: 20 }}>
           <div style={{ padding: 10, opacity: sidebarOpen ? 1 : 0, transition: "opacity 400ms cubic-bezier(0.32,0.72,0,1)" }}>
             {/* New Business button */}
-            <button onClick={createNewChat} type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "9px 0", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+            <button onClick={createNewChat} type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: isMobile ? "11px 0" : "9px 0", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
               <Ic n="briefcase" className="h-4 w-4" /> New Business
             </button>
 
             {/* Tool buttons */}
-            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 2 }}>
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: isMobile ? 1 : 2 }}>
               <button type="button" className="z-glass" onClick={(e) => {
                 summariesOriginRef.current = { x: e.clientX, y: e.clientY };
                 setSummariesOpen(true);
@@ -2049,14 +2085,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             </div>
 
             {/* Search */}
-            <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, padding: "7px 10px", borderRadius: 999, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
+            <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "10px 12px" : "7px 10px", borderRadius: 999, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
               <Ic n="search" className="h-3.5 w-3.5" style={{ color: C.textMuted }} />
-              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search businesses..." style={{ flex: 1, background: "none", border: "none", outline: "none", color: C.text, fontSize: 12 }} />
-              {searchQuery && <HBtn onClick={() => setSearchQuery("")} style={{ width: 20, height: 20, color: C.textMuted }}><Ic n="close" className="h-3 w-3" /></HBtn>}
+              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search businesses..." style={{ flex: 1, background: "none", border: "none", outline: "none", color: C.text, fontSize: isMobile ? 14 : 12 }} />
+              {searchQuery && <HBtn onClick={() => setSearchQuery("")} style={{ width: isMobile ? 24 : 20, height: isMobile ? 24 : 20, color: C.textMuted }}><Ic n="close" className="h-3 w-3" /></HBtn>}
             </div>
           </div>
           <div style={{ height: 1, margin: "0 10px", background: C.border }} />
-          <div style={{ flex: 1, overflowY: "auto", padding: "6px 6px" }}>
+          <div className="z-scroll" style={{ flex: 1, overflowY: "auto", padding: "6px 6px" }}>
             <div style={{ padding: "4px 8px 6px", fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: C.textMuted }}>Your Businesses</div>
             {filteredChats.map((c) => {
               const isA = c.id === activeChatId; const isR = renamingChatId === c.id; const isExp = expandedBizId === c.id;
@@ -2067,7 +2103,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               return (
                 <div key={c.id} style={{ marginBottom: 2, borderRadius: 10, overflow: "hidden", border: isA ? `1px solid rgba(255,255,255,0.06)` : "1px solid transparent", background: isA ? "rgba(255,255,255,0.04)" : "transparent", transition: "all 500ms cubic-bezier(0.32,0.72,0,1)" }}>
                   {/* Business row */}
-                  <div className="chat-row" style={{ display: "flex", alignItems: "center", padding: "7px 8px", cursor: "pointer", transition: "background 500ms cubic-bezier(0.32,0.72,0,1)" }}
+                  <div className="chat-row" style={{ display: "flex", alignItems: "center", padding: isMobile ? "10px 10px" : "7px 8px", cursor: "pointer", transition: "background 500ms cubic-bezier(0.32,0.72,0,1)" }}
                     onMouseEnter={(e) => { if (!isA) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
                     <button onClick={() => { setActiveChatId(c.id); router.push(`/chat/${c.id}`, { scroll: false }); if (isMobile) setSidebarOpen(false); }} type="button" style={{ flex: 1, textAlign: "left", background: "none", border: "none", cursor: "pointer", color: C.text, padding: 0, overflow: "hidden" }}>
@@ -2159,27 +2195,27 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {/* CHAT */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 280, transition: dragRef.current ? "none" : "all 500ms cubic-bezier(0.32,0.72,0,1)", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0 }}>
-          <div style={{ flex: 1, overflowY: "auto", padding: showPreview ? "16px 12px" : "16px 16px" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, transition: dragRef.current ? "none" : "all 500ms cubic-bezier(0.32,0.72,0,1)", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0 }}>
+          <div className="z-scroll" style={{ flex: 1, overflowY: "auto", padding: isMobile ? "12px 10px" : (showPreview ? "16px 12px" : "16px 16px") }}>
             <div style={{ maxWidth: showPreview ? "100%" : 820, margin: "0 auto" }}>
               {!hasMessages ? (
                 <WelcomeScreen onAction={sendViaCard} />
               ) : (
-                <div style={{ paddingBottom: 140 }}>
+                <div style={{ paddingBottom: isMobile ? 120 : 140 }}>
                   {activeChat?.messages.map((m) => {
                     const isUser = m.role === "user";
                     return (
-                      <div key={m.id} className={isUser ? "user-row" : "msg-row"} style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: 16, gap: 10 }}>
-                        {!isUser && <div style={{ width: 26, height: 26, flexShrink: 0, marginTop: 2 }}><ZelrexZIcon size={26} /></div>}
-                        <div style={{ maxWidth: showPreview ? "100%" : 700 }}>
-                          <div style={{
-                            ...(isUser ? { display: "inline-block", padding: "8px 14px", borderRadius: 16, background: C.userBubble, border: `1px solid ${C.userBorder}` } : { padding: "4px 0 4px 14px", borderLeft: `2px solid ${C.accent}18` }),
+                      <div key={m.id} className={isUser ? "user-row" : "msg-row"} style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start", marginBottom: isMobile ? 14 : 16, gap: isMobile ? 8 : 10 }}>
+                        {!isUser && <div style={{ width: isMobile ? 24 : 26, height: isMobile ? 24 : 26, flexShrink: 0, marginTop: 2 }}><ZelrexZIcon size={isMobile ? 24 : 26} /></div>}
+                        <div style={{ maxWidth: isMobile ? "calc(100% - 40px)" : (showPreview ? "100%" : 700) }}>
+                          <div className={isUser ? "msg-bubble-user" : "msg-bubble-ai"} style={{
+                            ...(isUser ? { display: "inline-block", padding: isMobile ? "10px 16px" : "8px 14px", borderRadius: 16, background: C.userBubble, border: `1px solid ${C.userBorder}` } : { padding: isMobile ? "6px 0 6px 14px" : "4px 0 4px 14px", borderLeft: `2px solid ${C.accent}18` }),
                           }}>
                             {m.role === "assistant" ? (
                               <>
                                 {shouldAnimate(m, activeChat) && !animatedIds.includes(m.id) ? (
                                   <Typewriter text={m.content} speed={6} onFinish={() => setAnimatedIds((p) => p.includes(m.id) ? p : [...p, m.id])} />
-                                ) : ( <div>{formatMessage(m.content)}</div> )}
+                                ) : ( <div className="msg-content">{formatMessage(m.content)}</div> )}
                                 {m.previewUrl && websiteData && <div style={{ marginTop: 14 }}><ActionPill label="Open website preview" onClick={() => setPreviewOpen(true)} /></div>}
                                 <div className="msg-actions">
                                   <button className="msg-act" title="Copy" onClick={() => { navigator.clipboard.writeText(m.content); setCopiedMsgId(m.id); setTimeout(() => setCopiedMsgId(null), 1200); }}>
@@ -2202,16 +2238,16 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                                 {m.attachments && m.attachments.length > 0 && (
                                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: m.content.trim() ? 8 : 0 }}>
                                     {m.attachments.map((att, i) => att.kind === "image" ? (
-                                      <img key={i} src={att.data} alt={att.name} style={{ maxWidth: 220, maxHeight: 180, borderRadius: 12, objectFit: "cover", border: `1px solid ${C.border}` }} />
+                                      <img key={i} src={att.data} alt={att.name} className="msg-img" style={{ maxWidth: isMobile ? 260 : 220, maxHeight: isMobile ? 220 : 180, borderRadius: 12, objectFit: "cover", border: `1px solid ${C.border}` }} />
                                     ) : (
-                                      <div key={i} style={{ padding: "8px 14px", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, fontSize: 12, color: C.textSec, display: "flex", alignItems: "center", gap: 6 }}>
+                                      <div key={i} className="msg-file" style={{ padding: "8px 14px", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, fontSize: 12, color: C.textSec, display: "flex", alignItems: "center", gap: 6 }}>
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                                         {att.name}
                                       </div>
                                     ))}
                                   </div>
                                 )}
-                                {m.content.trim() && <div style={{ fontSize: 15, lineHeight: 1.7 }}>{m.content}</div>}
+                                {m.content.trim() && <div className="msg-content" style={{ fontSize: 15, lineHeight: 1.7 }}>{m.content}</div>}
                               </>
                             )}
                           </div>
@@ -2237,7 +2273,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           </div>
 
           {/* INPUT */}
-          <div className="z-input-area" style={{ padding: isMobile ? "6px 8px 10px" : (showPreview ? "8px 12px 14px" : "8px 16px 18px"), position: "relative" }}>
+          <div className="z-input-area" style={{ padding: isMobile ? "6px 8px 12px" : (showPreview ? "8px 12px 14px" : "8px 16px 18px"), position: "relative" }}>
             {!surveyData && !showSurvey && activeChat?.pendingSurvey && (
               <div style={{ maxWidth: showPreview ? "100%" : 820, margin: "0 auto 10px", borderRadius: 999, border: `1px solid ${C.border}`, background: C.bg, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, position: "relative", zIndex: 2 }}>
                 <div style={{ fontSize: 12, color: C.textSec }}>Survey paused. Continue to finish your website build.</div>
@@ -2263,31 +2299,31 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               {draftAttachments.length > 0 && (
                 <div style={{ padding: "8px 8px 0", display: "flex", flexWrap: "wrap", gap: 6 }}>
                   {draftAttachments.map((a) => (
-                    <div key={a.id} style={{ width: 64, height: 64, borderRadius: 10, border: `1px solid ${C.border}`, overflow: "hidden", position: "relative", background: "rgba(0,0,0,0.2)" }}>
+                    <div key={a.id} className="att-thumb" style={{ width: isMobile ? 72 : 64, height: isMobile ? 72 : 64, borderRadius: 10, border: `1px solid ${C.border}`, overflow: "hidden", position: "relative", background: "rgba(0,0,0,0.2)" }}>
                       {a.kind === "image" ? <img src={a.previewUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ padding: 6, fontSize: 9, color: C.textSec }}>{a.file.name}</div>}
-                      <button type="button" onClick={() => removeAtt(a.id)} style={{ position: "absolute", right: 2, top: 2, width: 18, height: 18, borderRadius: 999, background: "rgba(0,0,0,0.6)", border: "none", color: "#fff", fontSize: 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>&times;</button>
+                      <button type="button" onClick={() => removeAtt(a.id)} className="att-remove" style={{ position: "absolute", right: 2, top: 2, width: isMobile ? 22 : 18, height: isMobile ? 22 : 18, borderRadius: 999, background: "rgba(0,0,0,0.6)", border: "none", color: "#fff", fontSize: isMobile ? 14 : 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>&times;</button>
                     </div>
                   ))}
                 </div>
               )}
-              <div style={{ display: "flex", alignItems: "center", padding: "4px 8px" }}>
+              <div style={{ display: "flex", alignItems: "center", padding: isMobile ? "4px 6px" : "4px 8px" }}>
                 <div style={{ position: "relative" }}>
                   <input ref={imageInputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.currentTarget.value = ""; }} />
                   <input ref={fileInputRef} type="file" multiple style={{ display: "none" }} onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.currentTarget.value = ""; }} />
-                  <HBtn onClick={() => setAttachMenuOpen((v) => !v)} style={{ width: 38, height: 38, color: C.textMuted }}><Ic n="plus" style={{ width: 20, height: 20 }} /></HBtn>
+                  <HBtn onClick={() => setAttachMenuOpen((v) => !v)} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: C.textMuted }}><Ic n="plus" style={{ width: 20, height: 20 }} /></HBtn>
                   {attachMenuOpen && (
-                    <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "absolute", left: 0, bottom: 42, zIndex: 50, width: 140, borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 12px 36px rgba(0,0,0,0.5)", overflow: "hidden" }}>
-                      <button type="button" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} className="z-glass" style={{ width: "100%", padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", textAlign: "left" }}>Add images</button>
-                      <button type="button" onClick={() => { setAttachMenuOpen(false); fileInputRef.current?.click(); }} className="z-glass" style={{ width: "100%", padding: "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer", textAlign: "left" }}>Add files</button>
+                    <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "absolute", left: 0, bottom: isMobile ? 48 : 42, zIndex: 50, width: isMobile ? 160 : 140, borderRadius: 12, border: `1px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 12px 36px rgba(0,0,0,0.5)", overflow: "hidden" }}>
+                      <button type="button" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} className="z-glass" style={{ width: "100%", padding: isMobile ? "12px 14px" : "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: isMobile ? 14 : 12, cursor: "pointer", textAlign: "left" }}>Add images</button>
+                      <button type="button" onClick={() => { setAttachMenuOpen(false); fileInputRef.current?.click(); }} className="z-glass" style={{ width: "100%", padding: isMobile ? "12px 14px" : "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: isMobile ? 14 : 12, cursor: "pointer", textAlign: "left" }}>Add files</button>
                     </div>
                   )}
                 </div>
                 <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} onPaste={onPaste} placeholder="Ask anything"
-                  style={{ flex: 1, maxHeight: 200, minHeight: 42, height: 42, resize: "none", background: "none", border: "none", outline: "none", padding: "10px 8px", fontSize: 14, lineHeight: 1.5, color: C.text, boxSizing: "border-box" }} />
-                <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
-                  <HBtn onClick={startSpeech} style={{ width: 38, height: 38, color: listening ? C.accent : C.textMuted }}><Ic n="mic" style={{ width: 20, height: 20 }} /></HBtn>
+                  style={{ flex: 1, maxHeight: 200, minHeight: isMobile ? 44 : 42, height: isMobile ? 44 : 42, resize: "none", background: "none", border: "none", outline: "none", padding: isMobile ? "11px 8px" : "10px 8px", fontSize: isMobile ? 16 : 14, lineHeight: 1.5, color: C.text, boxSizing: "border-box" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 2 }}>
+                  <HBtn onClick={startSpeech} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: listening ? C.accent : C.textMuted }}><Ic n="mic" style={{ width: 20, height: 20 }} /></HBtn>
                   <HBtn onClick={isSending ? stopResponse : () => sendMessage()}
-                    style={{ width: 38, height: 38, background: (isSending || input.trim() || draftAttachments.length) ? C.accent : "rgba(255,255,255,0.06)", color: (isSending || input.trim() || draftAttachments.length) ? "#fff" : C.textMuted, boxShadow: (input.trim() || draftAttachments.length) ? `0 2px 10px ${C.accentGlow}` : "none" }}>
+                    style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, background: (isSending || input.trim() || draftAttachments.length) ? C.accent : "rgba(255,255,255,0.06)", color: (isSending || input.trim() || draftAttachments.length) ? "#fff" : C.textMuted, boxShadow: (input.trim() || draftAttachments.length) ? `0 2px 10px ${C.accentGlow}` : "none" }}>
                     {isSending ? <Ic n="stop" style={{ width: 18, height: 18 }} /> : <Ic n="send" style={{ width: 20, height: 20 }} />}
                   </HBtn>
                 </div>
@@ -2492,15 +2528,25 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               @media(max-width:768px) {
                 .stg-layout { flex-direction: column !important; }
                 .stg-sidebar { width: 100% !important; border-right: none !important; border-bottom: 0.5px solid rgba(255,255,255,0.05) !important; padding: 12px 12px 0 !important; }
-                .stg-sidebar nav { flex-direction: row !important; gap: 2px !important; overflow-x: auto !important; padding-bottom: 12px !important; }
-                .stg-sidebar nav button { padding: 8px 14px !important; white-space: nowrap !important; font-size: 12px !important; }
+                .stg-sidebar nav { flex-direction: row !important; gap: 2px !important; overflow-x: auto !important; padding-bottom: 12px !important; -webkit-overflow-scrolling: touch !important; scrollbar-width: none !important; }
+                .stg-sidebar nav::-webkit-scrollbar { display: none !important; }
+                .stg-sidebar nav button { padding: 10px 16px !important; white-space: nowrap !important; font-size: 12px !important; min-height: 42px !important; }
                 .stg-sidebar .stg-logo-row { display: none !important; }
                 .stg-sidebar .stg-version { display: none !important; }
                 .stg-content-header { padding: 14px 16px !important; }
                 .stg-content-header .stg-title { font-size: 18px !important; }
                 .stg-content-scroll { padding: 16px !important; }
                 .stg-card { padding: 14px !important; }
-                .stg-row { padding: 12px 14px !important; flex-wrap: wrap !important; }
+                .stg-row { padding: 14px 0 !important; flex-wrap: wrap !important; gap: 10px !important; }
+                .stg-row-label { font-size: 13px !important; }
+                .stg-row-desc { font-size: 12px !important; }
+                .stg-select { min-width: 110px !important; padding: 10px 38px 10px 14px !important; font-size: 13px !important; }
+                .stg-toggle { width: 52px !important; height: 28px !important; }
+                .stg-input { padding: 14px 16px !important; font-size: 15px !important; }
+                .stg-btn { padding: 10px 18px !important; font-size: 14px !important; min-height: 42px !important; }
+                .stg-section { margin-bottom: 28px !important; }
+                .stg-pwd-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+                .stg-close-btn { width: 36px !important; height: 36px !important; }
               }
             `}</style>
 
@@ -2548,13 +2594,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                     {settingsTab === "data" && "Terms of Service and Privacy Policy"}
                   </div>
                 </div>
-                <button onClick={closeSettings} className="stg-btn" style={{ width: 38, height: 38, borderRadius: 11, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <button onClick={closeSettings} className="stg-btn stg-close-btn" style={{ width: 38, height: 38, borderRadius: 11, padding: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Ic n="close" style={{ width: 16, height: 16, position: "relative", zIndex: 1 }} />
                 </button>
               </div>
 
               {/* Scrollable content — centered with max-width */}
-              <div style={{ flex: 1, overflowY: "auto", display: "flex", justifyContent: "center" }}>
+              <div className="z-scroll" style={{ flex: 1, overflowY: "auto", display: "flex", justifyContent: "center" }}>
                 <div className="stg-content-scroll" style={{ width: "100%", maxWidth: 600, padding: "36px 32px 60px" }}>
 
                 {/* ─── ACCOUNT TAB ─── */}
