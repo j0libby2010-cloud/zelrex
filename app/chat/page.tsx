@@ -463,6 +463,27 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     setZelrexSettings(prev => { const next = { ...prev, [key]: val }; try { localStorage.setItem("zelrex_settings", JSON.stringify(next)); } catch {} return next; });
   };
 
+  // ─── Password change state ────────────────────────────────────────
+  const [pwCurrent, setPwCurrent] = useState("");
+  const [pwNew, setPwNew] = useState("");
+  const [pwConfirm, setPwConfirm] = useState("");
+  const [pwStatus, setPwStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  const [pwLoading, setPwLoading] = useState(false);
+  const handlePasswordChange = async () => {
+    setPwStatus(null);
+    if (!pwNew || !pwConfirm) { setPwStatus({ type: "error", msg: "Please fill in all fields" }); return; }
+    if (pwNew.length < 8) { setPwStatus({ type: "error", msg: "New password must be at least 8 characters" }); return; }
+    if (pwNew !== pwConfirm) { setPwStatus({ type: "error", msg: "Passwords do not match" }); return; }
+    setPwLoading(true);
+    try {
+      await clerkUser?.updatePassword({ currentPassword: pwCurrent, newPassword: pwNew });
+      setPwStatus({ type: "success", msg: "Password updated successfully" });
+      setPwCurrent(""); setPwNew(""); setPwConfirm("");
+    } catch (e: any) {
+      setPwStatus({ type: "error", msg: e?.errors?.[0]?.longMessage || e?.message || "Failed to update password" });
+    } finally { setPwLoading(false); }
+  };
+
   // ─── Liquid glass toggle animation state ───────────────────────────
   const [slidingToggles, setSlidingToggles] = useState({});
   const handleToggle = (key) => {
@@ -2671,13 +2692,66 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                         </div>
                         <div style={{ padding: "9px 14px", borderRadius: 12, border: "1px solid rgba(255,255,255,0.04)", background: "rgba(255,255,255,0.015)", color: C.textSec, fontSize: 13, maxWidth: 200, textAlign: "right", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{clerkUser?.primaryEmailAddress?.emailAddress || "—"}</div>
                       </div>
-                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Sign-In Method</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{clerkUser?.externalAccounts?.[0]?.provider ? `Signed in via ${clerkUser.externalAccounts[0].provider}` : "Email & password"}</div>
                         </div>
                         <span style={{ padding: "6px 14px", borderRadius: 999, background: "rgba(16,185,129,0.10)", border: "1px solid rgba(16,185,129,0.20)", color: "#10B981", fontSize: 12, fontWeight: 600 }}>Active</span>
                       </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Chat History</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Save conversation history for continuity</div>
+                        </div>
+                        <button className={tglClass("chatHistoryEnabled")} onClick={() => handleToggle("chatHistoryEnabled")}><span className="stg-knob" /></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Export All Data</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Download all your chats, settings, and goals</div>
+                        </div>
+                        <button className="stg-btn" onClick={() => {
+                          const exportData = { chats: chats.map(c => ({ title: c.title, messages: c.messages.map(m => ({ role: m.role, content: m.content, time: m.createdAt })) })), settings: zelrexSettings, goal: userGoal, exportedAt: new Date().toISOString() };
+                          const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement("a"); a.href = url; a.download = `zelrex-export-${new Date().toISOString().slice(0,10)}.json`; a.click();
+                          URL.revokeObjectURL(url);
+                        }}><span>Export</span></button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Change Password</div>
+                    <div className="stg-card" style={{ padding: "20px 22px" }}>
+                      {clerkUser?.externalAccounts?.[0]?.provider ? (
+                        <div style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: "8px 0" }}>
+                          Password management is not available for accounts signed in via {clerkUser.externalAccounts[0].provider}.
+                        </div>
+                      ) : (<>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                          <div>
+                            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>Current Password</label>
+                            <input className="stg-input" type="password" value={pwCurrent} onChange={e => setPwCurrent(e.target.value)} placeholder="Enter current password" autoComplete="current-password" />
+                          </div>
+                          <div>
+                            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>New Password</label>
+                            <input className="stg-input" type="password" value={pwNew} onChange={e => setPwNew(e.target.value)} placeholder="At least 8 characters" autoComplete="new-password" />
+                          </div>
+                          <div>
+                            <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>Confirm New Password</label>
+                            <input className="stg-input" type="password" value={pwConfirm} onChange={e => setPwConfirm(e.target.value)} placeholder="Confirm new password" autoComplete="new-password" />
+                          </div>
+                        </div>
+                        {pwStatus && (
+                          <div style={{ marginTop: 12, padding: "8px 14px", borderRadius: 10, background: pwStatus.type === "success" ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)", border: `1px solid ${pwStatus.type === "success" ? "rgba(16,185,129,0.2)" : "rgba(239,68,68,0.2)"}`, fontSize: 12, fontWeight: 500, color: pwStatus.type === "success" ? "#10B981" : "#EF4444" }}>
+                            {pwStatus.msg}
+                          </div>
+                        )}
+                        <button className="stg-btn stg-btn-accent" disabled={pwLoading} onClick={handlePasswordChange} style={{ marginTop: 16, width: "100%", padding: "11px", borderRadius: 12, fontSize: 13, fontWeight: 700, opacity: pwLoading ? 0.6 : 1 }}>
+                          <span style={{ position: "relative", zIndex: 1 }}>{pwLoading ? "Updating…" : "Update Password"}</span>
+                        </button>
+                      </>)}
                     </div>
                   </div>
                   <div className="stg-section">
@@ -2762,7 +2836,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div className="stg-section">
                     <div className="stg-section-title">AI Configuration</div>
                     <div className="stg-card" style={{ padding: 0 }}>
-                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Response Style</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>How Zelrex communicates with you</div>
@@ -2772,6 +2846,27 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                           <option value="detailed">Detailed</option>
                           <option value="coaching">Coaching</option>
                         </select>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Revenue-First Advice</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Prioritize revenue-generating recommendations</div>
+                        </div>
+                        <button className={tglClass("revenueFirst")} onClick={() => handleToggle("revenueFirst")}><span className="stg-knob" /></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Honest Idea Feedback</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Zelrex will flag weak ideas instead of just agreeing</div>
+                        </div>
+                        <button className={tglClass("ideaRejection")} onClick={() => handleToggle("ideaRejection")}><span className="stg-knob" /></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Proactive Suggestions</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Zelrex offers tips and next steps without being asked</div>
+                        </div>
+                        <button className={tglClass("proactiveSuggestions")} onClick={() => handleToggle("proactiveSuggestions")}><span className="stg-knob" /></button>
                       </div>
                     </div>
                   </div>
@@ -2846,6 +2941,18 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Automatically analyze traffic and revenue patterns</div>
                         </div>
                         <button className={tglClass("permAutoAnalytics")} onClick={() => handleToggle("permAutoAnalytics")}><span className="stg-knob" /></button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Preferences</div>
+                    <div className="stg-card" style={{ padding: 0 }}>
+                      <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Sound Effects</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Play sounds for notifications and actions</div>
+                        </div>
+                        <button className={tglClass("soundEffects")} onClick={() => handleToggle("soundEffects")}><span className="stg-knob" /></button>
                       </div>
                     </div>
                   </div>
@@ -2953,6 +3060,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Alert when website traffic or revenue drops significantly</div>
                         </div>
                         <button className={tglClass("notifTrafficDrops")} onClick={() => handleToggle("notifTrafficDrops")}><span className="stg-knob" /></button>
+                      </div>
+                      <div className="stg-row" style={{ padding: "16px 22px" }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Revenue Changes</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Alert when your revenue changes significantly</div>
+                        </div>
+                        <button className={tglClass("notifRevenueChanges")} onClick={() => handleToggle("notifRevenueChanges")}><span className="stg-knob" /></button>
                       </div>
                       <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
                         <div>
