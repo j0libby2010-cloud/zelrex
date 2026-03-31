@@ -315,6 +315,7 @@ export async function POST(req: Request) {
     const messages = body.messages ?? [];
     const surveyData = body.surveyData;
     const responseStyle: string = body.responseStyle || "direct";
+    const language: string = body.language || "en";
     const attachments: any[] = body.attachments || [];
     const currentTime: string = body.currentTime || new Date().toISOString();
     const userGoal: { text: string; target: string; deadline: string } | undefined = body.userGoal;
@@ -326,6 +327,12 @@ export async function POST(req: Request) {
       coaching: "Respond like a mentor. Ask guiding questions. Help the user think through decisions.",
     };
     let styleInstruction = `\n\nCOMMUNICATION STYLE: ${responseStyles[responseStyle] || responseStyles.direct}`;
+
+    // Language instruction
+    const langNames: Record<string, string> = { en: "English", es: "Spanish", fr: "French", de: "German", pt: "Portuguese", ja: "Japanese", zh: "Chinese", ko: "Korean", ar: "Arabic", hi: "Hindi" };
+    if (language && language !== "en") {
+      styleInstruction += `\n\nLANGUAGE: Respond entirely in ${langNames[language] || language}. All text, headers, explanations, and suggestions must be in ${langNames[language] || language}.`;
+    }
 
     // Inject current time so Zelrex is always aware
     styleInstruction += `\n\nCURRENT DATE AND TIME: ${currentTime}`;
