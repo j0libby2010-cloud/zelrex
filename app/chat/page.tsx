@@ -15,7 +15,7 @@ import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
 type Role = "user" | "assistant";
 type Msg = { id: string; role: Role; content: string; createdAt: number; previewUrl?: string; attachments?: { name: string; type: string; kind: string; data: string }[] };
-type Chat = { id: string; title: string; messages: Msg[]; updatedAt: number; pendingSurvey?: boolean; websiteData?: any; deployData?: any; surveyData?: any };
+type Chat = { id: string; title: string; messages: Msg[]; createdAt: number; updatedAt: number; pendingSurvey?: boolean; websiteData?: any; deployData?: any; surveyData?: any };
 type DraftAttachment = { id: string; file: File; kind: "image" | "file"; previewUrl?: string };
 type BusinessPhase = "ready" | "intake" | "evaluating" | "building" | "live";
 
@@ -561,6 +561,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           id: c.id,
           title: c.title || "New business",
           messages: c.messages || [],
+          createdAt: new Date(c.created_at).getTime(),
           updatedAt: new Date(c.updated_at).getTime(),
           pendingSurvey: c.pending_survey,
           websiteData: c.website_data || c.websiteData || undefined,
@@ -1536,7 +1537,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   async function createNewChat() {
     const dbChat = await db.createChat("New business");
     const chatId = dbChat?.id || uid("chat");
-    const c: Chat = { id: chatId, title: "New business", messages: [], updatedAt: Date.now(), pendingSurvey: false };
+    const c: Chat = { id: chatId, title: "New business", messages: [], createdAt: Date.now(), updatedAt: Date.now(), pendingSurvey: false };
     setChats((p) => [c, ...p]); setActiveChatId(c.id); setOpenChatMenuId(null); setRenamingChatId(null); setExpandedBizId(null); setInput(""); setPreviewOpen(false); setShowSurvey(false); setSurveyData(null); setDraftAttachments((p) => { for (const a of p) if (a.previewUrl) URL.revokeObjectURL(a.previewUrl); return []; }); if (isMobile) setSidebarOpen(false);
     router.push(`/chat/${chatId}`, { scroll: false });
   }
@@ -2016,7 +2017,9 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             {filteredChats.map((c) => {
               const isA = c.id === activeChatId; const isR = renamingChatId === c.id; const isExp = expandedBizId === c.id;
               const bizPhase = detectPhase(c.messages, !!(c as any).websiteData); const bizName = getBusinessName(c.messages);
-              const createdDate = c.id.includes("_") ? new Date(parseInt(c.id.split("_").pop() || "0", 16)).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+              const createdDate = c.createdAt ? new Date(c.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : (c.messages[0]?.createdAt ? new Date(c.messages[0].createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—");
+              const bizType = (c as any).surveyData?.businessType || null;
+              const phaseLabel: Record<string, string> = { ready: "Getting started", intake: "Discovery", evaluating: "Evaluating", building: "Building site", live: "Live" };
               return (
                 <div key={c.id} style={{ marginBottom: 2, borderRadius: 10, overflow: "hidden", border: isA ? `1px solid rgba(255,255,255,0.06)` : "1px solid transparent", background: isA ? "rgba(255,255,255,0.04)" : "transparent", transition: "all 500ms cubic-bezier(0.32,0.72,0,1)" }}>
                   {/* Business row */}
@@ -2047,7 +2050,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                         </div>
                         <div style={{ padding: "6px 8px", borderRadius: 10, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
                           <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Type</div>
-                          <div style={{ fontSize: 11, color: C.textSec, marginTop: 2 }}>{bizName ? "Freelance" : "—"}</div>
+                          <div style={{ fontSize: 11, color: bizType ? C.textSec : C.textMuted, marginTop: 2, textTransform: "capitalize" }}>{bizType || "—"}</div>
                         </div>
                         <div style={{ padding: "6px 8px", borderRadius: 10, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
                           <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Website</div>
@@ -2055,7 +2058,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                         </div>
                         <div style={{ padding: "6px 8px", borderRadius: 10, background: "rgba(255,255,255,0.02)", border: `1px solid rgba(255,255,255,0.04)` }}>
                           <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>Progress</div>
-                          <div style={{ fontSize: 11, color: bizPhase === "live" ? "#10B981" : bizPhase === "evaluating" ? "#F59E0B" : C.textSec, marginTop: 2, textTransform: "capitalize" }}>{bizPhase}</div>
+                          <div style={{ fontSize: 11, color: bizPhase === "live" ? "#10B981" : bizPhase === "evaluating" ? "#F59E0B" : bizPhase === "building" ? "#8B5CF6" : C.textSec, marginTop: 2 }}>{phaseLabel[bizPhase] || bizPhase}</div>
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 4 }}>
@@ -2476,7 +2479,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 ))}
               </nav>
               <div className="stg-version" style={{ paddingTop: 16, borderTop: `1px solid rgba(255,255,255,0.04)`, paddingLeft: 6 }}>
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.13)", letterSpacing: "0.01em" }}>Zelrex v1.0 · Claude Opus 4.6</span>
+                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.13)", letterSpacing: "0.01em" }}>Zelrex v1.0</span>
               </div>
             </div>
 
