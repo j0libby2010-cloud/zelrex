@@ -9,6 +9,20 @@ import { WebsiteSurvey, SurveyData } from "@/website/pages/components/Websitesur
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { WeeklySummaries } from "@/components/WeeklySummaries";
 import { OutreachSystem } from "@/components/OutreachSystem";
+
+// ─── LANGUAGE PRESETS ────────────────────────────────────────────
+const i18n: Record<string, Record<string, string>> = {
+  en: { newBusiness: "New Business", weeklySummaries: "Weekly Summaries", businessAnalytics: "Business Analytics", outreach: "Outreach", clients: "Clients", setGoal: "Set Goal", myGoal: "My Goal", searchBiz: "Search businesses...", askAnything: "Ask anything", notifications: "Notifications", noNotif: "No notifications yet", readAll: "Read all", clearAll: "Clear all", copied: "Copied", showMore: "Show more", settings: "Settings", send: "Send", retry: "Retry", copy: "Copy", goodResponse: "Good response", badResponse: "Bad response", welcome: "Welcome to Zelrex", tutorialStep1: "Chat with Zelrex to build your freelance business", tutorialStep2: "Use Outreach to find and contact prospects", tutorialStep3: "Manage clients, invoices, and contracts in one place", tutorialStep4: "Track your analytics and revenue growth", gotIt: "Got it", next: "Next", skip: "Skip tutorial", justNow: "Just now", mAgo: "m ago", hAgo: "h ago" },
+  es: { newBusiness: "Nuevo Negocio", weeklySummaries: "Resúmenes Semanales", businessAnalytics: "Analíticas", outreach: "Alcance", clients: "Clientes", setGoal: "Establecer Meta", myGoal: "Mi Meta", searchBiz: "Buscar negocios...", askAnything: "Pregunta lo que quieras", notifications: "Notificaciones", noNotif: "Sin notificaciones", readAll: "Marcar leídas", clearAll: "Borrar todo", copied: "Copiado", showMore: "Mostrar más", settings: "Ajustes", send: "Enviar", retry: "Reintentar", copy: "Copiar", goodResponse: "Buena respuesta", badResponse: "Mala respuesta", welcome: "Bienvenido a Zelrex", tutorialStep1: "Chatea con Zelrex para construir tu negocio", tutorialStep2: "Usa Alcance para encontrar prospectos", tutorialStep3: "Gestiona clientes, facturas y contratos", tutorialStep4: "Rastrea tus analíticas y crecimiento", gotIt: "Entendido", next: "Siguiente", skip: "Saltar tutorial", justNow: "Ahora", mAgo: "m atrás", hAgo: "h atrás" },
+  fr: { newBusiness: "Nouvelle Entreprise", weeklySummaries: "Résumés Hebdo", businessAnalytics: "Analytiques", outreach: "Prospection", clients: "Clients", setGoal: "Définir Objectif", myGoal: "Mon Objectif", searchBiz: "Rechercher...", askAnything: "Posez votre question", notifications: "Notifications", noNotif: "Aucune notification", readAll: "Tout lire", clearAll: "Tout effacer", copied: "Copié", showMore: "Voir plus", settings: "Paramètres", send: "Envoyer", retry: "Réessayer", copy: "Copier", goodResponse: "Bonne réponse", badResponse: "Mauvaise réponse", welcome: "Bienvenue sur Zelrex", tutorialStep1: "Discutez avec Zelrex pour créer votre entreprise", tutorialStep2: "Utilisez Prospection pour trouver des prospects", tutorialStep3: "Gérez clients, factures et contrats", tutorialStep4: "Suivez vos analytiques et croissance", gotIt: "Compris", next: "Suivant", skip: "Passer le tutoriel", justNow: "À l'instant", mAgo: "m", hAgo: "h" },
+  de: { newBusiness: "Neues Geschäft", weeklySummaries: "Wochenberichte", businessAnalytics: "Analysen", outreach: "Akquise", clients: "Kunden", setGoal: "Ziel setzen", myGoal: "Mein Ziel", searchBiz: "Suchen...", askAnything: "Frag was du willst", notifications: "Benachrichtigungen", noNotif: "Keine Benachrichtigungen", readAll: "Alle lesen", clearAll: "Alle löschen", copied: "Kopiert", showMore: "Mehr anzeigen", settings: "Einstellungen", send: "Senden", retry: "Erneut", copy: "Kopieren", goodResponse: "Gute Antwort", badResponse: "Schlechte Antwort", welcome: "Willkommen bei Zelrex", tutorialStep1: "Chatte mit Zelrex um dein Business aufzubauen", tutorialStep2: "Nutze Akquise um Interessenten zu finden", tutorialStep3: "Verwalte Kunden, Rechnungen und Verträge", tutorialStep4: "Verfolge deine Analysen und Wachstum", gotIt: "Verstanden", next: "Weiter", skip: "Tutorial überspringen", justNow: "Gerade", mAgo: "m", hAgo: "h" },
+  pt: { newBusiness: "Novo Negócio", weeklySummaries: "Resumos Semanais", businessAnalytics: "Análises", outreach: "Prospecção", clients: "Clientes", setGoal: "Definir Meta", myGoal: "Minha Meta", searchBiz: "Buscar...", askAnything: "Pergunte qualquer coisa", notifications: "Notificações", noNotif: "Sem notificações", readAll: "Ler todas", clearAll: "Limpar tudo", copied: "Copiado", showMore: "Mostrar mais", settings: "Configurações", send: "Enviar", retry: "Tentar novamente", copy: "Copiar", goodResponse: "Boa resposta", badResponse: "Má resposta", welcome: "Bem-vindo ao Zelrex", tutorialStep1: "Converse com Zelrex para construir seu negócio", tutorialStep2: "Use Prospecção para encontrar clientes", tutorialStep3: "Gerencie clientes, faturas e contratos", tutorialStep4: "Acompanhe suas análises e crescimento", gotIt: "Entendi", next: "Próximo", skip: "Pular tutorial", justNow: "Agora", mAgo: "m atrás", hAgo: "h atrás" },
+  ja: { newBusiness: "新規ビジネス", weeklySummaries: "週次サマリー", businessAnalytics: "分析", outreach: "アウトリーチ", clients: "クライアント", setGoal: "目標設定", myGoal: "目標", searchBiz: "検索...", askAnything: "何でも聞いてください", notifications: "通知", noNotif: "通知なし", readAll: "すべて既読", clearAll: "すべて削除", copied: "コピー済み", showMore: "もっと見る", settings: "設定", send: "送信", retry: "再試行", copy: "コピー", goodResponse: "良い回答", badResponse: "悪い回答", welcome: "Zelrexへようこそ", tutorialStep1: "Zelrexとチャットしてビジネスを構築", tutorialStep2: "アウトリーチで見込み客を探す", tutorialStep3: "クライアント、請求書、契約を管理", tutorialStep4: "分析と収益の成長を追跡", gotIt: "了解", next: "次へ", skip: "スキップ", justNow: "たった今", mAgo: "分前", hAgo: "時間前" },
+  zh: { newBusiness: "新业务", weeklySummaries: "每周摘要", businessAnalytics: "数据分析", outreach: "拓展", clients: "客户", setGoal: "设定目标", myGoal: "我的目标", searchBiz: "搜索...", askAnything: "有什么问题", notifications: "通知", noNotif: "暂无通知", readAll: "全部已读", clearAll: "清除全部", copied: "已复制", showMore: "显示更多", settings: "设置", send: "发送", retry: "重试", copy: "复制", goodResponse: "好回答", badResponse: "差回答", welcome: "欢迎使用 Zelrex", tutorialStep1: "与 Zelrex 聊天来构建您的业务", tutorialStep2: "使用拓展功能寻找潜在客户", tutorialStep3: "管理客户、发票和合同", tutorialStep4: "跟踪您的分析和收入增长", gotIt: "知道了", next: "下一步", skip: "跳过教程", justNow: "刚刚", mAgo: "分钟前", hAgo: "小时前" },
+  ko: { newBusiness: "새 비즈니스", weeklySummaries: "주간 요약", businessAnalytics: "분석", outreach: "아웃리치", clients: "고객", setGoal: "목표 설정", myGoal: "내 목표", searchBiz: "검색...", askAnything: "무엇이든 물어보세요", notifications: "알림", noNotif: "알림 없음", readAll: "모두 읽기", clearAll: "모두 삭제", copied: "복사됨", showMore: "더 보기", settings: "설정", send: "보내기", retry: "다시 시도", copy: "복사", goodResponse: "좋은 답변", badResponse: "나쁜 답변", welcome: "Zelrex에 오신 것을 환영합니다", tutorialStep1: "Zelrex와 채팅하여 비즈니스를 구축하세요", tutorialStep2: "아웃리치로 잠재 고객을 찾으세요", tutorialStep3: "고객, 인보이스, 계약을 관리하세요", tutorialStep4: "분석과 수익 성장을 추적하세요", gotIt: "알겠습니다", next: "다음", skip: "건너뛰기", justNow: "방금", mAgo: "분 전", hAgo: "시간 전" },
+  ar: { newBusiness: "عمل جديد", weeklySummaries: "ملخصات أسبوعية", businessAnalytics: "التحليلات", outreach: "التواصل", clients: "العملاء", setGoal: "تحديد هدف", myGoal: "هدفي", searchBiz: "بحث...", askAnything: "اسأل أي شيء", notifications: "الإشعارات", noNotif: "لا توجد إشعارات", readAll: "قراءة الكل", clearAll: "مسح الكل", copied: "تم النسخ", showMore: "عرض المزيد", settings: "الإعدادات", send: "إرسال", retry: "إعادة المحاولة", copy: "نسخ", goodResponse: "رد جيد", badResponse: "رد سيئ", welcome: "مرحباً بك في Zelrex", tutorialStep1: "تحدث مع Zelrex لبناء عملك", tutorialStep2: "استخدم التواصل للعثور على عملاء", tutorialStep3: "إدارة العملاء والفواتير والعقود", tutorialStep4: "تتبع التحليلات ونمو الإيرادات", gotIt: "فهمت", next: "التالي", skip: "تخطي", justNow: "الآن", mAgo: "د", hAgo: "س" },
+  hi: { newBusiness: "नया व्यापार", weeklySummaries: "साप्ताहिक सारांश", businessAnalytics: "विश्लेषण", outreach: "आउटरीच", clients: "ग्राहक", setGoal: "लक्ष्य निर्धारित करें", myGoal: "मेरा लक्ष्य", searchBiz: "खोजें...", askAnything: "कुछ भी पूछें", notifications: "सूचनाएं", noNotif: "कोई सूचना नहीं", readAll: "सब पढ़ें", clearAll: "सब हटाएं", copied: "कॉपी किया", showMore: "और दिखाएं", settings: "सेटिंग्स", send: "भेजें", retry: "पुनः प्रयास", copy: "कॉपी", goodResponse: "अच्छा जवाब", badResponse: "बुरा जवाब", welcome: "Zelrex में आपका स्वागत है", tutorialStep1: "Zelrex से बात करके अपना व्यापार बनाएं", tutorialStep2: "आउटरीच से संभावित ग्राहक खोजें", tutorialStep3: "ग्राहक, चालान और अनुबंध प्रबंधित करें", tutorialStep4: "अपनी विश्लेषण और राजस्व वृद्धि ट्रैक करें", gotIt: "समझ गया", next: "अगला", skip: "छोड़ें", justNow: "अभी", mAgo: "मिनट पहले", hAgo: "घंटे पहले" },
+};
 import { CRMSystem } from "@/components/CRMSystem";
 import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
@@ -59,14 +73,17 @@ function autoTitleFromReply(userText: string, replyText: string): string {
   return makeTitle(userText);
 }
 
-function detectPhase(msgs: Msg[], hasWebsite?: boolean, hasClients?: boolean, hasRevenue?: boolean): BusinessPhase {
+function detectPhase(msgs: Msg[], hasWebsite?: boolean, hasClients?: boolean, hasRevenue?: boolean, hasDeployed?: boolean): BusinessPhase {
   if (!msgs.length) return "ready";
-  if (hasRevenue) return "live";
+  // Real state takes priority over message patterns
+  if (hasDeployed || hasRevenue) return "live";
   if (hasWebsite) return "live";
-  const r = msgs.slice(-5).map((m) => m.content.toLowerCase()).join(" ");
-  if (msgs.some((m) => m.previewUrl) || r.includes("site is ready")) return "live";
-  if (r.includes("building") || r.includes("generating")) return "building";
-  if (r.includes("market evaluation") || r.includes("evaluating")) return "evaluating";
+  // Check messages for state indicators
+  const allText = msgs.map((m) => m.content.toLowerCase()).join(" ");
+  if (msgs.some((m) => m.previewUrl)) return "live";
+  if (allText.includes("site is ready") || allText.includes("your site is live") || allText.includes("deployed")) return "live";
+  if (allText.includes("building your") || allText.includes("generating your")) return "building";
+  if (allText.includes("market evaluation") || allText.includes("weighted score") || allText.includes("validation plan")) return "evaluating";
   if (msgs.length >= 2) return "intake";
   return "ready";
 }
@@ -398,6 +415,21 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const dragRef = useRef<{ startX: number; startW: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<"account"|"subscription"|"features"|"notifications"|"data">("account");
+
+  // i18n helper
+  const t = useCallback((key: string): string => {
+    const lang = zelrexSettings?.language || "en";
+    return i18n[lang]?.[key] || i18n.en[key] || key;
+  }, [zelrexSettings?.language]);
+
+  // Tutorial
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+  useEffect(() => {
+    if (dataLoaded && !localStorage.getItem("zelrex_tutorial_done")) {
+      setTimeout(() => setShowTutorial(true), 1500);
+    }
+  }, [dataLoaded]);
   const [expandedBizId, setExpandedBizId] = useState<string | null>(null);
   const [showSurvey, setShowSurvey] = useState(false);
   const [surveyData, setSurveyData] = useState<SurveyData | null>(null);
@@ -631,41 +663,159 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   // Smart notification triggers — check for business-critical events
   useEffect(() => {
     if (!dataLoaded || !clerkUser?.id) return;
-    const checkInterval = setInterval(async () => {
+
+    const runChecks = async () => {
       try {
-        // Check CRM for overdue invoices and unsigned contracts
         const crmRes = await fetch("/api/z/crm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dashboard", userId: clerkUser.id }) });
         const crm = await crmRes.json();
-        if (crm.overdueInvoices > 0) {
+
+        // Overdue invoices
+        if (zelrexSettings.notifOverdueInvoices && crm.overdueInvoices > 0) {
           const key = `notif_overdue_${new Date().toISOString().slice(0, 10)}`;
           if (!sessionStorage.getItem(key)) {
             addNotification(`💰 You have ${crm.overdueInvoices} overdue invoice${crm.overdueInvoices > 1 ? "s" : ""}. Send a reminder to get paid.`);
             sessionStorage.setItem(key, "1");
           }
         }
-      } catch {}
-    }, 120000); // Check every 2 minutes
-    // Run once on load after 5 seconds
-    const initialCheck = setTimeout(async () => {
-      try {
-        const crmRes = await fetch("/api/z/crm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dashboard", userId: clerkUser.id }) });
-        const crm = await crmRes.json();
-        if (crm.overdueInvoices > 0) {
-          const key = `notif_overdue_${new Date().toISOString().slice(0, 10)}`;
+
+        // Unsigned contracts
+        if (zelrexSettings.notifContractReminders && crm.activeContracts > 0) {
+          const key = `notif_contracts_${new Date().toISOString().slice(0, 10)}`;
           if (!sessionStorage.getItem(key)) {
-            addNotification(`💰 You have ${crm.overdueInvoices} overdue invoice${crm.overdueInvoices > 1 ? "s" : ""}. Send a reminder to get paid.`);
-            sessionStorage.setItem(key, "1");
+            // Check if there are sent but unsigned contracts
+            try {
+              const conRes = await fetch("/api/z/crm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "contracts-list", userId: clerkUser.id }) });
+              const conData = await conRes.json();
+              const unsigned = (conData.contracts || []).filter((c: any) => c.status === "sent");
+              if (unsigned.length > 0) {
+                addNotification(`📝 You have ${unsigned.length} contract${unsigned.length > 1 ? "s" : ""} sent but not yet accepted. Follow up with your client${unsigned.length > 1 ? "s" : ""}.`);
+                sessionStorage.setItem(key, "1");
+              }
+            } catch {}
           }
         }
+
+        // Goal progress check
+        if (zelrexSettings.notifGoalProgress && userGoal?.deadline) {
+          const key = `notif_goal_${new Date().toISOString().slice(0, 10)}`;
+          if (!sessionStorage.getItem(key)) {
+            // Smart date parsing — handles "June 2026", "6 months", "end of year", ISO dates, etc.
+            let deadlineDate: Date | null = null;
+            const dl = userGoal.deadline.trim().toLowerCase();
+            const now = new Date();
+
+            // Try ISO/standard date first
+            const parsed = new Date(userGoal.deadline);
+            if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 2000) {
+              deadlineDate = parsed;
+            }
+            // "X months" / "X weeks" / "X days"
+            else if (/^\d+\s*(month|week|day|year)s?$/i.test(dl)) {
+              const num = parseInt(dl);
+              deadlineDate = new Date(now);
+              if (dl.includes("month")) deadlineDate.setMonth(deadlineDate.getMonth() + num);
+              else if (dl.includes("week")) deadlineDate.setDate(deadlineDate.getDate() + num * 7);
+              else if (dl.includes("day")) deadlineDate.setDate(deadlineDate.getDate() + num);
+              else if (dl.includes("year")) deadlineDate.setFullYear(deadlineDate.getFullYear() + num);
+            }
+            // "end of year" / "end of 2026"
+            else if (/end\s*of\s*(the\s*)?(year|\d{4})/i.test(dl)) {
+              const ym = dl.match(/\d{4}/);
+              deadlineDate = new Date(ym ? parseInt(ym[0]) : now.getFullYear(), 11, 31);
+            }
+            // "Month Year" like "June 2026", "Dec 2025"
+            else {
+              const monthNames = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+              const monthMatch = monthNames.findIndex(m => dl.includes(m));
+              const yearMatch = dl.match(/\d{4}/);
+              if (monthMatch >= 0 && yearMatch) {
+                deadlineDate = new Date(parseInt(yearMatch[0]), monthMatch + 1, 0); // last day of that month
+              }
+            }
+
+            if (deadlineDate && !isNaN(deadlineDate.getTime())) {
+              const daysLeft = Math.ceil((deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+              if (daysLeft > 0 && daysLeft <= 30) {
+                addNotification(`🎯 Your goal "${userGoal.text}" deadline is in ${daysLeft} day${daysLeft > 1 ? "s" : ""}${daysLeft <= 7 ? ". Final stretch!" : ". Stay focused!"}`);
+                sessionStorage.setItem(key, "1");
+              } else if (daysLeft <= 0) {
+                addNotification(`⏰ Your goal "${userGoal.text}" deadline has passed. Review your progress and set a new target.`);
+                sessionStorage.setItem(key, "1");
+              }
+            }
+          }
+        }
+
         // Positive encouragement (once per session)
-        if (!sessionStorage.getItem("notif_welcome") && crm.totalClients > 0) {
-          addNotification(`👋 Welcome back! You have ${crm.totalClients} client${crm.totalClients > 1 ? "s" : ""} and ${crm.activeClients || 0} active. Keep going!`);
+        if (zelrexSettings.notifPositiveEncouragement && !sessionStorage.getItem("notif_welcome")) {
+          if (crm.totalClients > 0) {
+            addNotification(`👋 Welcome back! You have ${crm.totalClients} client${crm.totalClients > 1 ? "s" : ""} and ${crm.activeClients || 0} active. Keep going!`);
+          } else {
+            addNotification(`👋 Welcome back to Zelrex! Ready to build something great today?`);
+          }
           sessionStorage.setItem("notif_welcome", "1");
         }
+
+        // Inactivity check — if last message was more than 3 days ago
+        if (zelrexSettings.inAppSuggestions) {
+          const lastMsg = chats.flatMap(c => c.messages).sort((a, b) => b.createdAt - a.createdAt)[0];
+          if (lastMsg && Date.now() - lastMsg.createdAt > 3 * 24 * 60 * 60 * 1000) {
+            const key = "notif_inactive_" + new Date().toISOString().slice(0, 10);
+            if (!sessionStorage.getItem(key)) {
+              addNotification(`💡 It's been a few days since your last conversation. Check in with Zelrex to keep your business momentum going.`);
+              sessionStorage.setItem(key, "1");
+            }
+          }
+        }
+
+        // Follow-up tracking — if Zelrex asked a question or made a suggestion and user never responded
+        if (zelrexSettings.inAppSuggestions && chats.length > 0) {
+          const activeMessages = chats.flatMap(c => c.messages).sort((a, b) => b.createdAt - a.createdAt);
+          const lastAssistant = activeMessages.find(m => m.role === "assistant");
+          const lastUser = activeMessages.find(m => m.role === "user");
+          if (lastAssistant && lastUser && lastAssistant.createdAt > lastUser.createdAt) {
+            // Zelrex spoke last — user hasn't responded
+            const hoursSince = (Date.now() - lastAssistant.createdAt) / (1000 * 60 * 60);
+            if (hoursSince > 24 && hoursSince < 72) {
+              const key = "notif_followup_" + new Date().toISOString().slice(0, 10);
+              if (!sessionStorage.getItem(key)) {
+                // Check if Zelrex asked something actionable
+                const lc = lastAssistant.content.toLowerCase();
+                if (lc.includes("?") || lc.includes("try ") || lc.includes("reach out") || lc.includes("let me know") || lc.includes("your next step")) {
+                  addNotification(`🔔 Zelrex made a suggestion yesterday that you haven't followed up on. Tap here to continue the conversation.`);
+                  sessionStorage.setItem(key, "1");
+                }
+              }
+            }
+          }
+        }
+
+        // Revenue/traffic drop check (if analytics data available)
+        if (zelrexSettings.notifTrafficDrops && deployData?.url) {
+          try {
+            const analyticsRes = await fetch("/api/z/px", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dashboard", domain: deployData.url.replace("https://", "").replace("http://", "") }) });
+            const analytics = await analyticsRes.json();
+            if (analytics.pageviews !== undefined) {
+              const prevKey = "zelrex_prev_traffic";
+              const prev = parseInt(sessionStorage.getItem(prevKey) || "0");
+              sessionStorage.setItem(prevKey, String(analytics.pageviews));
+              if (prev > 10 && analytics.pageviews < prev * 0.5) {
+                const key = "notif_traffic_drop_" + new Date().toISOString().slice(0, 10);
+                if (!sessionStorage.getItem(key)) {
+                  addNotification(`📉 Your website traffic dropped significantly (${prev} → ${analytics.pageviews} views). Check if something changed.`);
+                  sessionStorage.setItem(key, "1");
+                }
+              }
+            }
+          } catch {}
+        }
       } catch {}
-    }, 5000);
+    };
+
+    const initialCheck = setTimeout(runChecks, 5000);
+    const checkInterval = setInterval(runChecks, 120000);
     return () => { clearInterval(checkInterval); clearTimeout(initialCheck); };
-  }, [dataLoaded, clerkUser?.id, addNotification]);
+  }, [dataLoaded, clerkUser?.id, addNotification, zelrexSettings.notifOverdueInvoices, zelrexSettings.notifContractReminders, zelrexSettings.notifGoalProgress, zelrexSettings.notifPositiveEncouragement, zelrexSettings.inAppSuggestions, userGoal, chats]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const filteredChats = useMemo(() => { const sorted = [...chats].sort((a, b) => b.updatedAt - a.updatedAt); const q = searchQuery.trim().toLowerCase(); if (!q) return sorted; return sorted.filter((c) => c.title?.toLowerCase().includes(q) || c.messages.some((m) => m.content.toLowerCase().includes(q))); }, [chats, searchQuery]);
@@ -1418,19 +1568,19 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const phase = useMemo(() => isSending && buildStage.includes("market") ? "evaluating" as BusinessPhase : isSending && (buildStage.includes("Build") || buildStage.includes("Generat")) ? "building" as BusinessPhase : detectPhase(activeChat?.messages ?? [], !!websiteData, false, false), [activeChat?.messages, isSending, buildStage, websiteData]);
+  const phase = useMemo(() => isSending && buildStage.includes("market") ? "evaluating" as BusinessPhase : isSending && (buildStage.includes("Build") || buildStage.includes("Generat")) ? "building" as BusinessPhase : detectPhase(activeChat?.messages ?? [], !!websiteData, false, false, !!deployData?.url), [activeChat?.messages, isSending, buildStage, websiteData, deployData]);
   const businessName = useMemo(() => getBusinessName(activeChat?.messages ?? []), [activeChat?.messages]);
   const hasMessages = (activeChat?.messages?.length ?? 0) > 0;
 
   // ─── Persist chats to Supabase (debounced) ────────────────────────
   useEffect(() => {
-    if (!dataLoaded || !dbUserId) return;
+    if (!dataLoaded || !dbUserId || !zelrexSettings.chatHistoryEnabled) return;
     chats.forEach((chat) => {
       debouncedSave(`chat-${chat.id}`, () =>
         db.updateChat(chat.id, { title: chat.title, messages: chat.messages, pendingSurvey: chat.pendingSurvey, websiteData: chat.websiteData, deployData: chat.deployData, surveyData: chat.surveyData })
       );
     });
-  }, [chats, dataLoaded, dbUserId]);
+  }, [chats, dataLoaded, dbUserId, zelrexSettings.chatHistoryEnabled]);
   // Only fix activeChatId if it points to a deleted chat
   useEffect(() => { if (activeChatId && !chats.some((c) => c.id === activeChatId)) { const latest = [...chats].sort((a, b) => b.updatedAt - a.updatedAt)[0]; if (latest?.id) { setActiveChatId(latest.id); router.replace(`/chat/${latest.id}`, { scroll: false }); } } }, [chats]);
   // Select chat from URL param on mount
@@ -1644,7 +1794,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         messages: [...c.messages, { id: uid("m"), role: "assistant" as const, content: reply, createdAt: Date.now(), previewUrl: result.previewUrl || undefined }],
         updatedAt: Date.now(),
       } : c));
-      if (result.previewUrl) setTimeout(() => fireConfetti(), 300);
+      if (result.previewUrl) { setTimeout(() => fireConfetti(), 300); addNotification("✨ Your website has been built! Preview it and deploy when ready."); }
     } catch {
       setChats((p) => p.map((c) => c.id === activeChat!.id ? {
         ...c,
@@ -1746,6 +1896,16 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         language: zelrexSettings.language,
         currentTime: new Date().toISOString(),
         userGoal: userGoal || undefined,
+        businessProfile: {
+          niche: zelrexSettings.freelanceNiche || undefined,
+          experience: zelrexSettings.experienceLevel,
+          timezone: zelrexSettings.timezone,
+        },
+        permissions: {
+          autoExtractClients: zelrexSettings.permAutoExtractClients,
+          autoSuggestInvoices: zelrexSettings.permAutoSuggestInvoices,
+        },
+        recentNotifications: notifications.slice(0, 5).map(n => ({ text: n.text, time: n.time, read: n.read })),
       };
       if (attachmentData.length > 0) requestBody.attachments = attachmentData;
       if (isBuild && surveyData) { requestBody.surveyData = surveyData; requestBody.action = "buildWebsite"; }
@@ -2080,14 +2240,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ color: "#3B82F6" }}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg> Clients
               </button>
               <button type="button" className="z-glass" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
-                <Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? C.accent : "#F59E0B" }} /> {userGoal ? "My Goal" : "Set Goal"}
+                <Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? C.accent : "#F59E0B" }} /> {userGoal ? t("myGoal") : t("setGoal")}
               </button>
             </div>
 
             {/* Search */}
             <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "10px 12px" : "7px 10px", borderRadius: 999, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
               <Ic n="search" className="h-3.5 w-3.5" style={{ color: C.textMuted }} />
-              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search businesses..." style={{ flex: 1, background: "none", border: "none", outline: "none", color: C.text, fontSize: isMobile ? 14 : 12 }} />
+              <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t("searchBiz")} style={{ flex: 1, background: "none", border: "none", outline: "none", color: C.text, fontSize: isMobile ? 14 : 12 }} />
               {searchQuery && <HBtn onClick={() => setSearchQuery("")} style={{ width: isMobile ? 24 : 20, height: isMobile ? 24 : 20, color: C.textMuted }}><Ic n="close" className="h-3 w-3" /></HBtn>}
             </div>
           </div>
@@ -2318,7 +2478,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                     </div>
                   )}
                 </div>
-                <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} onPaste={onPaste} placeholder="Ask anything"
+                <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} onPaste={onPaste} placeholder={t("askAnything")}
                   style={{ flex: 1, maxHeight: 200, minHeight: isMobile ? 44 : 42, height: isMobile ? 44 : 42, resize: "none", background: "none", border: "none", outline: "none", padding: isMobile ? "11px 8px" : "10px 8px", fontSize: isMobile ? 16 : 14, lineHeight: 1.5, color: C.text, boxSizing: "border-box" }} />
                 <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 2 }}>
                   <HBtn onClick={startSpeech} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: listening ? C.accent : C.textMuted }}><Ic n="mic" style={{ width: 20, height: 20 }} /></HBtn>
@@ -3106,6 +3266,44 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 </>)}
 
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── ONBOARDING TUTORIAL ─── */}
+        {showTutorial && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", alignItems: "center", justifyContent: "center", animation: "vacuumIn 300ms cubic-bezier(0.22,1,0.36,1) forwards" }}>
+            <div onClick={() => { setShowTutorial(false); localStorage.setItem("zelrex_tutorial_done", "1"); }} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }} />
+            <div style={{ position: "relative", width: 440, maxWidth: "92vw", borderRadius: 22, border: `0.5px solid ${C.border}`, background: "rgba(12,16,24,0.95)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", boxShadow: "0 32px 80px rgba(0,0,0,0.6)", overflow: "hidden" }}>
+              <div style={{ padding: "32px 28px 20px", textAlign: "center" }}>
+                <div style={{ width: 56, height: 56, borderRadius: 16, background: `${C.accent}15`, border: `1px solid ${C.accent}20`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: `0 0 30px ${C.accent}15` }}>
+                  {tutorialStep === 0 && <Ic n="compose" style={{ width: 24, height: 24, color: C.accent }} />}
+                  {tutorialStep === 1 && <Ic n="rocket" style={{ width: 24, height: 24, color: "#FBBF24" }} />}
+                  {tutorialStep === 2 && <Ic n="user" style={{ width: 24, height: 24, color: "#3B82F6" }} />}
+                  {tutorialStep === 3 && <Ic n="chart" style={{ width: 24, height: 24, color: "#10B981" }} />}
+                </div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: "-0.03em", marginBottom: 8 }}>
+                  {tutorialStep === 0 ? t("welcome") : tutorialStep === 1 ? t("outreach") : tutorialStep === 2 ? t("clients") : t("businessAnalytics")}
+                </div>
+                <div style={{ fontSize: 14, color: C.textSec, lineHeight: 1.6, maxWidth: 340, margin: "0 auto" }}>
+                  {tutorialStep === 0 ? t("tutorialStep1") : tutorialStep === 1 ? t("tutorialStep2") : tutorialStep === 2 ? t("tutorialStep3") : t("tutorialStep4")}
+                </div>
+                {/* Step dots */}
+                <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 20 }}>
+                  {[0,1,2,3].map(i => (
+                    <div key={i} style={{ width: i === tutorialStep ? 20 : 6, height: 6, borderRadius: 3, background: i === tutorialStep ? C.accent : "rgba(255,255,255,0.12)", transition: "all 300ms ease" }} />
+                  ))}
+                </div>
+              </div>
+              <div style={{ padding: "0 28px 24px", display: "flex", gap: 10 }}>
+                <button onClick={() => { setShowTutorial(false); localStorage.setItem("zelrex_tutorial_done", "1"); }} style={{ flex: 1, padding: "11px", borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t("skip")}</button>
+                <button onClick={() => {
+                  if (tutorialStep < 3) { setTutorialStep(s => s + 1); }
+                  else { setShowTutorial(false); localStorage.setItem("zelrex_tutorial_done", "1"); }
+                }} style={{ flex: 1.5, padding: "11px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 16px ${C.accent}40` }}>
+                  {tutorialStep < 3 ? t("next") : t("gotIt")}
+                </button>
               </div>
             </div>
           </div>

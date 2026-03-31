@@ -328,9 +328,9 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9600,
-      background: "rgba(2,3,5,0.82)",
-      backdropFilter: "blur(72px) saturate(1.3) brightness(0.92)",
-      WebkitBackdropFilter: "blur(72px) saturate(1.3) brightness(0.92)",
+      background: "rgba(3,5,8,0.75)",
+      backdropFilter: "blur(24px) saturate(1.3)",
+      WebkitBackdropFilter: "blur(24px) saturate(1.3)",
       display: "flex", flexDirection: "column", overflow: "hidden",
       opacity: mounted ? 1 : 0,
       transition: `opacity 450ms ${EASE}`,

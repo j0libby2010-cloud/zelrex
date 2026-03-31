@@ -315,10 +315,13 @@ export async function POST(req: Request) {
     const messages = body.messages ?? [];
     const surveyData = body.surveyData;
     const responseStyle: string = body.responseStyle || "direct";
-    const language: string = body.language || "en";
     const attachments: any[] = body.attachments || [];
     const currentTime: string = body.currentTime || new Date().toISOString();
     const userGoal: { text: string; target: string; deadline: string } | undefined = body.userGoal;
+    const businessProfile: { niche?: string; experience?: string; timezone?: string } | undefined = body.businessProfile;
+    const permissions: { autoExtractClients?: boolean; autoSuggestInvoices?: boolean } | undefined = body.permissions;
+    const language: string = body.language || "en";
+    const recentNotifications: any[] = body.recentNotifications || [];
 
     // Communication style modifier
     const responseStyles: Record<string, string> = {
@@ -329,9 +332,9 @@ export async function POST(req: Request) {
     let styleInstruction = `\n\nCOMMUNICATION STYLE: ${responseStyles[responseStyle] || responseStyles.direct}`;
 
     // Language instruction
-    const langNames: Record<string, string> = { en: "English", es: "Spanish", fr: "French", de: "German", pt: "Portuguese", ja: "Japanese", zh: "Chinese", ko: "Korean", ar: "Arabic", hi: "Hindi" };
     if (language && language !== "en") {
-      styleInstruction += `\n\nLANGUAGE: Respond entirely in ${langNames[language] || language}. All text, headers, explanations, and suggestions must be in ${langNames[language] || language}.`;
+      const langNames: Record<string, string> = { es: "Spanish", fr: "French", de: "German", pt: "Portuguese", ja: "Japanese", zh: "Chinese", ko: "Korean", ar: "Arabic", hi: "Hindi" };
+      styleInstruction += `\n\nRESPOND IN: ${langNames[language] || language}. Always respond in this language unless the user explicitly asks otherwise.`;
     }
 
     // Inject current time so Zelrex is always aware
@@ -343,6 +346,21 @@ export async function POST(req: Request) {
       if (userGoal.target) styleInstruction += ` | Revenue target: ${userGoal.target}`;
       if (userGoal.deadline) styleInstruction += ` | Deadline: ${userGoal.deadline}`;
       styleInstruction += `\nEvery recommendation, suggestion, and analysis you give should be evaluated against this goal. If something doesn't move the user closer to this goal, say so. Track their progress toward this goal.`;
+    }
+
+    // Inject business profile so Zelrex calibrates advice
+    if (businessProfile?.niche || businessProfile?.experience) {
+      styleInstruction += `\n\nUSER'S BUSINESS PROFILE:`;
+      if (businessProfile.niche) styleInstruction += ` Niche: ${businessProfile.niche}.`;
+      if (businessProfile.experience) styleInstruction += ` Experience: ${businessProfile.experience}.`;
+      if (businessProfile.timezone) styleInstruction += ` Timezone: ${businessProfile.timezone}.`;
+      styleInstruction += `\nCalibrate your advice complexity and examples to their experience level. Reference their niche when giving specific recommendations.`;
+    }
+
+    // Inject recent notifications so Zelrex has context on what it's already told the user
+    if (recentNotifications.length > 0) {
+      styleInstruction += `\n\nRECENT NOTIFICATIONS SENT TO USER: ${recentNotifications.map(n => `"${n.text}"`).join("; ")}`;
+      styleInstruction += `\nYou are aware of these notifications. Don't repeat the same advice. If the user asks about something a notification mentioned, reference it naturally.`;
     }
 
     const sessionState: SessionState = getSessionState(messages);
@@ -820,16 +838,18 @@ export async function POST(req: Request) {
 
         // CRM auto-extraction: detect client/project mentions and include suggestions
         let crmSuggestion = "";
-        try {
-          const lastUser = messages[messages.length - 1]?.content || "";
-          const clientMentionMatch = lastUser.match(/(?:finished|completed|delivered|sent|invoiced?|billed?|worked? (?:for|with))\s+(?:for\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
-          const invoiceMatch = lastUser.match(/\$(\d+(?:,\d{3})*(?:\.\d{2})?)/);
-          if (clientMentionMatch && invoiceMatch) {
-            crmSuggestion = `\n\n---\n💡 *I noticed you mentioned ${clientMentionMatch[1]} and $${invoiceMatch[1]}. Want me to add them to your Client Manager and create an invoice? Just say "yes, add them."*`;
-          } else if (clientMentionMatch) {
-            crmSuggestion = `\n\n---\n💡 *I noticed you mentioned ${clientMentionMatch[1]}. Want me to add them to your Client Manager? Just say "yes, add them."*`;
-          }
-        } catch {}
+        if (permissions?.autoExtractClients !== false) {
+          try {
+            const lastUser = messages[messages.length - 1]?.content || "";
+            const clientMentionMatch = lastUser.match(/(?:finished|completed|delivered|sent|invoiced?|billed?|worked? (?:for|with))\s+(?:for\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
+            const invoiceMatch = lastUser.match(/\$(\d+(?:,\d{3})*(?:\.\d{2})?)/);
+            if (clientMentionMatch && invoiceMatch && permissions?.autoSuggestInvoices !== false) {
+              crmSuggestion = `\n\n---\n💡 *I noticed you mentioned ${clientMentionMatch[1]} and $${invoiceMatch[1]}. Want me to add them to your Client Manager and create an invoice? Just say "yes, add them."*`;
+            } else if (clientMentionMatch) {
+              crmSuggestion = `\n\n---\n💡 *I noticed you mentioned ${clientMentionMatch[1]}. Want me to add them to your Client Manager? Just say "yes, add them."*`;
+            }
+          } catch {}
+        }
 
         return NextResponse.json({ reply: finalReply + crmSuggestion, sessionState });
 
