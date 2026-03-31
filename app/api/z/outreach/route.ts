@@ -50,6 +50,7 @@ export async function POST(req: Request) {
       case 'setup': return handleSetup(supabase, userId, body);
       case 'get-settings': return handleGetSettings(supabase, userId);
       case 'find': return handleFind(supabase, userId);
+      case 'add-manual': return handleAddManual(supabase, userId, body);
       case 'generate': return handleGenerate(supabase, userId, body.prospectIds);
       case 'list': return handleList(supabase, userId, body.status);
       case 'approve': return handleStatusUpdate(supabase, body.emailId, 'approved');
@@ -101,7 +102,6 @@ async function handleFind(supabase: SupabaseClient, userId: string) {
   const { data: settings } = await supabase.from('outreach_settings').select('*').eq('user_id', userId).single();
   const { data: chats } = await supabase.from('chats').select('messages').eq('user_id', userId).order('updated_at', { ascending: false }).limit(1);
 
-  // Extract business info from chat history
   const chatContext = (chats?.[0]?.messages || [])
     .filter((m: any) => m.role === 'assistant')
     .map((m: any) => m.content)
@@ -109,57 +109,71 @@ async function handleFind(supabase: SupabaseClient, userId: string) {
     .slice(0, 3000);
 
   // Get existing prospects to avoid duplicates
-  const { data: existing } = await supabase.from('outreach_prospects').select('name, company, email').eq('user_id', userId).limit(100);
+  const { data: existing } = await supabase.from('outreach_prospects').select('name, company').eq('user_id', userId).limit(100);
   const existingNames = (existing || []).map((p: any) => `${p.name} - ${p.company || ''}`).join(', ');
 
+  const targetDesc = settings?.target_description || '';
+
+  // Use Claude with web search to find REAL businesses
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
-    max_tokens: 2000,
+    max_tokens: 3000,
+    tools: [{ type: "web_search_20250305" as any, name: "web_search" }],
     messages: [{
       role: 'user',
-      content: `You are Zelrex's outreach engine. Based on the user's business context, generate a list of realistic prospect profiles that would be ideal clients.
+      content: `You are Zelrex's prospect discovery engine. Your job is to find REAL businesses that would benefit from this freelancer's services.
 
-BUSINESS CONTEXT:
+FREELANCER'S BUSINESS CONTEXT:
 ${chatContext}
 
-TARGET AUDIENCE: ${settings?.target_description || 'Not specified — infer from business context'}
-TONE PREFERENCE: ${settings?.tone || 'professional'}
+TARGET AUDIENCE: ${targetDesc || 'Infer from the business context above'}
 
-EXISTING PROSPECTS (avoid duplicates): ${existingNames || 'none'}
+EXISTING PROSPECTS (avoid these): ${existingNames || 'none'}
 
-Generate EXACTLY 5 new prospect profiles. For each, provide:
-- A realistic name
-- Their company/channel/brand name
-- Their platform (youtube, instagram, linkedin, website)
-- A plausible platform URL
-- Why they'd be a good fit (1 sentence)
-- A relevance score (1-100)
+INSTRUCTIONS:
+1. Search the web for real businesses matching the target audience
+2. Find 5 REAL businesses with verifiable online presence
+3. For each prospect, include the actual source URL where you found them
+4. Every name, company, and URL must be real and verifiable
 
-CRITICAL: These should be realistic TYPES of prospects, not real people. Use plausible but fictional names and companies that represent the ideal client profile.
+After searching, respond with ONLY this JSON (no markdown, no backticks, no other text):
+[{"name":"Owner/Contact Name","company":"Real Business Name","platform":"website","platform_url":"https://their-actual-website.com","source_url":"https://where-you-found-them.com","relevance_reason":"Why they need this service - be specific about what you observed","relevance_score":85}]
 
-Respond in JSON only, no markdown, no backticks:
-[{"name":"...","company":"...","platform":"...","platform_url":"...","relevance_reason":"...","relevance_score":85}]`
+CRITICAL: Only include businesses you actually found via web search. Every source_url must be a real page. If you can't find enough real prospects, return fewer than 5 rather than inventing any.`
     }],
   });
 
-  const text = response.content[0]?.type === 'text' ? response.content[0].text : '[]';
-  let prospects: any[] = [];
-  try {
-    const cleaned = text.replace(/```json|```/g, '').trim();
-    prospects = JSON.parse(cleaned);
-  } catch {
-    console.error('[Outreach] Failed to parse prospects:', text.slice(0, 200));
-    return NextResponse.json({ error: 'Failed to generate prospects' }, { status: 500 });
+  // Extract text from response (may have multiple content blocks from tool use)
+  let text = '';
+  for (const block of response.content) {
+    if (block.type === 'text') text += block.text;
   }
 
-  // Insert prospects
+  let prospects: any[] = [];
+  try {
+    // Find JSON array in the response
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      prospects = JSON.parse(jsonMatch[0]);
+    }
+  } catch {
+    console.error('[Outreach] Failed to parse prospects:', text.slice(0, 300));
+    return NextResponse.json({ error: 'Failed to find real prospects. Try adjusting your target audience description.' }, { status: 500 });
+  }
+
+  if (!prospects.length) {
+    return NextResponse.json({ error: 'No matching prospects found. Try broadening your target audience.' }, { status: 404 });
+  }
+
+  // Insert prospects with source URLs
   const rows = prospects.map((p: any) => ({
     user_id: userId,
-    name: p.name,
+    name: p.name || 'Unknown',
     company: p.company || '',
-    platform: p.platform || 'other',
+    platform: p.platform || 'website',
     platform_url: p.platform_url || '',
-    relevance_score: p.relevance_score || 70,
+    source_url: p.source_url || '',
+    relevance_score: Math.min(100, Math.max(0, p.relevance_score || 70)),
     relevance_reason: p.relevance_reason || '',
     status: 'discovered',
   }));
@@ -167,7 +181,30 @@ Respond in JSON only, no markdown, no backticks:
   const { data: inserted, error } = await supabase.from('outreach_prospects').insert(rows).select();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json({ prospects: inserted });
+  return NextResponse.json({ prospects: inserted, verified: true });
+}
+
+// ─── Add Manual Prospect ───────────────────────────────────────
+
+async function handleAddManual(supabase: SupabaseClient, userId: string, body: any) {
+  const { name, company, email, platform_url, notes } = body;
+  if (!name?.trim()) return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+
+  const { data, error } = await supabase.from('outreach_prospects').insert({
+    user_id: userId,
+    name: name.trim(),
+    company: company?.trim() || '',
+    email: email?.trim() || '',
+    platform: 'website',
+    platform_url: platform_url?.trim() || '',
+    source_url: 'manual',
+    relevance_score: 100,
+    relevance_reason: notes?.trim() || 'Manually added prospect',
+    status: 'discovered',
+  }).select().single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ prospect: data });
 }
 
 // ─── Generate Emails ───────────────────────────────────────────

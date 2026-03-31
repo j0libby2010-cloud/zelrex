@@ -7,9 +7,11 @@ interface Prospect {
   company: string;
   platform: string;
   platform_url: string;
+  source_url?: string;
   relevance_score: number;
   relevance_reason: string;
   status: string;
+  email?: string;
   outreach_emails?: Email[];
   created_at: string;
 }
@@ -100,6 +102,8 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
   const [finding, setFinding] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showManualAdd, setShowManualAdd] = useState(false);
+  const [manualForm, setManualForm] = useState({ name: "", company: "", email: "", platform_url: "", notes: "" });
   const [setupMode, setSetupMode] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -195,6 +199,18 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
     const listRes = await api("list", { status: "all" });
     setProspects(listRes.prospects || []);
     setGenerating(false);
+  };
+
+  const addManualProspect = async () => {
+    if (!manualForm.name.trim()) return;
+    try {
+      const res = await api("add-manual", { ...manualForm });
+      if (res.prospect) {
+        loadAll();
+        setManualForm({ name: "", company: "", email: "", platform_url: "", notes: "" });
+        setShowManualAdd(false);
+      }
+    } catch {}
   };
 
   const openInEmail = (email: Email, prospect: Prospect) => {
@@ -630,7 +646,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
           /* ─── Queue Tab ───────────────────────────── */
           <div style={{ maxWidth: 820, margin: "0 auto" }}>
             {/* Action buttons */}
-            <div className="or-actions" style={{ display: "flex", gap: 10, marginBottom: 22, animation: `or-fadeUp 350ms ${EASE} 100ms both` }}>
+            <div className="or-actions" style={{ display: "flex", gap: 10, marginBottom: 12, animation: `or-fadeUp 350ms ${EASE} 100ms both`, flexWrap: "wrap" }}>
               <button className="or-btn" onClick={findProspects} disabled={finding} style={{
                 padding: "11px 22px", border: "none",
                 background: `linear-gradient(135deg, ${G.amber}20, ${G.amber}06)`,
@@ -638,7 +654,16 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                 boxShadow: `0 0 16px ${G.amber}10, inset 0 0.5px 0 rgba(255,255,255,0.08)`,
                 letterSpacing: "-0.01em",
               }}>
-                <span>{finding ? "Finding..." : "Find New Prospects"}</span>
+                <span>{finding ? "Searching the web..." : "Find New Prospects"}</span>
+              </button>
+              <button className="or-btn" onClick={() => setShowManualAdd(!showManualAdd)} style={{
+                padding: "11px 22px", border: "none",
+                background: `linear-gradient(135deg, ${G.accent}14, ${G.accent}04)`,
+                color: G.accentSoft, fontSize: 13, fontWeight: 700,
+                boxShadow: `0 0 12px ${G.accent}08, inset 0 0.5px 0 rgba(255,255,255,0.06)`,
+                letterSpacing: "-0.01em",
+              }}>
+                <span>{showManualAdd ? "Cancel" : "+ Add Your Own"}</span>
               </button>
               {queueProspects.some((p) => p.status === "discovered") && (
                 <button className="or-btn" onClick={() => generateEmails()} disabled={generating} style={{
@@ -652,6 +677,28 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                 </button>
               )}
             </div>
+
+            {/* Disclaimer */}
+            <div style={{ fontSize: 11, color: G.textMuted, marginBottom: 18, padding: "8px 14px", borderRadius: 10, background: "rgba(255,255,255,0.015)", border: `0.5px solid ${G.glassBorder}`, lineHeight: 1.5 }}>
+              ⓘ Prospects are found via web search. Always verify before reaching out. Click "Visit Website" or "View Source" on each prospect to fact-check.
+            </div>
+
+            {/* Manual Add Form */}
+            {showManualAdd && (
+              <div style={{ ...liquidGlass, padding: 20, marginBottom: 16, animation: `or-fadeUp 250ms ${EASE}` }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: G.text, letterSpacing: "-0.02em", marginBottom: 14 }}>Add a Prospect</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                  <input className="or-input" placeholder="Name *" value={manualForm.name} onChange={e => setManualForm(f => ({ ...f, name: e.target.value }))} style={{ padding: "10px 14px", borderRadius: 12, border: `0.5px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.025)", color: G.text, fontSize: 13, outline: "none" }} />
+                  <input className="or-input" placeholder="Company" value={manualForm.company} onChange={e => setManualForm(f => ({ ...f, company: e.target.value }))} style={{ padding: "10px 14px", borderRadius: 12, border: `0.5px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.025)", color: G.text, fontSize: 13, outline: "none" }} />
+                  <input className="or-input" placeholder="Email" value={manualForm.email} onChange={e => setManualForm(f => ({ ...f, email: e.target.value }))} style={{ padding: "10px 14px", borderRadius: 12, border: `0.5px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.025)", color: G.text, fontSize: 13, outline: "none" }} />
+                  <input className="or-input" placeholder="Website URL" value={manualForm.platform_url} onChange={e => setManualForm(f => ({ ...f, platform_url: e.target.value }))} style={{ padding: "10px 14px", borderRadius: 12, border: `0.5px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.025)", color: G.text, fontSize: 13, outline: "none" }} />
+                </div>
+                <input className="or-input" placeholder="Notes (why they're a good prospect)" value={manualForm.notes} onChange={e => setManualForm(f => ({ ...f, notes: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 12, border: `0.5px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.025)", color: G.text, fontSize: 13, outline: "none", marginBottom: 12 }} />
+                <button className="or-btn" onClick={addManualProspect} style={{ padding: "10px 20px", border: "none", background: `${G.green}15`, color: G.green, fontSize: 13, fontWeight: 700, boxShadow: `inset 0 0.5px 0 rgba(255,255,255,0.06)` }}>
+                  <span>Save Prospect</span>
+                </button>
+              </div>
+            )}
 
             {queueProspects.length === 0 ? (
               <div style={{
@@ -723,6 +770,25 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                       </div>
 
                       <div style={{ fontSize: 12, color: G.textSec, marginTop: 10, lineHeight: 1.6 }}>{p.relevance_reason}</div>
+
+                      {/* Source verification links */}
+                      <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+                        {p.platform_url && (
+                          <a href={p.platform_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11, fontWeight: 600, color: G.accent, textDecoration: "none", padding: "3px 10px", borderRadius: 8, background: `${G.accent}10`, border: `0.5px solid ${G.accent}20`, display: "flex", alignItems: "center", gap: 4 }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                            Visit Website
+                          </a>
+                        )}
+                        {p.source_url && p.source_url !== "manual" && (
+                          <a href={p.source_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11, fontWeight: 600, color: G.textMuted, textDecoration: "none", padding: "3px 10px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: `0.5px solid ${G.glassBorder}`, display: "flex", alignItems: "center", gap: 4 }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            View Source
+                          </a>
+                        )}
+                        {p.source_url === "manual" && (
+                          <span style={{ fontSize: 10, color: G.textMuted, padding: "3px 8px", borderRadius: 6, background: "rgba(255,255,255,0.02)", fontWeight: 500 }}>✓ Added manually</span>
+                        )}
+                      </div>
 
                       {isExpanded && email && (
                         <div style={{
