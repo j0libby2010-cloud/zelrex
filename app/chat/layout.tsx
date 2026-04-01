@@ -1,18 +1,9 @@
-import "../globals.css";
-import { GeistSans } from "geist/font/sans";
-
 export const dynamic = "force-dynamic";
 
-export default function RootLayout({
+export default function ChatLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <html lang="en">
-      <body className={`${GeistSans.className} bg-[#05070C] text-white`}>
-        {children}
-      </body>
-    </html>
-  );
+  return children;
 }
