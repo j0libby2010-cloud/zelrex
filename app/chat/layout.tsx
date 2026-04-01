@@ -1,6 +1,8 @@
 import "../globals.css";
 import { GeistSans } from "geist/font/sans";
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: {
