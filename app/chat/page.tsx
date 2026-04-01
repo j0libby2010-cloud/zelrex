@@ -9,6 +9,8 @@ import { WebsiteSurvey, SurveyData } from "@/website/pages/components/Websitesur
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { WeeklySummaries } from "@/components/WeeklySummaries";
 import { OutreachSystem } from "@/components/OutreachSystem";
+import { CRMSystem } from "@/components/CRMSystem";
+import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
 // ─── LANGUAGE PRESETS ────────────────────────────────────────────
 const i18n: Record<string, Record<string, string>> = {
@@ -23,8 +25,6 @@ const i18n: Record<string, Record<string, string>> = {
   ar: { newBusiness: "عمل جديد", weeklySummaries: "ملخصات أسبوعية", businessAnalytics: "التحليلات", outreach: "التواصل", clients: "العملاء", setGoal: "تحديد هدف", myGoal: "هدفي", searchBiz: "بحث...", askAnything: "اسأل أي شيء", notifications: "الإشعارات", noNotif: "لا توجد إشعارات", readAll: "قراءة الكل", clearAll: "مسح الكل", copied: "تم النسخ", showMore: "عرض المزيد", settings: "الإعدادات", send: "إرسال", retry: "إعادة المحاولة", copy: "نسخ", goodResponse: "رد جيد", badResponse: "رد سيئ", welcome: "مرحباً بك في Zelrex", tutorialStep1: "تحدث مع Zelrex لبناء عملك", tutorialStep2: "استخدم التواصل للعثور على عملاء", tutorialStep3: "إدارة العملاء والفواتير والعقود", tutorialStep4: "تتبع التحليلات ونمو الإيرادات", gotIt: "فهمت", next: "التالي", skip: "تخطي", justNow: "الآن", mAgo: "د", hAgo: "س" },
   hi: { newBusiness: "नया व्यापार", weeklySummaries: "साप्ताहिक सारांश", businessAnalytics: "विश्लेषण", outreach: "आउटरीच", clients: "ग्राहक", setGoal: "लक्ष्य निर्धारित करें", myGoal: "मेरा लक्ष्य", searchBiz: "खोजें...", askAnything: "कुछ भी पूछें", notifications: "सूचनाएं", noNotif: "कोई सूचना नहीं", readAll: "सब पढ़ें", clearAll: "सब हटाएं", copied: "कॉपी किया", showMore: "और दिखाएं", settings: "सेटिंग्स", send: "भेजें", retry: "पुनः प्रयास", copy: "कॉपी", goodResponse: "अच्छा जवाब", badResponse: "बुरा जवाब", welcome: "Zelrex में आपका स्वागत है", tutorialStep1: "Zelrex से बात करके अपना व्यापार बनाएं", tutorialStep2: "आउटरीच से संभावित ग्राहक खोजें", tutorialStep3: "ग्राहक, चालान और अनुबंध प्रबंधित करें", tutorialStep4: "अपनी विश्लेषण और राजस्व वृद्धि ट्रैक करें", gotIt: "समझ गया", next: "अगला", skip: "छोड़ें", justNow: "अभी", mAgo: "मिनट पहले", hAgo: "घंटे पहले" },
 };
-import { CRMSystem } from "@/components/CRMSystem";
-import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
 
 type Role = "user" | "assistant";
