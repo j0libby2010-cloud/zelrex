@@ -216,7 +216,7 @@ export default function SignInPage() {
             path="/sign-in"
             routing="path"
             signUpUrl="/sign-up"
-            afterSignInUrl="/chat"
+            fallbackRedirectUrl="/chat"
             appearance={{
               variables: {
                 colorPrimary: "#3B82F6",
