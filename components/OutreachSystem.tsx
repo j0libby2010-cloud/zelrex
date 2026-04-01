@@ -206,7 +206,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
     try {
       const res = await api("add-manual", { ...manualForm });
       if (res.prospect) {
-        loadAll();
+        loadData();
         setManualForm({ name: "", company: "", email: "", platform_url: "", notes: "" });
         setShowManualAdd(false);
       }
@@ -497,7 +497,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
           </div>
           <div>
             <div style={{ fontSize: 17, fontWeight: 700, color: G.text, letterSpacing: "-0.025em", fontFamily: "-apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif" }}>Outreach</div>
-            <div style={{ fontSize: 12, color: G.textMuted, letterSpacing: "0.01em" }}>Find clients while you sleep</div>
+            <div style={{ fontSize: 12, color: G.textMuted, letterSpacing: "0.01em" }}>Find clients quickly</div>
           </div>
         </div>
 
