@@ -416,41 +416,6 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<"account"|"subscription"|"features"|"notifications"|"data">("account");
 
-  // i18n helper
-  const t = useCallback((key: string): string => {
-    const lang = zelrexSettings?.language || "en";
-    return i18n[lang]?.[key] || i18n.en[key] || key;
-  }, [zelrexSettings?.language]);
-
-  // Tutorial
-  const [showTutorial, setShowTutorial] = useState(false);
-  const [tutorialStep, setTutorialStep] = useState(0);
-  useEffect(() => {
-    if (dataLoaded && !localStorage.getItem("zelrex_tutorial_done")) {
-      setTimeout(() => setShowTutorial(true), 1500);
-    }
-  }, [dataLoaded]);
-  const [expandedBizId, setExpandedBizId] = useState<string | null>(null);
-  const [showSurvey, setShowSurvey] = useState(false);
-  const [surveyData, setSurveyData] = useState<SurveyData | null>(null);
-  const [surveyDismissed, setSurveyDismissed] = useState(false);
-  const [websiteData, setWebsiteData] = useState<any>(null);
-  const [deployData, setDeployData] = useState<{ projectId: string; url: string; projectName: string; customDomain?: string; domainVerified?: boolean } | null>(null);
-  const [isDeploying, setIsDeploying] = useState(false);
-  
-  // Goals & Notifications
-  const [userGoal, setUserGoal] = useState<{ text: string; target: string; deadline: string } | null>(null);
-  const [goalModalOpen, setGoalModalOpen] = useState(false);
-  const [goalDraft, setGoalDraft] = useState({ text: "", target: "", deadline: "" });
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Array<{ id: string; text: string; time: number; read: boolean }>>([]);
-  const [notifPage, setNotifPage] = useState(1);
-
-  // Smart notification helper
-  const addNotification = useCallback((text: string) => {
-    setNotifications(prev => [{ id: uid("n"), text, time: Date.now(), read: false }, ...prev]);
-  }, []);
-
   // ─── Settings state (persisted to localStorage) ────────────────────
   const [zelrexSettings, setZelrexSettings] = useState({
     responseStyle: "direct" as "direct" | "detailed" | "coaching",
@@ -494,6 +459,41 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const updateSetting = <K extends keyof typeof zelrexSettings>(key: K, val: (typeof zelrexSettings)[K]) => {
     setZelrexSettings(prev => { const next = { ...prev, [key]: val }; try { localStorage.setItem("zelrex_settings", JSON.stringify(next)); } catch {} return next; });
   };
+
+  // i18n helper
+  const t = useCallback((key: string): string => {
+    const lang = zelrexSettings?.language || "en";
+    return i18n[lang]?.[key] || i18n.en[key] || key;
+  }, [zelrexSettings?.language]);
+
+  // Tutorial
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
+  useEffect(() => {
+    if (dataLoaded && !localStorage.getItem("zelrex_tutorial_done")) {
+      setTimeout(() => setShowTutorial(true), 1500);
+    }
+  }, [dataLoaded]);
+  const [expandedBizId, setExpandedBizId] = useState<string | null>(null);
+  const [showSurvey, setShowSurvey] = useState(false);
+  const [surveyData, setSurveyData] = useState<SurveyData | null>(null);
+  const [surveyDismissed, setSurveyDismissed] = useState(false);
+  const [websiteData, setWebsiteData] = useState<any>(null);
+  const [deployData, setDeployData] = useState<{ projectId: string; url: string; projectName: string; customDomain?: string; domainVerified?: boolean } | null>(null);
+  const [isDeploying, setIsDeploying] = useState(false);
+  
+  // Goals & Notifications
+  const [userGoal, setUserGoal] = useState<{ text: string; target: string; deadline: string } | null>(null);
+  const [goalModalOpen, setGoalModalOpen] = useState(false);
+  const [goalDraft, setGoalDraft] = useState({ text: "", target: "", deadline: "" });
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Array<{ id: string; text: string; time: number; read: boolean }>>([]);
+  const [notifPage, setNotifPage] = useState(1);
+
+  // Smart notification helper
+  const addNotification = useCallback((text: string) => {
+    setNotifications(prev => [{ id: uid("n"), text, time: Date.now(), read: false }, ...prev]);
+  }, []);
 
   // ─── Password change state ────────────────────────────────────────
   const [pwCurrent, setPwCurrent] = useState("");
