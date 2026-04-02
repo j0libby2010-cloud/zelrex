@@ -836,22 +836,29 @@ export async function POST(req: Request) {
         // Health check moved to notification center — no longer injected in chat
         const finalReply = reply;
 
-        // CRM auto-extraction: detect client/project mentions and include suggestions
+        // CRM auto-extraction: detect client/project mentions — strict patterns, false positive filtering
         let crmSuggestion = "";
         if (permissions?.autoExtractClients !== false) {
           try {
             const lastUser = messages[messages.length - 1]?.content || "";
-            const clientMentionMatch = lastUser.match(/(?:finished|completed|delivered|sent|invoiced?|billed?|worked? (?:for|with))\s+(?:for\s+)?([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
+            const clientMentionMatch = lastUser.match(/(?:my\s+client|client\s+named?|(?:finished|completed|delivered|invoiced?|billed?)\s+(?:work\s+)?(?:for|to))\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/);
+            const companyMatch = lastUser.match(/(?:my\s+client|client\s+named?|(?:finished|completed|delivered|invoiced?|billed?)\s+(?:work\s+)?(?:for|to))\s+([A-Z][A-Za-z]+(?:\s+(?:Inc|LLC|Co|Corp|Ltd|Studio|Agency|Design|Media|Group))?)/);
             const invoiceMatch = lastUser.match(/\$(\d+(?:,\d{3})*(?:\.\d{2})?)/);
-            if (clientMentionMatch && invoiceMatch && permissions?.autoSuggestInvoices !== false) {
-              crmSuggestion = `\n\n---\n💡 *I noticed you mentioned ${clientMentionMatch[1]} and $${invoiceMatch[1]}. Want me to add them to your Client Manager and create an invoice? Just say "yes, add them."*`;
-            } else if (clientMentionMatch) {
-              crmSuggestion = `\n\n---\n💡 *I noticed you mentioned ${clientMentionMatch[1]}. Want me to add them to your Client Manager? Just say "yes, add them."*`;
+            const nameMatch = clientMentionMatch || companyMatch;
+            // Filter out common false positives
+            const falsePositives = ["Building", "Working", "Making", "Creating", "Starting", "Getting", "Going", "Looking", "Thinking", "Trying", "Using", "Having", "Being", "Doing", "Taking", "Coming", "Seeing", "Wanting", "Needing", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December", "Zelrex", "Stripe", "Google", "Facebook", "Instagram", "YouTube", "LinkedIn", "Twitter"];
+            const detectedName = nameMatch?.[1]?.trim();
+            if (detectedName && !falsePositives.includes(detectedName.split(" ")[0])) {
+              if (invoiceMatch && permissions?.autoSuggestInvoices !== false) {
+                crmSuggestion = `\n\n---\n*I noticed you mentioned working with **${detectedName}** and an amount of **$${invoiceMatch[1]}**. Would you like me to add them to your Client Manager and draft an invoice? (You can also do this manually in the Clients tab.)*`;
+              } else {
+                crmSuggestion = `\n\n---\n*I noticed you mentioned **${detectedName}**. Would you like me to add them to your Client Manager? (You can also do this manually in the Clients tab.)*`;
+              }
             }
           } catch {}
         }
 
-        return NextResponse.json({ reply: finalReply + crmSuggestion, sessionState });
+        return NextResponse.json({ reply: finalReply + crmSuggestion, sessionState, memoryActive: true });
 
       } catch (v5Error) {
         // v5 failed — log the SPECIFIC error and fall through to v3
@@ -900,7 +907,7 @@ export async function POST(req: Request) {
 
       const finalReply = reply;
 
-      return NextResponse.json({ reply: finalReply, sessionState });
+      return NextResponse.json({ reply: finalReply, sessionState, memoryActive: false });
 
     } catch (v3Error) {
       console.error('[ZELREX] v3 fallback ALSO FAILED:', v3Error);

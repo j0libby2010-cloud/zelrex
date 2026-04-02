@@ -62,6 +62,7 @@ export async function POST(req: Request) {
       // ─── Dashboard / Stats ───
       case 'dashboard': return dashboard(supabase, userId);
       case 'screen-client': return screenClient(supabase, userId, body);
+      case 'auto-mark-overdue': return handleAutoMarkOverdue(supabase, userId);
 
       default: return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
@@ -474,4 +475,24 @@ DISCLAIMER: This is AI-generated analysis for informational purposes only. It sh
   } catch {
     return NextResponse.json({ score: 50, verdict: 'Unable to analyze', flags: [], green_lights: [], recommendation: 'Provide more details for a thorough analysis.' });
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AUTO-MARK OVERDUE INVOICES
+// ═══════════════════════════════════════════════════════════════
+
+async function handleAutoMarkOverdue(supabase: SupabaseClient, userId: string) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const { data: overdue, error } = await supabase
+    .from('crm_invoices')
+    .update({ status: 'overdue' })
+    .eq('user_id', userId)
+    .eq('status', 'sent')
+    .lt('due_date', today)
+    .select('id');
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ marked: overdue?.length ?? 0 });
 }
