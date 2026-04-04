@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -848,7 +848,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     const t = site.theme || {};
     const sv = site.survey || {};
 
-    // ─── LIGHT/DARK MODE from survey preference ─────────
+    // ─── LIGHT/DARK MODE ─────────────────────────────
     const isLight = sv.stylePreference === "light-clean" || sv.stylePreference === "minimal-elegant";
     const bg = isLight ? (t.bg && !t.bg.startsWith("#0") && !t.bg.startsWith("#1") ? t.bg : "#FAFBFC") : (t.bg || "#0a0a0a");
     const text = isLight ? "#0F172A" : (t.textPrimary || "#ffffff");
@@ -859,21 +859,21 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     const name = site.branding?.name || "My Business";
     const c = site.copy;
 
-    // ─── TEMPLATE SELECTION ──────────────────────────────
+    // ─── TEMPLATE SELECTION ──────────────────────────
     const fontPref = sv.fontPreference || "";
     const tplMap: Record<string, string> = { modern: "minimal", classic: "editorial", editorial: "editorial", tech: "bold" };
-    const tpl = site.template || tplMap[fontPref] || ["minimal", "bold", "editorial"][Math.abs(name.charCodeAt(0) + name.length) % 3];
+    const tpl = site.template || tplMap[fontPref] || ["minimal", "bold", "editorial", "studio", "luxury"][Math.abs(name.charCodeAt(0) + name.length) % 5];
     const isBold = tpl === "bold";
     const isEditorial = tpl === "editorial";
+    const isStudio = tpl === "studio";
+    const isLuxury = tpl === "luxury";
 
     // Template tokens
-    const heroAlign = isBold ? "center" : "left";
-    const headFont = isEditorial ? "'Playfair Display', Georgia, serif" : "'Inter', -apple-system, sans-serif";
-    const btnRadius = isBold ? "12px" : isEditorial ? "4px" : "999px";
+    const heroAlign = (isBold || isLuxury) ? "center" : "left";
+    const headFont = isEditorial ? "'Playfair Display', Georgia, serif" : isLuxury ? "'Cormorant Garamond', Georgia, serif" : isStudio ? "'DM Sans', 'Inter', sans-serif" : "'Inter', -apple-system, sans-serif";
+    const btnRadius = isBold ? "12px" : isEditorial ? "4px" : isLuxury ? "2px" : isStudio ? "8px" : "999px";
 
-    // ─── STRUCTURALLY DIFFERENT HELPERS PER TEMPLATE ─────
-
-    // Cards
+    // ─── HELPER: Cards ───────────────────────────────
     const cards = (items: any[]) => {
       if (isEditorial) {
         return items.map((item: any) => `
@@ -884,11 +884,29 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       }
       if (isBold) {
         return items.map((item: any) => `
-          <div style="background:${surface};border:1px solid ${border};border-top:3px solid ${accent};border-radius:20px;padding:36px 28px;transition:transform 0.2s">
+          <div style="background:${surface};border:1px solid ${border};border-top:3px solid ${accent};border-radius:20px;padding:36px 28px">
             <div style="font-weight:800;font-size:19px;color:${text};margin-bottom:12px">${item.title || ""}</div>
             <div style="color:${textSec};font-size:15px;line-height:1.7">${item.description || ""}</div>
           </div>`).join("");
       }
+      if (isStudio) {
+        return items.map((item: any, i: number) => `
+          <div style="display:flex;gap:24px;align-items:flex-start;padding:28px 0;${i > 0 ? `border-top:1px solid ${border}` : ""}">
+            <div style="width:44px;height:44px;border-radius:10px;background:${accent}12;color:${accent};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0">${String(i + 1).padStart(2, "0")}</div>
+            <div>
+              <div style="font-weight:700;font-size:17px;color:${text};margin-bottom:8px">${item.title || ""}</div>
+              <div style="color:${textSec};font-size:15px;line-height:1.7">${item.description || ""}</div>
+            </div>
+          </div>`).join("");
+      }
+      if (isLuxury) {
+        return items.map((item: any) => `
+          <div style="background:${isLight ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.03)"};backdrop-filter:blur(12px);border:1px solid ${isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)"};border-radius:16px;padding:32px;transition:border-color 0.3s">
+            <div style="font-weight:600;font-size:16px;color:${text};margin-bottom:10px;font-family:${headFont};letter-spacing:-0.01em">${item.title || ""}</div>
+            <div style="color:${textSec};font-size:14px;line-height:1.8">${item.description || ""}</div>
+          </div>`).join("");
+      }
+      // Minimal
       return items.map((item: any) => `
         <div style="background:${surface};border:1px solid ${border};border-radius:16px;padding:28px">
           <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:8px">${item.title || ""}</div>
@@ -896,7 +914,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         </div>`).join("");
     };
 
-    // Steps
+    // ─── HELPER: Steps ───────────────────────────────
     const stepsList = (steps: any[]) => {
       if (isEditorial) {
         return `<div class="grid-${Math.min(steps.length, 3)}" style="gap:40px">
@@ -918,6 +936,29 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             </div>
           </div>`).join("");
       }
+      if (isStudio) {
+        return `<div style="position:relative;padding-left:32px">
+          <div style="position:absolute;left:11px;top:8px;bottom:8px;width:2px;background:${border}"></div>
+          ${steps.map((s: any, i: number) => `
+            <div style="position:relative;padding-bottom:${i < steps.length - 1 ? "40px" : "0"}">
+              <div style="position:absolute;left:-27px;top:4px;width:12px;height:12px;border-radius:50%;background:${accent};border:3px solid ${bg}"></div>
+              <div style="font-weight:700;font-size:17px;color:${text};margin-bottom:8px">${s.title || ""}</div>
+              <div style="color:${textSec};font-size:15px;line-height:1.7">${s.description || ""}</div>
+            </div>`).join("")}
+        </div>`;
+      }
+      if (isLuxury) {
+        return `<div style="display:flex;flex-direction:column;align-items:center;gap:0">
+          ${steps.map((s: any, i: number) => `
+            ${i > 0 ? `<div style="width:1px;height:40px;background:linear-gradient(180deg, ${accent}40, ${accent}10)"></div>` : ""}
+            <div style="text-align:center;max-width:480px;padding:8px 0">
+              <div style="font-size:11px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:${accent};margin-bottom:10px">Step ${i + 1}</div>
+              <div style="font-weight:600;font-size:18px;color:${text};margin-bottom:8px;font-family:${headFont}">${s.title || ""}</div>
+              <div style="color:${textSec};font-size:14px;line-height:1.8">${s.description || ""}</div>
+            </div>`).join("")}
+        </div>`;
+      }
+      // Minimal
       return steps.map((s: any, i: number) => `
         <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:28px">
           <div style="width:40px;height:40px;border-radius:50%;background:${accent}15;color:${accent};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0">${i + 1}</div>
@@ -928,7 +969,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         </div>`).join("");
     };
 
-    // CTA Block — structurally different per template
+    // ─── HELPER: CTA Block ───────────────────────────
     const ctaBlock = (data: any) => {
       if (!data) return "";
       if (isBold) return `
@@ -945,6 +986,21 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           ${data.subtitle ? `<p class="lead" style="margin-bottom:28px">${data.subtitle}</p>` : ""}
           <span class="btn-primary" data-nav="contact" style="cursor:pointer">${data.cta?.text || "Get in touch"}</span>
         </section>`;
+      if (isStudio) return `
+        <section style="background:${accent};padding:64px 24px;text-align:center;margin-top:40px">
+          <div style="max-width:700px;margin:0 auto">
+            <h2 style="font-weight:800;font-size:clamp(24px,3vw,36px);color:#fff;margin-bottom:12px;letter-spacing:-0.02em">${data.title || ""}</h2>
+            ${data.subtitle ? `<p style="color:rgba(255,255,255,0.8);font-size:16px;margin-bottom:28px">${data.subtitle}</p>` : ""}
+            <span class="btn-primary" data-nav="contact" style="cursor:pointer;background:#fff;color:${accent};font-weight:800">${data.cta?.text || "Get in touch"}</span>
+          </div>
+        </section>`;
+      if (isLuxury) return `
+        <section class="section" style="text-align:center">
+          <div style="width:40px;height:1px;background:${accent};margin:0 auto 32px"></div>
+          <h2 class="h2" style="margin-bottom:12px">${data.title || ""}</h2>
+          ${data.subtitle ? `<p class="lead" style="margin:0 auto 28px;text-align:center">${data.subtitle}</p>` : ""}
+          <span class="btn-primary" data-nav="contact" style="cursor:pointer">${data.cta?.text || "Get in touch"}</span>
+        </section>`;
       return `
         <section class="section">
           <h2 class="h2" style="margin-bottom:12px">${data.title || ""}</h2>
@@ -953,7 +1009,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         </section>`;
     };
 
-    // ─── SVG Social Icons (18×18, fill=currentColor) ──────
+    // ─── Social Icons (shared across all templates) ──
     const SI: Record<string, string> = {
       twitterx: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`,
       linkedin: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>`,
@@ -966,21 +1022,17 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       behance: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.938 4.503c.702 0 1.34.06 1.92.188.577.13 1.07.33 1.485.61.41.28.733.65.96 1.12.225.47.34 1.05.34 1.73 0 .74-.17 1.36-.507 1.86-.338.5-.837.9-1.502 1.22.906.26 1.576.72 2.022 1.37.448.66.665 1.45.665 2.36 0 .75-.13 1.39-.41 1.93-.28.55-.67 1-1.16 1.35-.48.348-1.05.6-1.67.767-.62.16-1.26.25-1.92.25H0V4.51h6.938v-.007zM6.545 10.16c.56 0 1.01-.155 1.36-.465.348-.31.52-.733.52-1.27 0-.307-.06-.573-.174-.8a1.378 1.378 0 00-.47-.53 2.01 2.01 0 00-.72-.3 3.77 3.77 0 00-.88-.1H3.308v3.47h3.237v-.005zm.2 5.39c.346 0 .666-.04.96-.12.296-.08.556-.2.78-.36.22-.162.398-.38.52-.65.124-.27.186-.6.186-.99 0-.78-.247-1.348-.74-1.7-.492-.35-1.14-.53-1.94-.53H3.31v4.35h3.435zM21.568 11.78c.04.418.06.827.06 1.23h-8.18c.04.79.28 1.42.71 1.88.43.46 1.01.69 1.74.69.53 0 .97-.15 1.34-.45.37-.3.62-.63.76-1.01h2.6c-.42 1.3-1.09 2.25-2.01 2.85-.92.6-2.02.9-3.31.9-.87 0-1.67-.15-2.39-.44a5.22 5.22 0 01-1.85-1.23c-.51-.53-.9-1.15-1.18-1.87-.28-.72-.42-1.51-.42-2.37 0-.83.14-1.6.42-2.33.28-.73.67-1.35 1.18-1.88a5.52 5.52 0 011.85-1.27c.72-.31 1.52-.46 2.39-.46.95 0 1.78.18 2.49.55.71.37 1.3.86 1.76 1.48.46.62.8 1.33 1.01 2.14.08.28.14.57.17.87v-.01zm-2.73-1.02c-.07-.66-.31-1.19-.73-1.59-.42-.4-.96-.6-1.63-.6-.43 0-.79.07-1.09.22-.3.14-.55.33-.74.57-.2.24-.34.5-.44.79-.1.29-.16.56-.19.82h4.82zM15.116 4.14h5.42v1.44h-5.42V4.14z"/></svg>`,
       github: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>`,
     };
-    // Normalize keys: "Twitter/X"→"twitterx", "TikTok"→"tiktok", "Facebook"→"facebook"
     function iconKey(raw: string) { return raw.toLowerCase().replace(/[\s\/]/g, ""); }
-
-    // Build social icon links
     const socials = site.branding?.socialLinks || {};
     const socialEntries = Object.entries(socials).filter(([, v]) => v);
     const socialIconsHtml = socialEntries.map(([k, v]) => {
       const key = iconKey(k as string);
       const icon = SI[key];
       const label = (k as string).charAt(0).toUpperCase() + (k as string).slice(1);
-      // Always render icon tile — fallback to first letter if no SVG
       return `<a href="${v}" target="_blank" rel="noopener noreferrer" class="ft-icon" title="${label}">${icon || `<span style="font-size:13px;font-weight:700">${label.charAt(0)}</span>`}</a>`;
     }).join("");
 
-    // Build premium footer
+    // ─── Footer (shared structure, template-aware styling) ───
     const fEmail = sv.email || "";
     const fPhone = sv.phone || "";
     const fLoc = sv.location || "";
@@ -988,11 +1040,21 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     const fTag = site.branding?.tagline || sv.tagline || "";
     const fYear = new Date().getFullYear();
     const fService = sv.mainService || c.offer?.hero?.headline || "";
-
-    // Phone href-safe (strip non-digits)
     const fPhoneHref = fPhone ? fPhone.replace(/[^0-9+]/g, "") : "";
 
-    const footerHtml = `
+    const footerHtml = isLuxury ? `
+    <footer class="ft" style="text-align:center">
+      <div class="ft-inner" style="padding:48px 24px 32px">
+        <div class="ft-logo" style="font-family:${headFont};margin-bottom:12px">${name}</div>
+        ${fTag ? `<p class="ft-tagline" style="margin:0 auto 20px;max-width:360px">${fTag}</p>` : ""}
+        ${socialIconsHtml ? `<div class="ft-icons" style="justify-content:center;margin-bottom:24px">${socialIconsHtml}</div>` : ""}
+        <div style="display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin-bottom:24px">
+          <a data-nav="home" class="ft-link">Home</a><a data-nav="services" class="ft-link">Services</a><a data-nav="pricing" class="ft-link">Pricing</a><a data-nav="about" class="ft-link">About</a><a data-nav="contact" class="ft-link">Contact</a>
+        </div>
+        <div class="ft-div"></div>
+        <div style="padding-top:20px"><span class="ft-copy">&copy; ${fYear} ${name}. All rights reserved.</span></div>
+      </div>
+    </footer>` : `
     <footer class="ft">
       <div class="ft-inner">
         <div class="ft-top">
@@ -1005,11 +1067,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           <div class="ft-columns">
             <div class="ft-col">
               <div class="ft-col-head">Pages</div>
-              <a data-nav="home" class="ft-link">Home</a>
-              <a data-nav="services" class="ft-link">Services</a>
-              <a data-nav="pricing" class="ft-link">Pricing</a>
-              <a data-nav="about" class="ft-link">About</a>
-              <a data-nav="contact" class="ft-link">Contact</a>
+              <a data-nav="home" class="ft-link">Home</a><a data-nav="services" class="ft-link">Services</a><a data-nav="pricing" class="ft-link">Pricing</a><a data-nav="about" class="ft-link">About</a><a data-nav="contact" class="ft-link">Contact</a>
             </div>
             <div class="ft-col">
               <div class="ft-col-head">Contact</div>
@@ -1021,59 +1079,45 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           </div>
         </div>
         <div class="ft-div"></div>
-        <div class="ft-bottom">
-          <span class="ft-copy">&copy; ${fYear} ${name}. All rights reserved.</span>
-        </div>
+        <div class="ft-bottom"><span class="ft-copy">&copy; ${fYear} ${name}. All rights reserved.</span></div>
       </div>
     </footer>`;
 
-    // Social proof — structurally different per template
+    // ─── SOCIAL PROOF ────────────────────────────────
     const proofItems = c.home?.socialProof?.items || [];
     const socialProofSection = proofItems.length === 0 ? "" : (() => {
+      const eyebrow = c.home?.socialProof?.eyebrow || "Results";
+      const title = c.home?.socialProof?.title || "";
+      const subtitle = c.home?.socialProof?.subtitle || "";
       if (isBold) {
-        return `<div class="divider"></div>
-        <section class="section" style="text-align:center;background:${surface}">
-          <div class="eyebrow">${c.home?.socialProof?.eyebrow || "Results"}</div>
-          <h2 class="h2" style="margin-bottom:48px;margin-left:auto;margin-right:auto">${c.home?.socialProof?.title || ""}</h2>
-          <div class="grid-3">${proofItems.map((p: any) => `
-            <div style="padding:32px">
-              <div style="font-size:48px;font-weight:900;color:${accent};letter-spacing:-0.03em;margin-bottom:8px">${p.value || ""}</div>
-              <div style="font-weight:700;font-size:16px;color:${text};margin-bottom:6px">${p.label || ""}</div>
-              <div style="color:${textSec};font-size:14px">${p.detail || ""}</div>
-            </div>`).join("")}</div>
-        </section>`;
+        return `<div class="divider"></div><section class="section" style="text-align:center;background:${surface}">
+          <div class="eyebrow">${eyebrow}</div><h2 class="h2" style="margin-bottom:48px;margin-left:auto;margin-right:auto">${title}</h2>
+          <div class="grid-3">${proofItems.map((p: any) => `<div style="padding:32px"><div style="font-size:48px;font-weight:900;color:${accent};letter-spacing:-0.03em;margin-bottom:8px">${p.value || ""}</div><div style="font-weight:700;font-size:16px;color:${text};margin-bottom:6px">${p.label || ""}</div><div style="color:${textSec};font-size:14px">${p.detail || ""}</div></div>`).join("")}</div></section>`;
       }
       if (isEditorial) {
-        return `<div class="divider"></div>
-        <section class="section">
-          <div class="eyebrow">${c.home?.socialProof?.eyebrow || "Results"}</div>
-          <h2 class="h2" style="margin-bottom:36px">${c.home?.socialProof?.title || ""}</h2>
-          <div style="display:flex;gap:48px;flex-wrap:wrap">${proofItems.map((p: any) => `
-            <div>
-              <div style="font-size:36px;font-weight:900;color:${text};font-family:${headFont};margin-bottom:4px">${p.value || ""}</div>
-              <div style="font-weight:600;font-size:14px;color:${accent};text-transform:uppercase;letter-spacing:0.06em">${p.label || ""}</div>
-              ${p.detail ? `<div style="color:${textSec};font-size:13px;margin-top:4px">${p.detail}</div>` : ""}
-            </div>`).join("")}</div>
-        </section>`;
+        return `<div class="divider"></div><section class="section"><div class="eyebrow">${eyebrow}</div><h2 class="h2" style="margin-bottom:36px">${title}</h2>
+          <div style="display:flex;gap:48px;flex-wrap:wrap">${proofItems.map((p: any) => `<div><div style="font-size:36px;font-weight:900;color:${text};font-family:${headFont};margin-bottom:4px">${p.value || ""}</div><div style="font-weight:600;font-size:14px;color:${accent};text-transform:uppercase;letter-spacing:0.06em">${p.label || ""}</div>${p.detail ? `<div style="color:${textSec};font-size:13px;margin-top:4px">${p.detail}</div>` : ""}</div>`).join("")}</div></section>`;
       }
-      return `<div class="divider"></div>
-      <section class="section">
-        <div class="eyebrow">${c.home?.socialProof?.eyebrow || "Results"}</div>
-        <h2 class="h2" style="margin-bottom:8px">${c.home?.socialProof?.title || ""}</h2>
-        ${c.home?.socialProof?.subtitle ? `<p class="lead" style="margin-bottom:32px">${c.home.socialProof.subtitle}</p>` : ""}
-        <div class="grid-3">${proofItems.map((p: any) => `
-          <div style="background:${surface};border:1px solid ${border};border-radius:16px;padding:24px;text-align:center">
-            <div style="font-size:28px;font-weight:900;color:${accent};margin-bottom:8px">${p.value || ""}</div>
-            <div style="font-weight:600;font-size:14px;color:${text};margin-bottom:4px">${p.label || ""}</div>
-            <div style="color:${textSec};font-size:13px">${p.detail || ""}</div>
-          </div>`).join("")}</div>
-      </section>`;
+      if (isStudio) {
+        return `<section style="background:${surface};padding:80px 24px;margin-top:40px"><div style="max-width:1100px;margin:0 auto">
+          <div class="eyebrow">${eyebrow}</div><h2 class="h2" style="margin-bottom:40px">${title}</h2>
+          <div style="display:grid;grid-template-columns:repeat(${Math.min(proofItems.length, 4)}, 1fr);gap:1px;background:${border};border-radius:12px;overflow:hidden">${proofItems.map((p: any) => `<div style="background:${surface};padding:32px;text-align:center"><div style="font-size:36px;font-weight:800;color:${accent};margin-bottom:8px">${p.value || ""}</div><div style="font-weight:600;font-size:14px;color:${text};margin-bottom:4px">${p.label || ""}</div><div style="color:${textSec};font-size:13px">${p.detail || ""}</div></div>`).join("")}</div></div></section>`;
+      }
+      if (isLuxury) {
+        return `<section class="section" style="text-align:center"><div style="width:40px;height:1px;background:${accent};margin:0 auto 28px"></div>
+          <div class="eyebrow">${eyebrow}</div><h2 class="h2" style="margin-bottom:48px">${title}</h2>
+          <div style="display:flex;justify-content:center;gap:64px;flex-wrap:wrap">${proofItems.map((p: any) => `<div><div style="font-size:40px;font-weight:300;color:${text};font-family:${headFont};letter-spacing:-0.02em;margin-bottom:6px">${p.value || ""}</div><div style="font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:${accent}">${p.label || ""}</div></div>`).join("")}</div></section>`;
+      }
+      // Minimal
+      return `<div class="divider"></div><section class="section"><div class="eyebrow">${eyebrow}</div><h2 class="h2" style="margin-bottom:8px">${title}</h2>${subtitle ? `<p class="lead" style="margin-bottom:32px">${subtitle}</p>` : ""}
+        <div class="grid-3">${proofItems.map((p: any) => `<div style="background:${surface};border:1px solid ${border};border-radius:16px;padding:24px;text-align:center"><div style="font-size:28px;font-weight:900;color:${accent};margin-bottom:8px">${p.value || ""}</div><div style="font-weight:600;font-size:14px;color:${text};margin-bottom:4px">${p.label || ""}</div><div style="color:${textSec};font-size:13px">${p.detail || ""}</div></div>`).join("")}</div></section>`;
     })();
 
-    // ── HOME PAGE — structurally different heroes ──
+    // ═══ HOME PAGE ═══════════════════════════════════
     const homeVp = c.home?.valueProps?.items || [];
     const homeSteps = c.home?.howItWorks?.steps || [];
     const ctaText = c.home?.primaryCta?.cta?.text || "Get in touch";
+
     const homePage = (() => {
       if (isBold) return `
         <section class="section hero-section" style="padding-top:140px;padding-bottom:100px;text-align:center;background:linear-gradient(180deg, ${accent}08 0%, transparent 50%)">
@@ -1082,45 +1126,52 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           <p class="lead" style="margin:0 auto 40px;max-width:640px;font-size:19px">${c.home?.hero?.subheadline || ""}</p>
           <span class="btn-primary" data-nav="contact" style="cursor:pointer;font-size:16px;padding:18px 44px">${ctaText}</span>
         </section>
-        <section class="section" style="background:${surface};padding:80px 24px">
-          <div style="text-align:center;margin-bottom:48px">
-            <div class="eyebrow">${c.home?.valueProps?.eyebrow || "What we do"}</div>
-            <h2 class="h2" style="margin:0 auto">${c.home?.valueProps?.title || ""}</h2>
-            ${c.home?.valueProps?.subtitle ? `<p class="lead" style="margin:12px auto 0">${c.home.valueProps.subtitle}</p>` : ""}
-          </div>
-          <div class="grid-${homeVp.length > 3 ? "3" : "2"}" style="max-width:1000px;margin:0 auto">${cards(homeVp)}</div>
-        </section>
-        <section class="section" style="padding:100px 24px">
-          <div style="text-align:center;margin-bottom:48px">
-            <div class="eyebrow">${c.home?.howItWorks?.eyebrow || "How it works"}</div>
-            <h2 class="h2">${c.home?.howItWorks?.title || ""}</h2>
-          </div>
-          <div style="max-width:640px;margin:0 auto">${stepsList(homeSteps)}</div>
-        </section>
-        ${socialProofSection}
-        ${ctaBlock(c.home?.primaryCta)}`;
+        <section class="section" style="background:${surface};padding:80px 24px"><div style="text-align:center;margin-bottom:48px"><div class="eyebrow">${c.home?.valueProps?.eyebrow || "What we do"}</div><h2 class="h2" style="margin:0 auto">${c.home?.valueProps?.title || ""}</h2></div><div class="grid-${homeVp.length > 3 ? "3" : "2"}" style="max-width:1000px;margin:0 auto">${cards(homeVp)}</div></section>
+        <section class="section" style="padding:100px 24px"><div style="text-align:center;margin-bottom:48px"><div class="eyebrow">${c.home?.howItWorks?.eyebrow || "How it works"}</div><h2 class="h2">${c.home?.howItWorks?.title || ""}</h2></div><div style="max-width:640px;margin:0 auto">${stepsList(homeSteps)}</div></section>
+        ${socialProofSection}${ctaBlock(c.home?.primaryCta)}`;
+
       if (isEditorial) return `
-        <section class="section hero-section" style="padding-top:120px;padding-bottom:80px">
-          <div style="max-width:760px">
-            <h1 class="h1" style="font-size:clamp(40px,5.5vw,68px);margin-bottom:24px;line-height:1.05">${c.home?.hero?.headline || name}</h1>
-            <p class="lead" style="margin-bottom:40px;font-size:18px;line-height:1.8">${c.home?.hero?.subheadline || ""}</p>
-            <span class="btn-primary" data-nav="contact" style="cursor:pointer;text-transform:uppercase;letter-spacing:0.06em;font-size:13px;padding:16px 36px">${ctaText}</span>
+        <section class="section hero-section" style="padding-top:120px;padding-bottom:80px"><div style="max-width:760px">
+          <h1 class="h1" style="font-size:clamp(40px,5.5vw,68px);margin-bottom:24px;line-height:1.05">${c.home?.hero?.headline || name}</h1>
+          <p class="lead" style="margin-bottom:40px;font-size:18px;line-height:1.8">${c.home?.hero?.subheadline || ""}</p>
+          <span class="btn-primary" data-nav="contact" style="cursor:pointer;text-transform:uppercase;letter-spacing:0.06em;font-size:13px;padding:16px 36px">${ctaText}</span>
+        </div></section>
+        <div class="divider"></div>
+        <section class="section" style="padding:80px 24px"><div class="eyebrow">${c.home?.valueProps?.eyebrow || "What we do"}</div><h2 class="h2" style="margin-bottom:12px">${c.home?.valueProps?.title || ""}</h2>${c.home?.valueProps?.subtitle ? `<p class="lead" style="margin-bottom:40px">${c.home.valueProps.subtitle}</p>` : ""}<div style="max-width:700px">${cards(homeVp)}</div></section>
+        <section class="section" style="border-top:1px solid ${border};border-bottom:1px solid ${border};padding:80px 24px"><div class="eyebrow">${c.home?.howItWorks?.eyebrow || "Process"}</div><h2 class="h2" style="margin-bottom:40px">${c.home?.howItWorks?.title || ""}</h2>${stepsList(homeSteps)}</section>
+        ${socialProofSection}${ctaBlock(c.home?.primaryCta)}`;
+
+      if (isStudio) return `
+        <section class="section hero-section" style="padding-top:100px;padding-bottom:80px">
+          <div style="display:grid;grid-template-columns:1.2fr 0.8fr;gap:60px;align-items:center">
+            <div>
+              <div class="eyebrow">${c.home?.valueProps?.eyebrow || name}</div>
+              <h1 class="h1" style="margin-bottom:20px">${c.home?.hero?.headline || name}</h1>
+              <p class="lead" style="margin-bottom:36px">${c.home?.hero?.subheadline || ""}</p>
+              <span class="btn-primary" data-nav="contact" style="cursor:pointer">${ctaText}</span>
+            </div>
+            <div style="background:linear-gradient(135deg, ${accent}15, ${accent}05);border:1px solid ${accent}20;border-radius:20px;padding:60px 40px;text-align:center">
+              <div style="font-size:64px;font-weight:900;color:${accent};opacity:0.3;letter-spacing:-0.04em;line-height:1">${name.charAt(0)}</div>
+              <div style="font-size:14px;color:${textSec};margin-top:12px">${fService || sv.mainService || ""}</div>
+            </div>
           </div>
         </section>
-        <div class="divider"></div>
-        <section class="section" style="padding:80px 24px">
-          <div class="eyebrow">${c.home?.valueProps?.eyebrow || "What we do"}</div>
-          <h2 class="h2" style="margin-bottom:12px">${c.home?.valueProps?.title || ""}</h2>
-          ${c.home?.valueProps?.subtitle ? `<p class="lead" style="margin-bottom:40px">${c.home.valueProps.subtitle}</p>` : ""}
-          <div style="max-width:700px">${cards(homeVp)}</div>
+        <section style="background:${surface};padding:80px 24px"><div style="max-width:1100px;margin:0 auto"><div class="eyebrow">${c.home?.valueProps?.eyebrow || "What we do"}</div><h2 class="h2" style="margin-bottom:8px">${c.home?.valueProps?.title || ""}</h2><p class="lead" style="margin-bottom:32px">${c.home?.valueProps?.subtitle || ""}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:0">${cards(homeVp)}</div></div></section>
+        <section class="section"><div class="eyebrow">${c.home?.howItWorks?.eyebrow || "Process"}</div><h2 class="h2" style="margin-bottom:32px">${c.home?.howItWorks?.title || ""}</h2><div style="max-width:560px">${stepsList(homeSteps)}</div></section>
+        ${socialProofSection}${ctaBlock(c.home?.primaryCta)}`;
+
+      if (isLuxury) return `
+        <section class="section hero-section" style="padding-top:140px;padding-bottom:100px;text-align:center">
+          <div style="font-size:11px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:${accent};margin-bottom:20px">${c.home?.valueProps?.eyebrow || name}</div>
+          <h1 class="h1" style="max-width:800px;margin:0 auto 24px">${c.home?.hero?.headline || name}</h1>
+          <p class="lead" style="margin:0 auto 44px;text-align:center;max-width:520px">${c.home?.hero?.subheadline || ""}</p>
+          <span class="btn-primary" data-nav="contact" style="cursor:pointer">${ctaText}</span>
+          <div style="width:40px;height:1px;background:${accent}40;margin:60px auto 0"></div>
         </section>
-        <section class="section" style="border-top:1px solid ${border};border-bottom:1px solid ${border};padding:80px 24px">
-          <div class="eyebrow">${c.home?.howItWorks?.eyebrow || "Process"}</div>
-          <h2 class="h2" style="margin-bottom:40px">${c.home?.howItWorks?.title || ""}</h2>
-          ${stepsList(homeSteps)}
-        </section>
-        ${socialProofSection}
-        ${ctaBlock(c.home?.primaryCta)}`;
+        <section class="section"><div style="text-align:center;margin-bottom:48px"><div class="eyebrow">${c.home?.valueProps?.eyebrow || "What we do"}</div><h2 class="h2">${c.home?.valueProps?.title || ""}</h2></div><div class="grid-${homeVp.length > 3 ? "3" : "2"}">${cards(homeVp)}</div></section>
+        <section class="section"><div style="text-align:center;margin-bottom:48px"><div class="eyebrow">${c.home?.howItWorks?.eyebrow || "Process"}</div><h2 class="h2">${c.home?.howItWorks?.title || ""}</h2></div>${stepsList(homeSteps)}</section>
+        ${socialProofSection}${ctaBlock(c.home?.primaryCta)}`;
+
       // Minimal (default)
       return `
         <section class="section hero-section" style="padding-top:100px;padding-bottom:80px">
@@ -1130,221 +1181,83 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           <span class="btn-primary" data-nav="contact" style="cursor:pointer">${ctaText}</span>
         </section>
         <div class="divider"></div>
-        <section class="section">
-          <div class="eyebrow">${c.home?.valueProps?.eyebrow || "What we do"}</div>
-          <h2 class="h2" style="margin-bottom:8px">${c.home?.valueProps?.title || ""}</h2>
-          <p class="lead" style="margin-bottom:36px">${c.home?.valueProps?.subtitle || ""}</p>
-          <div class="grid-${homeVp.length > 3 ? "3" : "2"}">${cards(homeVp)}</div>
-        </section>
+        <section class="section"><div class="eyebrow">${c.home?.valueProps?.eyebrow || "What we do"}</div><h2 class="h2" style="margin-bottom:8px">${c.home?.valueProps?.title || ""}</h2><p class="lead" style="margin-bottom:36px">${c.home?.valueProps?.subtitle || ""}</p><div class="grid-${homeVp.length > 3 ? "3" : "2"}">${cards(homeVp)}</div></section>
         <div class="divider"></div>
-        <section class="section">
-          <div class="eyebrow">${c.home?.howItWorks?.eyebrow || "How it works"}</div>
-          <h2 class="h2" style="margin-bottom:8px">${c.home?.howItWorks?.title || ""}</h2>
-          <p class="lead" style="margin-bottom:36px">${c.home?.howItWorks?.subtitle || ""}</p>
-          <div style="max-width:640px">${stepsList(homeSteps)}</div>
-        </section>
-        ${socialProofSection}
-        ${ctaBlock(c.home?.primaryCta)}`;
+        <section class="section"><div class="eyebrow">${c.home?.howItWorks?.eyebrow || "How it works"}</div><h2 class="h2" style="margin-bottom:8px">${c.home?.howItWorks?.title || ""}</h2><p class="lead" style="margin-bottom:36px">${c.home?.howItWorks?.subtitle || ""}</p><div style="max-width:640px">${stepsList(homeSteps)}</div></section>
+        ${socialProofSection}${ctaBlock(c.home?.primaryCta)}`;
     })();
 
-    // ── SERVICES PAGE ──
+    // ═══ SERVICES PAGE ══════════════════════════════
     const offerItems = c.offer?.whatYouGet?.items || homeVp;
     const whoItems = c.offer?.whoItsFor?.items || [];
     const guaranteeHtml = sv.guarantee ? (() => {
-      if (isBold) return `
-        <section class="section" style="text-align:center">
-          <div style="display:inline-flex;align-items:center;gap:16px;padding:28px 36px;border-radius:20px;background:${accent}08;border:1px solid ${accent}20">
-            <span style="font-size:28px">🛡️</span>
-            <div style="text-align:left">
-              <div style="font-weight:800;font-size:17px;color:${text};margin-bottom:4px">Our Guarantee</div>
-              <div style="color:${textSec};font-size:15px">${sv.guarantee}</div>
-            </div>
-          </div>
-          ${sv.turnaround ? `<div style="margin-top:20px;color:${textSec};font-size:15px">Typical turnaround: <strong style="color:${text}">${sv.turnaround}</strong></div>` : ""}
-        </section>`;
-      return `
-        <section class="section">
-          <div style="display:flex;align-items:center;gap:16px;padding:24px 28px;border-radius:12px;background:${accent}06;border:1px solid ${accent}18;max-width:600px">
-            <span style="font-size:24px">🛡️</span>
-            <div>
-              <div style="font-weight:700;font-size:15px;color:${text};margin-bottom:2px">Guarantee</div>
-              <div style="color:${textSec};font-size:14px">${sv.guarantee}</div>
-            </div>
-          </div>
-          ${sv.turnaround ? `<div style="margin-top:16px;color:${textSec};font-size:14px">Typical turnaround: <strong style="color:${text}">${sv.turnaround}</strong></div>` : ""}
-        </section>`;
+      if (isBold) return `<section class="section" style="text-align:center"><div style="display:inline-flex;align-items:center;gap:16px;padding:28px 36px;border-radius:20px;background:${accent}08;border:1px solid ${accent}20"><span style="font-size:28px">🛡️</span><div style="text-align:left"><div style="font-weight:800;font-size:17px;color:${text};margin-bottom:4px">Our Guarantee</div><div style="color:${textSec};font-size:15px">${sv.guarantee}</div></div></div>${sv.turnaround ? `<div style="margin-top:20px;color:${textSec};font-size:15px">Typical turnaround: <strong style="color:${text}">${sv.turnaround}</strong></div>` : ""}</section>`;
+      if (isLuxury) return `<section class="section" style="text-align:center"><div style="width:40px;height:1px;background:${accent};margin:0 auto 24px"></div><div style="font-size:11px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:${accent};margin-bottom:12px">Our Guarantee</div><div style="font-family:${headFont};font-size:20px;color:${text};max-width:500px;margin:0 auto">${sv.guarantee}</div>${sv.turnaround ? `<div style="margin-top:16px;color:${textSec};font-size:14px">Turnaround: ${sv.turnaround}</div>` : ""}</section>`;
+      return `<section class="section"><div style="display:flex;align-items:center;gap:16px;padding:24px 28px;border-radius:12px;background:${accent}06;border:1px solid ${accent}18;max-width:600px"><span style="font-size:24px">🛡️</span><div><div style="font-weight:700;font-size:15px;color:${text};margin-bottom:2px">Guarantee</div><div style="color:${textSec};font-size:14px">${sv.guarantee}</div></div></div>${sv.turnaround ? `<div style="margin-top:16px;color:${textSec};font-size:14px">Typical turnaround: <strong style="color:${text}">${sv.turnaround}</strong></div>` : ""}</section>`;
     })() : "";
 
     const servicesPage = `
-      <section class="section hero-section" style="padding-top:${isBold ? "120px" : "100px"};padding-bottom:80px;text-align:${heroAlign};${isBold ? `background:linear-gradient(180deg, ${accent}06 0%, transparent 40%)` : ""}">
+      <section class="section hero-section" style="padding-top:${isBold ? "120px" : isLuxury ? "140px" : "100px"};padding-bottom:80px;text-align:${heroAlign};${isBold ? `background:linear-gradient(180deg, ${accent}06 0%, transparent 40%)` : ""}${isStudio ? `display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:end` : ""}">
+        ${isStudio ? `<div>` : ""}
         <div class="eyebrow">Services</div>
-        <h1 class="h1" style="max-width:${isBold ? "800px" : "720px"};margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.offer?.hero?.headline || "What we offer"}</h1>
-        <p class="lead" style="margin-bottom:36px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.offer?.hero?.subheadline || ""}</p>
+        <h1 class="h1" style="max-width:${isBold ? "800px" : "720px"};margin-bottom:20px;${(isBold || isLuxury) ? "margin-left:auto;margin-right:auto" : ""}">${c.offer?.hero?.headline || "What we offer"}</h1>
+        <p class="lead" style="margin-bottom:36px;${(isBold || isLuxury) ? "margin-left:auto;margin-right:auto;text-align:center" : ""}">${c.offer?.hero?.subheadline || ""}</p>
+        ${isStudio ? `</div><div></div>` : ""}
       </section>
       <div class="divider"></div>
       <section class="section" ${isBold ? `style="background:${surface};padding:80px 24px"` : ""}>
         <div class="eyebrow">${c.offer?.whatYouGet?.eyebrow || "Deliverables"}</div>
         <h2 class="h2" style="margin-bottom:8px">${c.offer?.whatYouGet?.title || "What's included"}</h2>
         <p class="lead" style="margin-bottom:36px">${c.offer?.whatYouGet?.subtitle || ""}</p>
-        <div class="${isEditorial ? "" : "grid-2"}" ${isEditorial ? 'style="max-width:700px"' : ""}>${cards(offerItems)}</div>
+        <div class="${(isEditorial || isStudio) ? "" : "grid-2"}" ${(isEditorial || isStudio) ? 'style="max-width:700px"' : ""}>${cards(offerItems)}</div>
       </section>
-      ${whoItems.length ? `<div class="divider"></div>
-      <section class="section">
-        <div class="eyebrow">${c.offer?.whoItsFor?.eyebrow || "Ideal client"}</div>
-        <h2 class="h2" style="margin-bottom:8px">${c.offer?.whoItsFor?.title || "Is this for you?"}</h2>
-        <p class="lead" style="margin-bottom:36px">${c.offer?.whoItsFor?.subtitle || ""}</p>
-        <div class="${isEditorial ? "" : "grid-2"}" ${isEditorial ? 'style="max-width:700px"' : ""}>${cards(whoItems)}</div>
-      </section>` : ""}
-      ${guaranteeHtml}
-      ${ctaBlock(c.offer?.cta)}`;
+      ${whoItems.length ? `<div class="divider"></div><section class="section"><div class="eyebrow">${c.offer?.whoItsFor?.eyebrow || "Ideal client"}</div><h2 class="h2" style="margin-bottom:8px">${c.offer?.whoItsFor?.title || "Is this for you?"}</h2><p class="lead" style="margin-bottom:36px">${c.offer?.whoItsFor?.subtitle || ""}</p><div class="${(isEditorial || isStudio) ? "" : "grid-2"}" ${(isEditorial || isStudio) ? 'style="max-width:700px"' : ""}>${cards(whoItems)}</div></section>` : ""}
+      ${guaranteeHtml}${ctaBlock(c.offer?.cta)}`;
 
-    // ── PRICING PAGE — structurally different per template ──
+    // ═══ PRICING PAGE ═══════════════════════════════
     const tiers = c.pricing?.pricing?.tiers || [];
     const stripeUrls: Record<string, string> = site.stripeCheckoutUrls || {};
-
-    // Helper: resolve CTA for a tier — Stripe checkout if available, else contact nav
     function tierCta(tier: any, extraStyle: string = ""): string {
       const key = (tier.name || "").toLowerCase().replace(/[^a-z0-9]/g, "_");
-      // Try exact key match, then try all keys for a partial match
       let url = stripeUrls[key];
-      if (!url) {
-        for (const [k, v] of Object.entries(stripeUrls)) {
-          if (k.toLowerCase().includes(key) || key.includes(k.toLowerCase())) { url = v as string; break; }
-        }
-      }
-      // If only one Stripe URL exists and only one tier, use it
-      if (!url && tiers.length === 1 && Object.keys(stripeUrls).length === 1) {
-        url = Object.values(stripeUrls)[0] as string;
-      }
-      const ctaText = url ? `Get ${tier.name || "Started"}` : (c.pricing?.cta?.cta?.text || "Get started");
-      if (url) {
-        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="btn-primary" style="cursor:pointer;display:block;text-align:center;text-decoration:none;${extraStyle}">${ctaText}</a>`;
-      }
-      return `<span class="btn-primary" data-nav="contact" style="cursor:pointer;display:block;text-align:center;${extraStyle}">${ctaText}</span>`;
+      if (!url) { for (const [k, v] of Object.entries(stripeUrls)) { if (k.toLowerCase().includes(key) || key.includes(k.toLowerCase())) { url = v as string; break; } } }
+      if (!url && tiers.length === 1 && Object.keys(stripeUrls).length === 1) { url = Object.values(stripeUrls)[0] as string; }
+      const ct = url ? `Get ${tier.name || "Started"}` : (c.pricing?.cta?.cta?.text || "Get started");
+      if (url) return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="btn-primary" style="cursor:pointer;display:block;text-align:center;text-decoration:none;${extraStyle}">${ct}</a>`;
+      return `<span class="btn-primary" data-nav="contact" style="cursor:pointer;display:block;text-align:center;${extraStyle}">${ct}</span>`;
     }
 
     const tiersHtml = (() => {
-      if (isEditorial) {
-        return tiers.map((tier: any) => `
-          <div style="border:1px solid ${tier.highlighted ? accent : border};padding:40px 32px;${tier.highlighted ? `border-width:2px;` : ""}">
-            <div style="font-weight:700;font-size:20px;color:${text};font-family:${headFont};margin-bottom:8px">${tier.name || ""}</div>
-            <div style="font-weight:900;font-size:44px;color:${text};margin:12px 0;letter-spacing:-0.03em;font-family:${headFont}">${tier.price || ""}</div>
-            ${tier.note ? `<div style="color:${textSec};font-size:14px;margin-bottom:16px;font-style:italic">${tier.note}</div>` : ""}
-            <div style="border-top:1px solid ${border};padding-top:20px;margin-top:20px">
-              ${(tier.features || []).map((f: string) => `
-                <div style="color:${textSec};font-size:14px;margin-bottom:10px;padding-left:16px;position:relative">
-                  <span style="position:absolute;left:0;color:${accent}">—</span> ${f}
-                </div>`).join("")}
-            </div>
-            ${tierCta(tier, `margin-top:28px;${tier.highlighted ? "" : `background:transparent;border:2px solid ${border};color:${text};`}text-transform:uppercase;letter-spacing:0.04em;font-size:13px`)}
-          </div>`).join("");
-      }
-      if (isBold) {
-        return tiers.map((tier: any) => `
-          <div style="background:${tier.highlighted ? `linear-gradient(135deg, ${accent}15, ${accent}05)` : surface};border:${tier.highlighted ? `2px solid ${accent}` : `1px solid ${border}`};border-radius:24px;padding:40px 32px;${tier.highlighted ? `box-shadow:0 20px 60px ${accent}15;transform:scale(1.03);` : ""}position:relative">
-            ${tier.highlighted ? `<div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:${accent};color:#fff;font-size:12px;font-weight:800;padding:4px 16px;border-radius:999px;letter-spacing:0.06em">POPULAR</div>` : ""}
-            <div style="font-weight:800;font-size:20px;color:${text};text-align:center">${tier.name || ""}</div>
-            <div style="font-weight:900;font-size:52px;color:${text};margin:20px 0 12px;letter-spacing:-0.04em;text-align:center">${tier.price || ""}</div>
-            ${tier.note ? `<div style="color:${textSec};font-size:14px;text-align:center;margin-bottom:12px">${tier.note}</div>` : ""}
-            <div style="border-top:1px solid ${border};padding-top:24px;margin-top:24px">
-              ${(tier.features || []).map((f: string) => `
-                <div style="display:flex;align-items:center;gap:12px;color:${textSec};font-size:15px;margin-bottom:14px">
-                  <span style="color:${accent};font-size:18px;font-weight:bold">✓</span> ${f}
-                </div>`).join("")}
-            </div>
-            ${tierCta(tier, `margin-top:28px;font-size:16px;padding:16px;${tier.highlighted ? "" : `background:transparent;border:2px solid ${border};color:${text};`}`)}
-          </div>`).join("");
-      }
-      return tiers.map((tier: any) => `
-        <div style="background:${surface};border:1px solid ${tier.highlighted ? accent : border};border-radius:16px;padding:32px;${tier.highlighted ? `box-shadow:0 0 40px ${accent}12;` : ""}">
-          <div style="font-weight:700;font-size:18px;color:${text}">${tier.name || ""}</div>
-          <div style="font-weight:900;font-size:40px;color:${text};margin:16px 0 8px;letter-spacing:-0.03em">${tier.price || ""}</div>
-          ${tier.note ? `<div style="color:${textSec};font-size:14px;margin-bottom:8px">${tier.note}</div>` : ""}
-          <div style="margin-top:20px;border-top:1px solid ${border};padding-top:20px">
-            ${(tier.features || []).map((f: string) => `
-              <div style="display:flex;align-items:center;gap:10px;color:${textSec};font-size:14px;margin-bottom:12px">
-                <span style="color:${accent}">✓</span> ${f}
-              </div>`).join("")}
-          </div>
-          ${tierCta(tier, `margin-top:24px;${tier.highlighted ? "" : `background:transparent;border:1px solid ${border};color:${text};`}`)}
-        </div>`).join("");
+      if (isEditorial) return tiers.map((tier: any) => `<div style="border:1px solid ${tier.highlighted ? accent : border};padding:40px 32px;${tier.highlighted ? "border-width:2px;" : ""}"><div style="font-weight:700;font-size:20px;color:${text};font-family:${headFont};margin-bottom:8px">${tier.name || ""}</div><div style="font-weight:900;font-size:44px;color:${text};margin:12px 0;letter-spacing:-0.03em;font-family:${headFont}">${tier.price || ""}</div>${tier.note ? `<div style="color:${textSec};font-size:14px;margin-bottom:16px;font-style:italic">${tier.note}</div>` : ""}<div style="border-top:1px solid ${border};padding-top:20px;margin-top:20px">${(tier.features || []).map((f: string) => `<div style="color:${textSec};font-size:14px;margin-bottom:10px;padding-left:16px;position:relative"><span style="position:absolute;left:0;color:${accent}">—</span> ${f}</div>`).join("")}</div>${tierCta(tier, `margin-top:28px;${tier.highlighted ? "" : `background:transparent;border:2px solid ${border};color:${text};`}text-transform:uppercase;letter-spacing:0.04em;font-size:13px`)}</div>`).join("");
+      if (isBold) return tiers.map((tier: any) => `<div style="background:${tier.highlighted ? `linear-gradient(135deg, ${accent}15, ${accent}05)` : surface};border:${tier.highlighted ? `2px solid ${accent}` : `1px solid ${border}`};border-radius:24px;padding:40px 32px;${tier.highlighted ? `box-shadow:0 20px 60px ${accent}15;transform:scale(1.03);` : ""}position:relative">${tier.highlighted ? `<div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:${accent};color:#fff;font-size:12px;font-weight:800;padding:4px 16px;border-radius:999px;letter-spacing:0.06em">POPULAR</div>` : ""}<div style="font-weight:800;font-size:20px;color:${text};text-align:center">${tier.name || ""}</div><div style="font-weight:900;font-size:52px;color:${text};margin:20px 0 12px;letter-spacing:-0.04em;text-align:center">${tier.price || ""}</div>${tier.note ? `<div style="color:${textSec};font-size:14px;text-align:center;margin-bottom:12px">${tier.note}</div>` : ""}<div style="border-top:1px solid ${border};padding-top:24px;margin-top:24px">${(tier.features || []).map((f: string) => `<div style="display:flex;align-items:center;gap:12px;color:${textSec};font-size:15px;margin-bottom:14px"><span style="color:${accent};font-size:18px;font-weight:bold">✓</span> ${f}</div>`).join("")}</div>${tierCta(tier, `margin-top:28px;font-size:16px;padding:16px;${tier.highlighted ? "" : `background:transparent;border:2px solid ${border};color:${text};`}`)}</div>`).join("");
+      if (isStudio) return tiers.map((tier: any) => `<div style="background:${surface};border:1px solid ${tier.highlighted ? accent : border};border-radius:12px;padding:36px;${tier.highlighted ? `box-shadow:0 0 0 1px ${accent};` : ""}"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:20px"><div style="font-weight:700;font-size:18px;color:${text}">${tier.name || ""}</div><div style="font-weight:800;font-size:32px;color:${text};letter-spacing:-0.03em">${tier.price || ""}</div></div>${tier.note ? `<div style="color:${textSec};font-size:14px;margin-bottom:16px">${tier.note}</div>` : ""}<div style="border-top:1px solid ${border};padding-top:20px;margin-top:8px">${(tier.features || []).map((f: string) => `<div style="display:flex;align-items:center;gap:10px;color:${textSec};font-size:14px;margin-bottom:12px"><span style="color:${accent}">✓</span> ${f}</div>`).join("")}</div>${tierCta(tier, `margin-top:24px;${tier.highlighted ? "" : `background:transparent;border:1px solid ${border};color:${text};`}`)}</div>`).join("");
+      if (isLuxury) return tiers.map((tier: any) => `<div style="background:${isLight ? "rgba(0,0,0,0.02)" : "rgba(255,255,255,0.03)"};backdrop-filter:blur(12px);border:1px solid ${tier.highlighted ? accent + "60" : (isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)")};border-radius:16px;padding:40px 32px;text-align:center;${tier.highlighted ? `box-shadow:0 0 40px ${accent}12;` : ""}"><div style="font-size:11px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:${accent};margin-bottom:16px">${tier.name || ""}</div><div style="font-weight:300;font-size:48px;color:${text};font-family:${headFont};margin-bottom:8px;letter-spacing:-0.02em">${tier.price || ""}</div>${tier.note ? `<div style="color:${textSec};font-size:14px;margin-bottom:20px">${tier.note}</div>` : ""}<div style="border-top:1px solid ${border};padding-top:24px;margin-top:20px;text-align:left">${(tier.features || []).map((f: string) => `<div style="color:${textSec};font-size:14px;margin-bottom:12px;padding-left:20px;position:relative"><span style="position:absolute;left:0;color:${accent};font-size:10px">◆</span> ${f}</div>`).join("")}</div>${tierCta(tier, `margin-top:28px;${tier.highlighted ? "" : `background:transparent;border:1px solid ${border};color:${text};`}`)}</div>`).join("");
+      // Minimal
+      return tiers.map((tier: any) => `<div style="background:${surface};border:1px solid ${tier.highlighted ? accent : border};border-radius:16px;padding:32px;${tier.highlighted ? `box-shadow:0 0 40px ${accent}12;` : ""}"><div style="font-weight:700;font-size:18px;color:${text}">${tier.name || ""}</div><div style="font-weight:900;font-size:40px;color:${text};margin:16px 0 8px;letter-spacing:-0.03em">${tier.price || ""}</div>${tier.note ? `<div style="color:${textSec};font-size:14px;margin-bottom:8px">${tier.note}</div>` : ""}<div style="margin-top:20px;border-top:1px solid ${border};padding-top:20px">${(tier.features || []).map((f: string) => `<div style="display:flex;align-items:center;gap:10px;color:${textSec};font-size:14px;margin-bottom:12px"><span style="color:${accent}">✓</span> ${f}</div>`).join("")}</div>${tierCta(tier, `margin-top:24px;${tier.highlighted ? "" : `background:transparent;border:1px solid ${border};color:${text};`}`)}</div>`).join("");
     })();
 
     const pricingPage = `
-      <section class="section hero-section" style="padding-top:${isBold ? "120px" : "100px"};padding-bottom:80px;text-align:${heroAlign};${isBold ? `background:linear-gradient(180deg, ${accent}06 0%, transparent 40%)` : ""}">
+      <section class="section hero-section" style="padding-top:${(isBold || isLuxury) ? "120px" : "100px"};padding-bottom:80px;text-align:${heroAlign}">
         <div class="eyebrow">${c.pricing?.pricing?.eyebrow || "Pricing"}</div>
-        <h1 class="h1" style="max-width:720px;margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.pricing?.hero?.headline || "Pricing"}</h1>
-        <p class="lead" style="margin-bottom:36px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.pricing?.hero?.subheadline || ""}</p>
-      </section>
-      <div class="divider"></div>
-      <section class="section">
-        <div class="grid-${tiers.length > 2 ? "3" : tiers.length === 2 ? "2" : "1"}" ${tiers.length === 1 ? 'style="max-width:440px"' : ""} style="align-items:${isBold ? "center" : "start"}">${tiersHtml}</div>
-      </section>
+        <h1 class="h1" style="max-width:720px;margin-bottom:20px;${(isBold || isLuxury) ? "margin-left:auto;margin-right:auto" : ""}">${c.pricing?.hero?.headline || "Pricing"}</h1>
+        <p class="lead" style="margin-bottom:36px;${(isBold || isLuxury) ? "margin-left:auto;margin-right:auto;text-align:center" : ""}">${c.pricing?.hero?.subheadline || ""}</p>
+      </section><div class="divider"></div>
+      <section class="section"><div class="grid-${tiers.length > 2 ? "3" : tiers.length === 2 ? "2" : "1"}" ${tiers.length === 1 ? 'style="max-width:440px"' : ""} style="align-items:${(isBold || isLuxury) ? "center" : "start"}">${tiersHtml}</div></section>
       ${ctaBlock(c.pricing?.cta)}`;
 
-    // ── ABOUT PAGE ──
+    // ═══ ABOUT PAGE ═════════════════════════════════
     const values = c.about?.values?.items || [];
+    const storyBody = c.about?.story?.body || sv.aboutStory || "";
     const aboutPage = (() => {
-      if (isEditorial) return `
-        <section class="section hero-section" style="padding-top:120px;padding-bottom:80px">
-          <h1 class="h1" style="max-width:800px;font-size:clamp(40px,5.5vw,64px);margin-bottom:24px">${c.about?.hero?.headline || "About " + name}</h1>
-          <p class="lead" style="font-size:18px;line-height:1.8">${c.about?.hero?.subheadline || ""}</p>
-        </section>
-        <div class="divider"></div>
-        <section class="section" style="border-top:1px solid ${border};border-bottom:1px solid ${border};padding:80px 24px">
-          <div class="eyebrow">${c.about?.story?.eyebrow || "The story"}</div>
-          <h2 class="h2" style="margin-bottom:20px">${c.about?.story?.title || "Our story"}</h2>
-          <div style="color:${textSec};font-size:17px;line-height:2;max-width:680px;font-family:Georgia,serif">${c.about?.story?.body || sv.aboutStory || ""}</div>
-        </section>
-        ${values.length ? `
-        <section class="section">
-          <div class="eyebrow">${c.about?.values?.eyebrow || "Principles"}</div>
-          <h2 class="h2" style="margin-bottom:32px">${c.about?.values?.title || "How we work"}</h2>
-          <div style="max-width:700px">${cards(values)}</div>
-        </section>` : ""}
-        ${ctaBlock(c.about?.cta)}`;
-      if (isBold) return `
-        <section class="section hero-section" style="padding-top:140px;padding-bottom:100px;text-align:center;background:linear-gradient(180deg, ${accent}08 0%, transparent 50%)">
-          <div class="eyebrow">${c.about?.story?.eyebrow || "About"}</div>
-          <h1 class="h1" style="max-width:800px;margin:0 auto 24px">${c.about?.hero?.headline || "About " + name}</h1>
-          <p class="lead" style="margin:0 auto">${c.about?.hero?.subheadline || ""}</p>
-        </section>
-        <section class="section" style="background:${surface};padding:80px 24px">
-          <div style="max-width:720px;margin:0 auto;text-align:center">
-            <h2 class="h2" style="margin-bottom:20px">${c.about?.story?.title || "Our story"}</h2>
-            <div style="color:${textSec};font-size:17px;line-height:1.9">${c.about?.story?.body || sv.aboutStory || ""}</div>
-          </div>
-        </section>
-        ${values.length ? `
-        <section class="section" style="padding:80px 24px">
-          <div style="text-align:center;margin-bottom:48px">
-            <div class="eyebrow">${c.about?.values?.eyebrow || "Values"}</div>
-            <h2 class="h2">${c.about?.values?.title || "How we work"}</h2>
-          </div>
-          <div class="grid-${values.length > 2 ? "3" : "2"}" style="max-width:1000px;margin:0 auto">${cards(values)}</div>
-        </section>` : ""}
-        ${ctaBlock(c.about?.cta)}`;
-      return `
-        <section class="section hero-section" style="padding-top:100px;padding-bottom:80px">
-          <div class="eyebrow">${c.about?.story?.eyebrow || "About"}</div>
-          <h1 class="h1" style="max-width:720px;margin-bottom:20px">${c.about?.hero?.headline || "About " + name}</h1>
-          <p class="lead" style="margin-bottom:36px">${c.about?.hero?.subheadline || ""}</p>
-        </section>
-        <div class="divider"></div>
-        <section class="section">
-          <h2 class="h2" style="margin-bottom:16px">${c.about?.story?.title || "Our story"}</h2>
-          <div style="color:${textSec};font-size:16px;line-height:1.8;max-width:720px">${c.about?.story?.body || sv.aboutStory || ""}</div>
-        </section>
-        ${values.length ? `<div class="divider"></div>
-        <section class="section">
-          <div class="eyebrow">${c.about?.values?.eyebrow || "Values"}</div>
-          <h2 class="h2" style="margin-bottom:8px">${c.about?.values?.title || "How we work"}</h2>
-          <div class="grid-2" style="margin-top:28px">${cards(values)}</div>
-        </section>` : ""}
-        ${ctaBlock(c.about?.cta)}`;
+      if (isEditorial) return `<section class="section hero-section" style="padding-top:120px;padding-bottom:80px"><h1 class="h1" style="max-width:800px;font-size:clamp(40px,5.5vw,64px);margin-bottom:24px">${c.about?.hero?.headline || "About " + name}</h1><p class="lead" style="font-size:18px;line-height:1.8">${c.about?.hero?.subheadline || ""}</p></section><div class="divider"></div><section class="section" style="border-top:1px solid ${border};border-bottom:1px solid ${border};padding:80px 24px"><div class="eyebrow">${c.about?.story?.eyebrow || "The story"}</div><h2 class="h2" style="margin-bottom:20px">${c.about?.story?.title || "Our story"}</h2><div style="color:${textSec};font-size:17px;line-height:2;max-width:680px;font-family:Georgia,serif">${storyBody}</div></section>${values.length ? `<section class="section"><div class="eyebrow">${c.about?.values?.eyebrow || "Principles"}</div><h2 class="h2" style="margin-bottom:32px">${c.about?.values?.title || "How we work"}</h2><div style="max-width:700px">${cards(values)}</div></section>` : ""}${ctaBlock(c.about?.cta)}`;
+      if (isBold) return `<section class="section hero-section" style="padding-top:140px;padding-bottom:100px;text-align:center;background:linear-gradient(180deg, ${accent}08 0%, transparent 50%)"><div class="eyebrow">${c.about?.story?.eyebrow || "About"}</div><h1 class="h1" style="max-width:800px;margin:0 auto 24px">${c.about?.hero?.headline || "About " + name}</h1><p class="lead" style="margin:0 auto">${c.about?.hero?.subheadline || ""}</p></section><section class="section" style="background:${surface};padding:80px 24px"><div style="max-width:720px;margin:0 auto;text-align:center"><h2 class="h2" style="margin-bottom:20px">${c.about?.story?.title || "Our story"}</h2><div style="color:${textSec};font-size:17px;line-height:1.9">${storyBody}</div></div></section>${values.length ? `<section class="section" style="padding:80px 24px"><div style="text-align:center;margin-bottom:48px"><div class="eyebrow">${c.about?.values?.eyebrow || "Values"}</div><h2 class="h2">${c.about?.values?.title || "How we work"}</h2></div><div class="grid-${values.length > 2 ? "3" : "2"}" style="max-width:1000px;margin:0 auto">${cards(values)}</div></section>` : ""}${ctaBlock(c.about?.cta)}`;
+      if (isStudio) return `<section class="section hero-section" style="padding-top:100px;padding-bottom:80px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center"><div><div class="eyebrow">${c.about?.story?.eyebrow || "About"}</div><h1 class="h1" style="margin-bottom:20px">${c.about?.hero?.headline || "About " + name}</h1><p class="lead">${c.about?.hero?.subheadline || ""}</p></div><div style="background:${surface};border:1px solid ${border};border-radius:16px;padding:40px"><h2 style="font-weight:700;font-size:20px;color:${text};margin-bottom:16px">${c.about?.story?.title || "Our story"}</h2><div style="color:${textSec};font-size:15px;line-height:1.8">${storyBody}</div></div></div></section>${values.length ? `<section style="background:${surface};padding:80px 24px"><div style="max-width:1100px;margin:0 auto"><div class="eyebrow">${c.about?.values?.eyebrow || "Values"}</div><h2 class="h2" style="margin-bottom:32px">${c.about?.values?.title || "How we work"}</h2><div style="display:grid;grid-template-columns:1fr 1fr;gap:0">${cards(values)}</div></div></section>` : ""}${ctaBlock(c.about?.cta)}`;
+      if (isLuxury) return `<section class="section hero-section" style="padding-top:140px;padding-bottom:100px;text-align:center"><div style="font-size:11px;font-weight:500;letter-spacing:0.2em;text-transform:uppercase;color:${accent};margin-bottom:20px">${c.about?.story?.eyebrow || "About"}</div><h1 class="h1" style="max-width:700px;margin:0 auto 24px">${c.about?.hero?.headline || "About " + name}</h1><p class="lead" style="margin:0 auto;text-align:center">${c.about?.hero?.subheadline || ""}</p><div style="width:40px;height:1px;background:${accent}40;margin:48px auto 0"></div></section><section class="section"><div style="max-width:640px;margin:0 auto;text-align:center"><h2 class="h2" style="margin-bottom:20px">${c.about?.story?.title || "Our story"}</h2><div style="color:${textSec};font-size:16px;line-height:1.9;font-family:${headFont}">${storyBody}</div></div></section>${values.length ? `<section class="section"><div style="text-align:center;margin-bottom:48px"><div class="eyebrow">${c.about?.values?.eyebrow || "Principles"}</div><h2 class="h2">${c.about?.values?.title || "How we work"}</h2></div><div class="grid-${values.length > 2 ? "3" : "2"}">${cards(values)}</div></section>` : ""}${ctaBlock(c.about?.cta)}`;
+      // Minimal
+      return `<section class="section hero-section" style="padding-top:100px;padding-bottom:80px"><div class="eyebrow">${c.about?.story?.eyebrow || "About"}</div><h1 class="h1" style="max-width:720px;margin-bottom:20px">${c.about?.hero?.headline || "About " + name}</h1><p class="lead" style="margin-bottom:36px">${c.about?.hero?.subheadline || ""}</p></section><div class="divider"></div><section class="section"><h2 class="h2" style="margin-bottom:16px">${c.about?.story?.title || "Our story"}</h2><div style="color:${textSec};font-size:16px;line-height:1.8;max-width:720px">${storyBody}</div></section>${values.length ? `<div class="divider"></div><section class="section"><div class="eyebrow">${c.about?.values?.eyebrow || "Values"}</div><h2 class="h2" style="margin-bottom:8px">${c.about?.values?.title || "How we work"}</h2><div class="grid-2" style="margin-top:28px">${cards(values)}</div></section>` : ""}${ctaBlock(c.about?.cta)}`;
     })();
 
-    // ── CONTACT PAGE ──
+    // ═══ CONTACT PAGE ═══════════════════════════════
     const methods = c.contact?.methods?.items || [];
     const nextSteps = c.contact?.nextSteps?.items || [];
     const contactDetails: Array<{label:string;value:string;href?:string}> = [];
@@ -1357,48 +1270,29 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
     const contactPage = (() => {
       const contactCards = contactItems.map((m: any) => {
-        if (isBold) return `
-          <div style="background:${surface};border:1px solid ${border};border-radius:20px;padding:28px;text-align:center">
-            <div style="font-weight:700;font-size:14px;color:${textSec};text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">${m.label || ""}</div>
-            ${m.href ? `<a href="${m.href}" style="color:${accent};font-size:17px;font-weight:700;text-decoration:none">${m.value || ""}</a>` :
-              `<div style="color:${accent};font-size:17px;font-weight:700">${m.value || ""}</div>`}
-          </div>`;
-        if (isEditorial) return `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid ${border}">
-            <span style="font-weight:600;font-size:14px;color:${textSec};text-transform:uppercase;letter-spacing:0.04em">${m.label || ""}</span>
-            ${m.href ? `<a href="${m.href}" style="color:${accent};font-size:15px;font-weight:600;text-decoration:none">${m.value || ""}</a>` :
-              `<span style="color:${text};font-size:15px;font-weight:600">${m.value || ""}</span>`}
-          </div>`;
-        return `
-          <div style="background:${surface};border:1px solid ${border};border-radius:16px;padding:24px">
-            <div style="font-weight:600;font-size:14px;color:${textSec};margin-bottom:4px">${m.label || ""}</div>
-            ${m.href ? `<a href="${m.href}" style="color:${accent};font-size:15px;font-weight:500;text-decoration:none">${m.value || ""}</a>` :
-              `<div style="color:${accent};font-size:15px;font-weight:500">${m.value || ""}</div>`}
-          </div>`;
+        if (isBold) return `<div style="background:${surface};border:1px solid ${border};border-radius:20px;padding:28px;text-align:center"><div style="font-weight:700;font-size:14px;color:${textSec};text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">${m.label || ""}</div>${m.href ? `<a href="${m.href}" style="color:${accent};font-size:17px;font-weight:700;text-decoration:none">${m.value || ""}</a>` : `<div style="color:${accent};font-size:17px;font-weight:700">${m.value || ""}</div>`}</div>`;
+        if (isEditorial) return `<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid ${border}"><span style="font-weight:600;font-size:14px;color:${textSec};text-transform:uppercase;letter-spacing:0.04em">${m.label || ""}</span>${m.href ? `<a href="${m.href}" style="color:${accent};font-size:15px;font-weight:600;text-decoration:none">${m.value || ""}</a>` : `<span style="color:${text};font-size:15px;font-weight:600">${m.value || ""}</span>`}</div>`;
+        if (isStudio) return `<div style="display:flex;align-items:center;gap:16px;padding:20px 0;${contactItems.indexOf(m) > 0 ? `border-top:1px solid ${border}` : ""}"><div style="width:40px;height:40px;border-radius:10px;background:${accent}12;color:${accent};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0">${(m.label || "?").charAt(0)}</div><div><div style="font-size:12px;font-weight:600;color:${textSec};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px">${m.label || ""}</div>${m.href ? `<a href="${m.href}" style="color:${accent};font-size:15px;font-weight:600;text-decoration:none">${m.value || ""}</a>` : `<div style="color:${text};font-size:15px;font-weight:600">${m.value || ""}</div>`}</div></div>`;
+        if (isLuxury) return `<div style="text-align:center;padding:20px"><div style="font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:${textSec};margin-bottom:8px">${m.label || ""}</div>${m.href ? `<a href="${m.href}" style="color:${text};font-size:16px;font-weight:500;text-decoration:none;font-family:${headFont}">${m.value || ""}</a>` : `<div style="color:${text};font-size:16px;font-weight:500;font-family:${headFont}">${m.value || ""}</div>`}</div>`;
+        return `<div style="background:${surface};border:1px solid ${border};border-radius:16px;padding:24px"><div style="font-weight:600;font-size:14px;color:${textSec};margin-bottom:4px">${m.label || ""}</div>${m.href ? `<a href="${m.href}" style="color:${accent};font-size:15px;font-weight:500;text-decoration:none">${m.value || ""}</a>` : `<div style="color:${accent};font-size:15px;font-weight:500">${m.value || ""}</div>`}</div>`;
       }).join("");
 
       return `
-        <section class="section hero-section" style="padding-top:${isBold ? "120px" : "100px"};padding-bottom:80px;text-align:${heroAlign};${isBold ? `background:linear-gradient(180deg, ${accent}06 0%, transparent 40%)` : ""}">
+        <section class="section hero-section" style="padding-top:${(isBold || isLuxury) ? "120px" : "100px"};padding-bottom:80px;text-align:${heroAlign}">
           <div class="eyebrow">${c.contact?.methods?.eyebrow || "Contact"}</div>
-          <h1 class="h1" style="max-width:720px;margin-bottom:20px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.contact?.hero?.headline || "Get in touch"}</h1>
-          <p class="lead" style="margin-bottom:36px;${isBold ? "margin-left:auto;margin-right:auto" : ""}">${c.contact?.hero?.subheadline || ""}</p>
+          <h1 class="h1" style="max-width:720px;margin-bottom:20px;${(isBold || isLuxury) ? "margin-left:auto;margin-right:auto" : ""}">${c.contact?.hero?.headline || "Get in touch"}</h1>
+          <p class="lead" style="margin-bottom:36px;${(isBold || isLuxury) ? "margin-left:auto;margin-right:auto;text-align:center" : ""}">${c.contact?.hero?.subheadline || ""}</p>
           ${bookingUrl ? `<a href="${bookingUrl}" target="_blank" rel="noopener" class="btn-primary" style="text-decoration:none">${c.contact?.cta?.cta?.text || "Book a call"}</a>` : ""}
-        </section>
-        <div class="divider"></div>
+        </section><div class="divider"></div>
         <section class="section">
-          <h2 class="h2" style="margin-bottom:24px">${c.contact?.methods?.title || "Reach out"}</h2>
-          <div ${isEditorial ? 'style="max-width:560px"' : `class="grid-2" style="max-width:540px"`}>${contactCards}</div>
+          <h2 class="h2" style="margin-bottom:24px;${isLuxury ? "text-align:center" : ""}">${c.contact?.methods?.title || "Reach out"}</h2>
+          <div ${isEditorial ? 'style="max-width:560px"' : isStudio ? 'style="max-width:480px"' : isLuxury ? `style="display:flex;justify-content:center;flex-wrap:wrap;gap:32px"` : `class="grid-2" style="max-width:540px"`}>${contactCards}</div>
         </section>
-        ${nextSteps.length ? `<div class="divider"></div>
-        <section class="section">
-          <div class="eyebrow">${c.contact?.nextSteps?.eyebrow || "Next steps"}</div>
-          <h2 class="h2" style="margin-bottom:8px">${c.contact?.nextSteps?.title || "What happens next"}</h2>
-          <div ${isEditorial ? 'style="max-width:700px;margin-top:28px"' : 'class="grid-2" style="margin-top:28px"'}>${cards(nextSteps)}</div>
-        </section>` : ""}
+        ${nextSteps.length ? `<div class="divider"></div><section class="section"><div class="eyebrow">${c.contact?.nextSteps?.eyebrow || "Next steps"}</div><h2 class="h2" style="margin-bottom:8px">${c.contact?.nextSteps?.title || "What happens next"}</h2><div ${(isEditorial || isStudio) ? 'style="max-width:700px;margin-top:28px"' : 'class="grid-2" style="margin-top:28px"'}>${cards(nextSteps)}</div></section>` : ""}
         ${ctaBlock(c.contact?.cta)}`;
     })();
 
-    // ─── CSS — template-specific ────────────────────────────────
+    // ─── TEMPLATE-SPECIFIC CSS ──────────────────────
     const templateCSS = isBold ? `
       body { background: ${bg}; }
       .section { max-width: 1140px; }
@@ -1414,12 +1308,51 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       .lead { font-size: 17px; line-height: 1.8; }
       .btn-primary { padding: 14px 32px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.06em; font-size: 13px; }
       .eyebrow { letter-spacing: 0.12em; }
+    ` : isStudio ? `
+      body { background: ${bg}; font-family: 'DM Sans', 'Inter', sans-serif; }
+      .h1 { font-size: clamp(36px, 5vw, 58px); font-weight: 800; line-height: 1.08; letter-spacing: -0.03em; }
+      .h2 { font-size: clamp(26px, 3.5vw, 40px); font-weight: 700; }
+      .lead { font-size: 16px; line-height: 1.7; }
+      .btn-primary { padding: 14px 28px; border-radius: 8px; font-size: 15px; }
+      .eyebrow { font-size: 11px; letter-spacing: 0.1em; font-weight: 700; }
+    ` : isLuxury ? `
+      body { background: ${bg}; }
+      .h1 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(38px, 5.5vw, 64px); font-weight: 300; line-height: 1.1; letter-spacing: -0.01em; }
+      .h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: clamp(28px, 3.5vw, 44px); font-weight: 400; letter-spacing: -0.01em; }
+      .lead { font-size: 15px; line-height: 1.8; letter-spacing: 0.01em; }
+      .btn-primary { padding: 14px 36px; border-radius: 2px; text-transform: uppercase; letter-spacing: 0.1em; font-size: 12px; font-weight: 600; }
+      .eyebrow { font-size: 11px; letter-spacing: 0.18em; font-weight: 500; }
     ` : `
       body { background: ${bg}; }
       .h1 { font-size: clamp(36px, 5vw, 56px); font-weight: 900; line-height: 1.08; }
       .h2 { font-size: clamp(28px, 3.5vw, 40px); font-weight: 800; }
       .btn-primary { padding: 14px 32px; border-radius: 999px; }
     `;
+
+    const fontLinks = [
+      `<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">`,
+      isEditorial ? `<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">` : "",
+      isStudio ? `<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">` : "",
+      isLuxury ? `<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">` : "",
+    ].filter(Boolean).join("\n  ");
+
+    // ─── ANALYTICS SCRIPT (unchanged) ────────────────
+    const analyticsScript = `<script>
+  (function(){
+    var U="${clerkUser?.id || ''}";if(!U)return;
+    var SB_URL="https://juxenowdpbrtoetxbcxm.supabase.co";
+    var SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1eGVub3dkcGJydG9ldHhiY3htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNzMzNTcsImV4cCI6MjA4Nzk0OTM1N30.irPMOgA0FQU4uJnSN41IrnE8qjWm3lcOkwOwNCTk7KA";
+    var vid;try{vid=sessionStorage.getItem('_zv');if(!vid){vid=Math.random().toString(36).slice(2,10);sessionStorage.setItem('_zv',vid)}}catch(e){vid=Math.random().toString(36).slice(2,10)}
+    var dv=window.innerWidth<768?'m':window.innerWidth<1024?'t':'d';
+    var cp='home';
+    function send(t,x){try{var row={user_id:U,event_type:t,page_path:'/'+cp,visitor_id:vid,referrer:document.referrer||'',device_type:dv==='m'?'mobile':dv==='t'?'tablet':'desktop',country:'unknown',metadata:{}};if(t==='scroll_depth')row.metadata={depth:parseInt(x)||0};else if(t==='time_on_page')row.metadata={seconds:parseInt(x)||0};else if(x){row.element_id=x.slice(0,200);row.element_text=x.slice(0,200);row.metadata={detail:x}}var xhr=new XMLHttpRequest();xhr.open('POST',SB_URL+'/rest/v1/site_analytics',true);xhr.setRequestHeader('Content-Type','application/json');xhr.setRequestHeader('apikey',SB_KEY);xhr.setRequestHeader('Authorization','Bearer '+SB_KEY);xhr.setRequestHeader('Prefer','return=minimal');xhr.send(JSON.stringify(row));}catch(e){}}
+    send('pageview');
+    var sm={};
+    window.addEventListener('scroll',function(){try{var h=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight)-window.innerHeight;if(h<=0)return;var p=Math.round(window.scrollY/h*100);[25,50,75,100].forEach(function(m){if(p>=m&&!sm[m]){sm[m]=1;send('scroll_depth',''+m)}})}catch(e){}},{passive:true});
+    document.addEventListener('click',function(e){try{var el=e.target;while(el&&el!==document.body){var nav=el.getAttribute&&el.getAttribute('data-nav');var hr=(el.getAttribute&&el.getAttribute('href'))||'';var tx=(el.textContent||'').trim().slice(0,60);var tag=el.tagName;if(nav){if(nav!==cp){cp=nav;sm={};setTimeout(function(){send('pageview')},10)}if(el.classList&&el.classList.contains('btn-primary')){send('cta_click',nav+'|'+tx)}break}if(tag==='A'&&hr.indexOf('stripe.com')>-1){send('checkout_start',tx);break}if(tag==='A'&&hr.indexOf('mailto:')>-1){send('cta_click','email|'+tx);break}if(el.classList&&(el.classList.contains('btn-primary')||el.classList.contains('btn-secondary'))){send('cta_click','btn|'+tx);break}el=el.parentElement}}catch(e){}},true);
+    var st=Date.now();window.addEventListener('beforeunload',function(){send('time_on_page',''+Math.round((Date.now()-st)/1000))});
+  })();
+  </script>`;
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -1428,38 +1361,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${name}</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='${encodeURIComponent(accent)}'/><text x='16' y='22' text-anchor='middle' fill='white' font-family='system-ui,sans-serif' font-weight='700' font-size='18'>${encodeURIComponent((name || 'Z')[0].toUpperCase())}</text></svg>" type="image/svg+xml">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  ${isEditorial ? '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&display=swap" rel="stylesheet">' : ""}
-  <script>
-  (function(){
-    var U="${clerkUser?.id || ''}";if(!U)return;
-    var SB_URL="https://juxenowdpbrtoetxbcxm.supabase.co";
-    var SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1eGVub3dkcGJydG9ldHhiY3htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNzMzNTcsImV4cCI6MjA4Nzk0OTM1N30.irPMOgA0FQU4uJnSN41IrnE8qjWm3lcOkwOwNCTk7KA";
-    var vid;try{vid=sessionStorage.getItem('_zv');if(!vid){vid=Math.random().toString(36).slice(2,10);sessionStorage.setItem('_zv',vid)}}catch(e){vid=Math.random().toString(36).slice(2,10)}
-    var dv=window.innerWidth<768?'m':window.innerWidth<1024?'t':'d';
-    var cp='home';
-    function send(t,x){
-      try{
-        var row={user_id:U,event_type:t,page_path:'/'+cp,visitor_id:vid,referrer:document.referrer||'',device_type:dv==='m'?'mobile':dv==='t'?'tablet':'desktop',country:'unknown',metadata:{}};
-        if(t==='scroll_depth')row.metadata={depth:parseInt(x)||0};
-        else if(t==='time_on_page')row.metadata={seconds:parseInt(x)||0};
-        else if(x){row.element_id=x.slice(0,200);row.element_text=x.slice(0,200);row.metadata={detail:x}}
-        var xhr=new XMLHttpRequest();
-        xhr.open('POST',SB_URL+'/rest/v1/site_analytics',true);
-        xhr.setRequestHeader('Content-Type','application/json');
-        xhr.setRequestHeader('apikey',SB_KEY);
-        xhr.setRequestHeader('Authorization','Bearer '+SB_KEY);
-        xhr.setRequestHeader('Prefer','return=minimal');
-        xhr.send(JSON.stringify(row));
-      }catch(e){}
-    }
-    send('pageview');
-    var sm={};
-    window.addEventListener('scroll',function(){try{var h=Math.max(document.body.scrollHeight,document.documentElement.scrollHeight)-window.innerHeight;if(h<=0)return;var p=Math.round(window.scrollY/h*100);[25,50,75,100].forEach(function(m){if(p>=m&&!sm[m]){sm[m]=1;send('scroll_depth',''+m)}})}catch(e){}},{passive:true});
-    document.addEventListener('click',function(e){try{var el=e.target;while(el&&el!==document.body){var nav=el.getAttribute&&el.getAttribute('data-nav');var hr=(el.getAttribute&&el.getAttribute('href'))||'';var tx=(el.textContent||'').trim().slice(0,60);var tag=el.tagName;if(nav){if(nav!==cp){cp=nav;sm={};setTimeout(function(){send('pageview')},10)}if(el.classList&&el.classList.contains('btn-primary')){send('cta_click',nav+'|'+tx)}break}if(tag==='A'&&hr.indexOf('stripe.com')>-1){send('checkout_start',tx);break}if(tag==='A'&&hr.indexOf('mailto:')>-1){send('cta_click','email|'+tx);break}if(el.classList&&(el.classList.contains('btn-primary')||el.classList.contains('btn-secondary'))){send('cta_click','btn|'+tx);break}el=el.parentElement}}catch(e){}},true);
-    var st=Date.now();window.addEventListener('beforeunload',function(){send('time_on_page',''+Math.round((Date.now()-st)/1000))});
-  })();
-  </script>
+  ${fontLinks}
+  ${analyticsScript}
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', -apple-system, sans-serif; background: ${bg}; color: ${text}; -webkit-font-smoothing: antialiased; }
@@ -1482,8 +1385,6 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     .divider { height: 1px; background: ${border}; max-width: 1100px; margin: 0 auto; }
-
-    /* ── FOOTER ─────────────────────────────────── */
     .ft { border-top: 1px solid ${border}; background: ${isLight ? "#F1F5F9" : surface}; }
     .ft-inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
     .ft-top { display: grid; grid-template-columns: 1.2fr 1.8fr; gap: 48px; padding: 60px 0 44px; }
@@ -1500,7 +1401,6 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     .ft-link { font-size: 14px; color: ${textSec}; text-decoration: none; cursor: pointer; transition: color 0.15s; line-height: 1.5; }
     .ft-link:hover { color: ${accent}; }
     .ft-link-accent { color: ${accent}; font-weight: 600; }
-    .ft-link-accent:hover { opacity: 0.8; }
     .ft-muted { cursor: default; }
     .ft-muted:hover { color: ${textSec}; }
     .ft-div { height: 1px; background: ${border}; }
@@ -1527,7 +1427,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
   <nav class="nav">
     <div class="nav-inner">
-      <a data-nav="home" style="font-weight:800;font-size:18px;letter-spacing:-0.02em;cursor:pointer;text-decoration:none;color:${text};font-family:${headFont}">${name}</a>
+      <a data-nav="home" style="font-weight:800;font-size:${isLuxury ? "16px" : "18px"};letter-spacing:${isLuxury ? "0.06em" : "-0.02em"};cursor:pointer;text-decoration:none;color:${text};font-family:${headFont};${isLuxury ? "text-transform:uppercase;font-weight:500" : ""}">${name}</a>
       <div class="nav-links">
         <a data-nav="home" class="active">Home</a>
         <a data-nav="services">Services</a>
