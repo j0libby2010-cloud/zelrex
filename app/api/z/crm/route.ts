@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
+import { validateOutput, RELIABILITY_PROMPT, CONTRACT_PROMPT } from '@/lib/aiSafety';
 
 let _sb: SupabaseClient | null = null;
 function db(): SupabaseClient | null {
@@ -249,7 +250,10 @@ async function contractsGenerate(supabase: SupabaseClient, userId: string, body:
 
   const res = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514', max_tokens: 2000,
-    messages: [{ role: 'user', content: `Generate a professional freelance ${isProposal ? 'proposal' : 'contract'} in markdown.
+    messages: [{ role: 'user', content: `${RELIABILITY_PROMPT}
+${CONTRACT_PROMPT}
+
+Generate a professional freelance ${isProposal ? 'proposal' : 'contract'} in markdown.
 
 CLIENT: ${client?.name} (${client?.company || 'Individual'}, ${client?.email || 'no email'})
 FREELANCER BUSINESS: ${ctx}
@@ -277,7 +281,12 @@ IMPORTANT DISCLAIMER AT THE BOTTOM: "This ${isProposal ? 'proposal' : 'contract'
 Write in professional, clear language. Use markdown headers and formatting.` }],
   });
 
-  const content = res.content[0]?.type === 'text' ? res.content[0].text : '';
+  const rawContent = res.content[0]?.type === 'text' ? res.content[0].text : '';
+  const content = validateOutput(rawContent, {
+    forceContractDisclaimer: true,
+    checkFinancial: true,
+    checkGuarantee: true,
+  });
   return NextResponse.json({ content, title: `${isProposal ? 'Proposal' : 'Contract'} for ${client?.name || 'Client'}` });
 }
 
@@ -468,9 +477,15 @@ Score 0-100 (100 = perfect client, 0 = run away). Be honest and specific.
 DISCLAIMER: This is AI-generated analysis for informational purposes only. It should not replace your professional judgment.` }],
   });
 
-  const text = res.content[0]?.type === 'text' ? res.content[0].text : '{}';
+  const rawText = res.content[0]?.type === 'text' ? res.content[0].text : '{}';
   try {
-    const result = JSON.parse(text.replace(/```json|```/g, '').trim());
+    const result = JSON.parse(rawText.replace(/```json|```/g, '').trim());
+    if (result.recommendation) {
+      result.recommendation = validateOutput(result.recommendation, {
+        checkFinancial: false,
+        checkGuarantee: true,
+      });
+    }
     return NextResponse.json(result);
   } catch {
     return NextResponse.json({ score: 50, verdict: 'Unable to analyze', flags: [], green_lights: [], recommendation: 'Provide more details for a thorough analysis.' });

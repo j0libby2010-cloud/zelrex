@@ -11,6 +11,7 @@ import { updateAssumptionsFromMessage } from "@/website/core/updateAssumptionsFr
 import { SYSTEM_PROMPT } from "./systemPrompt";
 import { runMarketEvaluation, wantsMarketEval } from "./marketEval";
 import { generateHealthCheck } from "./healthMonitor";
+import { validateOutput } from '@/lib/aiSafety';
 import { generateWeeklySummary, wantsWeeklySummary } from "./weeklySummary";
 import {
   BusinessProgress,
@@ -728,8 +729,47 @@ export async function POST(req: Request) {
         const userContext = await memoryService.loadFullContext(userId);
         console.log(`[ZELREX] Memory loaded: ${userContext.memory?.length || 0} facts, stage ${userContext.progressStage}`);
 
-        // 2. Build dynamic prompt
-        const dynamicSystemPrompt = buildSystemPromptFn(userContext) + styleInstruction;
+        // 2. Build dynamic prompt with explicit memory transparency
+        let memoryTransparency = "";
+        if (userContext.memory?.length > 0) {
+          const factsList = userContext.memory.map((f: any) => typeof f === "string" ? f : f.fact || f.text || JSON.stringify(f)).join("\n- ");
+          memoryTransparency = `\n\nMEMORY STATUS: Active. You have ${userContext.memory.length} stored facts about this user:\n- ${factsList}\n\nIMPORTANT: These are the ONLY things you know about this user from previous conversations. If asked about anything NOT in this list, say "I don't have that in my memory — can you remind me?" Do NOT guess or infer unstated facts.`;
+        } else {
+          memoryTransparency = `\n\nMEMORY STATUS: No stored facts for this user yet. You are starting fresh. Do NOT pretend to know things about the user that they haven't told you in THIS conversation. If they reference a previous conversation, say "I don't have context from our previous conversations yet. Can you catch me up?"`;
+        }
+        if (userContext.milestones?.length > 0) {
+          memoryTransparency += `\n\nMILESTONES REACHED: ${userContext.milestones.map((m: any) => typeof m === "string" ? m : m.stage || m.name || JSON.stringify(m)).join(", ")}`;
+        }
+        if (userContext.commitments?.length > 0) {
+          const pendingCommitments = userContext.commitments.filter((c: any) => c.status === "pending" || !c.status);
+          if (pendingCommitments.length > 0) {
+            memoryTransparency += `\n\nOPEN COMMITMENTS (follow up on these): ${pendingCommitments.map((c: any) => c.action || c.text || JSON.stringify(c)).join("; ")}`;
+          }
+        }
+        const dynamicSystemPrompt = buildSystemPromptFn(userContext) + styleInstruction + memoryTransparency;
+
+        // Long conversation rule reminder — re-inject critical rules when conversation gets long
+        const conversationLength = messages.length;
+        let ruleReminder = "";
+        if (conversationLength > 40) {
+          ruleReminder = `\n\n⚠️ LONG CONVERSATION REMINDER — Re-read these rules before responding:
+1. NEVER fabricate data. Tag all claims: [SEARCHED], [ESTIMATED], or [PATTERN].
+2. NEVER present uncertain information as fact. Say "I'm estimating" or "I don't know."
+3. NEVER pretend to remember what you don't. Check your MEMORY STATUS above.
+4. Revenue projections are SCENARIOS, not predictions. Include disclaimer.
+5. You do NOT have web search in this conversation. Only market evaluations use search.
+6. If you're unsure about ANYTHING, say so.`;
+        }
+
+        // Confidence self-rating instruction
+        const confidenceInstruction = `\n\nCONFIDENCE SELF-RATING: When your response contains business advice, pricing recommendations, market claims, revenue projections, or strategic recommendations, end your response with a confidence line in this exact format:
+📊 *Confidence: [HIGH/MEDIUM/LOW] — [one sentence explaining why]*
+HIGH = based on searched data or well-established patterns you're very sure about
+MEDIUM = based on reasonable inference or training knowledge but not verified
+LOW = you're guessing or working with very limited information
+Do NOT include this for casual conversation, simple questions, or greetings. Only for substantive business guidance.`;
+
+        const fullSystemPrompt = dynamicSystemPrompt + ruleReminder + confidenceInstruction;
 
         // 3. Call Claude with tools in a loop
         let currentMessages: any[] = messages.map((m: any, idx: number) => {
@@ -761,10 +801,21 @@ export async function POST(req: Request) {
           loops++;
           console.log(`[ZELREX] Claude call loop ${loops}`);
 
+          // Dynamically adjust thinking budget based on message complexity
+          const lastMsg = currentMessages[currentMessages.length - 1];
+          const msgText = typeof lastMsg?.content === "string" ? lastMsg.content : (lastMsg?.content?.find?.((b: any) => b.type === "text")?.text || "");
+          const isComplexQuery = /pric|revenue|market|evaluat|compet|strateg|contract|proposal|offer|should i|how much|how viable/i.test(msgText);
+          const thinkingBudget = isComplexQuery ? 12000 : 6000;
+
           const response = await anthropic.messages.create({
             model: 'claude-opus-4-6',
-            max_tokens: 4096,
-            system: dynamicSystemPrompt,
+            max_tokens: 16000,
+            temperature: 1,
+            thinking: {
+              type: "enabled",
+              budget_tokens: thinkingBudget,
+            },
+            system: fullSystemPrompt,
             messages: currentMessages,
             tools: ZELREX_TOOLS_IMPORTED as any,
           });
@@ -833,8 +884,13 @@ export async function POST(req: Request) {
               .join('')
           : "Tell me what outcome you want to reach.";
 
-        // Health check moved to notification center — no longer injected in chat
-        const finalReply = reply;
+        // Output validation via shared utility
+        let finalReply = validateOutput(reply, {
+          checkFinancial: true,
+          checkContract: true,
+          checkGuarantee: true,
+          checkCompetitor: true,
+        });
 
         // CRM auto-extraction: detect client/project mentions — strict patterns, false positive filtering
         let crmSuggestion = "";
@@ -893,10 +949,34 @@ export async function POST(req: Request) {
         };
       });
 
+      // v3 still gets extended thinking and memory warning
+      const v3MemoryWarning = `\n\nMEMORY STATUS: DEGRADED. The memory system is temporarily unavailable. You have NO stored facts about this user beyond what is in this conversation. Be extra careful to NOT assume you know things about the user. Ask if unsure.`;
+
+      // Long conversation reminder + confidence rating for v3 too
+      let v3RuleReminder = "";
+      if (messages.length > 40) {
+        v3RuleReminder = `\n\n⚠️ LONG CONVERSATION REMINDER:
+1. NEVER fabricate data. Tag all claims: [SEARCHED], [ESTIMATED], or [PATTERN].
+2. NEVER present uncertain information as fact.
+3. Revenue projections are SCENARIOS, not predictions.
+4. You do NOT have web search. Only market evaluations use search.
+5. If unsure, say so.`;
+      }
+      const v3ConfidenceInstruction = `\n\nCONFIDENCE SELF-RATING: When your response contains business advice, pricing, market claims, or strategic recommendations, end with:
+📊 *Confidence: [HIGH/MEDIUM/LOW] — [one sentence why]*
+Only for substantive guidance, not casual chat.`;
+
+      const v3FullPrompt = SYSTEM_PROMPT + styleInstruction + v3MemoryWarning + v3RuleReminder + v3ConfidenceInstruction;
+
       const response = await anthropic.messages.create({
         model: 'claude-opus-4-6',
-        max_tokens: 4096,
-        system: SYSTEM_PROMPT + styleInstruction,
+        max_tokens: 16000,
+        temperature: 1,
+        thinking: {
+          type: "enabled",
+          budget_tokens: 6000,
+        },
+        system: v3FullPrompt,
         messages: currentMessages,
       });
 
@@ -905,7 +985,13 @@ export async function POST(req: Request) {
         .map((b: any) => b.text)
         .join('');
 
-      const finalReply = reply;
+      // Output validation via shared utility
+      let finalReply = validateOutput(reply, {
+        checkFinancial: true,
+        checkContract: true,
+        checkGuarantee: true,
+        checkCompetitor: true,
+      });
 
       return NextResponse.json({ reply: finalReply, sessionState, memoryActive: false });
 

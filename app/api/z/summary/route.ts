@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
+import { validateOutput, RELIABILITY_PROMPT } from '@/lib/aiSafety';
 
 let supabase: any = null;
 try {
@@ -69,7 +70,9 @@ async function handleGenerate(userId: string) {
     max_tokens: 1500,
     messages: [{
       role: 'user',
-      content: `You are Zelrex, an AI business co-pilot for freelancers. Generate a weekly business summary based on this analytics data. Be specific, data-driven, and actionable. Never give financial advice. Use a confident but supportive tone.
+      content: `${RELIABILITY_PROMPT}
+
+You are Zelrex, an AI business co-pilot for freelancers. Generate a weekly business summary based on this analytics data. Be specific, data-driven, and actionable. Never give financial advice. Use a confident but supportive tone.
 
 ${context}
 
@@ -79,11 +82,24 @@ Generate a weekly summary with these sections:
 3. **What Needs Attention** — 1-2 specific issues with concrete suggestions (not vague advice)
 4. **This Week's Priority** — ONE specific action item for the next 7 days
 
+IMPORTANT RULES FOR SUMMARIES:
+- Only reference data the user has actually reported or that exists in their CRM/analytics
+- Do NOT invent metrics, client names, or revenue figures
+- If you don't have data for a section, say "No data available for this period" instead of guessing
+- Tag all projections as [ESTIMATED]
+- End with: "This summary is based on available data and AI analysis. Verify key metrics independently."
+
 Keep it concise — under 400 words total. No fluff. Every sentence should be backed by a number or specific observation.`
     }],
   });
 
-  const summaryText = response.content[0]?.type === 'text' ? response.content[0].text : '';
+  const rawSummaryText = response.content[0]?.type === 'text' ? response.content[0].text : '';
+  const summaryText = validateOutput(rawSummaryText, {
+    checkFinancial: true,
+    checkGuarantee: true,
+    checkCompetitor: false,
+    checkContract: false,
+  });
 
   // Store in Supabase
   const weekStart = weekAgo.toISOString().slice(0, 10);

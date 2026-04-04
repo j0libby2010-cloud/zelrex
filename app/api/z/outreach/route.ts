@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
+import { validateOutput, validateOutreachEmail, RELIABILITY_PROMPT, OUTREACH_PROMPT } from '@/lib/aiSafety';
 
 let _sb: SupabaseClient | null = null;
 function db(): SupabaseClient | null {
@@ -121,7 +122,9 @@ async function handleFind(supabase: SupabaseClient, userId: string) {
     tools: [{ type: "web_search_20250305" as any, name: "web_search" }],
     messages: [{
       role: 'user',
-      content: `You are Zelrex's prospect discovery engine. Your job is to find REAL businesses that would benefit from this freelancer's services.
+      content: `${RELIABILITY_PROMPT}
+
+You are Zelrex's prospect discovery engine. Your job is to find REAL businesses that would benefit from this freelancer's services.
 
 FREELANCER'S BUSINESS CONTEXT:
 ${chatContext}
@@ -243,7 +246,10 @@ async function handleGenerate(supabase: SupabaseClient, userId: string, prospect
       max_tokens: 600,
       messages: [{
         role: 'user',
-        content: `You are writing a cold outreach email for a freelancer. Write ONE personalized cold email.
+        content: `${RELIABILITY_PROMPT}
+${OUTREACH_PROMPT}
+
+You are writing a cold outreach email for a freelancer. Write ONE personalized cold email.
 
 FREELANCER'S BUSINESS:
 ${chatContext}
@@ -273,7 +279,8 @@ Respond in JSON only, no markdown:
     const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
     try {
       const cleaned = text.replace(/```json|```/g, '').trim();
-      const email = JSON.parse(cleaned);
+      const rawEmail = JSON.parse(cleaned);
+      const email = validateOutreachEmail(rawEmail);
 
       const { data: saved } = await supabase.from('outreach_emails').insert({
         user_id: userId,
