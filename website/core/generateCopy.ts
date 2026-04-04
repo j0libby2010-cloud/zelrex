@@ -27,7 +27,7 @@ export interface SurveyData {
   stripeCheckout: "auto" | "link-only" | "none";
   primaryColor: string;
   stylePreference: "dark-premium" | "light-clean" | "bold-colorful" | "minimal-elegant";
-  fontPreference: "modern" | "classic" | "editorial" | "tech";
+  fontPreference: "modern" | "classic" | "editorial" | "tech" | "studio" | "luxury";
   email: string;
   phone: string;
   location: string;

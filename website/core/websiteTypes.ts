@@ -14,7 +14,7 @@ export type BrandTone =
   | "minimal"
   | "technical";
 
-export type FontStyle = "modern" | "classic" | "editorial" | "tech";
+export type FontStyle = "modern" | "classic" | "editorial" | "tech" | "studio" | "luxury";
 
 export interface WebsiteBranding {
   name: string;

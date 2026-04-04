@@ -36,6 +36,8 @@ function mapFontToTemplate(font: string): string {
     case "classic": return "editorial";
     case "editorial": return "editorial";
     case "tech": return "bold";
+    case "studio": return "studio";
+    case "luxury": return "luxury";
     default: return "minimal";
   }
 }

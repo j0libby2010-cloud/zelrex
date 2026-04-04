@@ -44,7 +44,7 @@ export interface SurveyData {
   // Step 3: Brand & visual
   primaryColor: string;
   stylePreference: "dark-premium" | "light-clean" | "bold-colorful" | "minimal-elegant";
-  fontPreference: "modern" | "classic" | "editorial" | "tech";
+  fontPreference: "modern" | "classic" | "editorial" | "tech" | "studio" | "luxury";
   
   // Step 4: Contact & social
   email: string;
@@ -611,7 +611,7 @@ const ZELREX_TIPS: Record<string, string> = {
   guarantee: "A guarantee removes the buyer's risk and dramatically increases conversion. 'Full refund if you're not satisfied with the first concept' costs you almost nothing but closes deals.",
   primaryColor: "Your brand color should match your industry's emotional tone. Blue = trust (consulting, tech). Green = growth (coaching). Black/dark = premium (design, creative). Avoid colors that blend in with competitors.",
   stylePreference: "Dark premium themes convert best for creative services. Light clean works for consulting and coaching. Bold colorful suits agencies and marketing services. Match the vibe your ideal clients expect.",
-  fontPreference: "Modern fonts signal innovation. Classic fonts signal reliability. Editorial fonts signal authority. Tech fonts signal precision. Choose based on what your clients value most.",
+  fontPreference: "Modern = clean innovation. Classic = trusted reliability. Editorial = refined authority. Tech = bold precision. Studio = creative portfolio. Luxury = premium elegance.",
   email: "Use a professional email that matches your business name. yourname@yourbusiness.com looks 10x more credible than a Gmail address. You can set this up later with your custom domain.",
   phone: "A business phone number increases trust significantly. If you don't have a separate line, use a Google Voice number. Including a phone number can increase contact form submissions by 40%.",
   location: "Even remote businesses benefit from listing a general location. It helps with local SEO and gives clients context. You don't need a street address — city and state/country is enough.",
@@ -894,6 +894,8 @@ function StepBrand({ data, update, zelrexTip, setZelrexTip, onAskZelrex, buildAs
             { key: "classic", label: "Classic", desc: "Serif, timeless" },
             { key: "editorial", label: "Editorial", desc: "Magazine-style mix" },
             { key: "tech", label: "Technical", desc: "Mono + sans" },
+            { key: "studio", label: "Studio", desc: "Creative portfolio" },
+            { key: "luxury", label: "Luxury", desc: "Premium elegance" },
           ]}
         />
       </FieldGroup>
