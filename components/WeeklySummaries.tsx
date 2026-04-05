@@ -235,8 +235,7 @@ export function WeeklySummaries({
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9600,
-      background: "rgba(3,5,8,0.75)",
-      backdropFilter: "blur(24px) saturate(1.3)", WebkitBackdropFilter: "blur(24px) saturate(1.3)",
+      background: "rgb(3,5,8)",
       display: "flex", flexDirection: isMobileWS ? "column" : "row", overflow: "hidden",
     }}>
       <style>{`

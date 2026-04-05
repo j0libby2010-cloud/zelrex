@@ -169,7 +169,7 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
   ];
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9600, background: "rgba(3,5,8,0.75)", backdropFilter: "blur(24px) saturate(1.3)", WebkitBackdropFilter: "blur(24px) saturate(1.3)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 9600, background: "rgb(3,5,8)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <style>{`
         @keyframes crmFadeUp{from{opacity:0;transform:translateY(12px) scale(0.98)}to{opacity:1;transform:translateY(0) scale(1)}}
         @keyframes crmSpin{to{transform:rotate(360deg)}}
