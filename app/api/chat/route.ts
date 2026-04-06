@@ -11,7 +11,7 @@ import { updateAssumptionsFromMessage } from "@/website/core/updateAssumptionsFr
 import { SYSTEM_PROMPT } from "./systemPrompt";
 import { runMarketEvaluation, wantsMarketEval } from "./marketEval";
 import { generateHealthCheck } from "./healthMonitor";
-import { validateOutput } from '@/lib/aiSafety';
+import { fullReliabilityPipeline } from '@/lib/aiSafety';
 import { generateWeeklySummary, wantsWeeklySummary } from "./weeklySummary";
 import {
   BusinessProgress,
@@ -884,13 +884,16 @@ Do NOT include this for casual conversation, simple questions, or greetings. Onl
               .join('')
           : "Tell me what outcome you want to reach.";
 
-        // Output validation via shared utility
-        let finalReply = validateOutput(reply, {
-          checkFinancial: true,
+        // Full reliability pipeline: validate → enforce → fact-check
+        const lastUserMsg = messages[messages.length - 1]?.content || "";
+        const { reply: finalReply, violations } = await fullReliabilityPipeline(reply, lastUserMsg, {
           checkContract: true,
           checkGuarantee: true,
           checkCompetitor: true,
         });
+        if (violations.length > 0) {
+          console.warn(`[ZELREX] ${violations.length} violations caught in v5 response:`, violations);
+        }
 
         // CRM auto-extraction: detect client/project mentions — strict patterns, false positive filtering
         let crmSuggestion = "";
@@ -985,13 +988,16 @@ Only for substantive guidance, not casual chat.`;
         .map((b: any) => b.text)
         .join('');
 
-      // Output validation via shared utility
-      let finalReply = validateOutput(reply, {
-        checkFinancial: true,
+      // Full reliability pipeline: validate → enforce → fact-check
+      const lastUserMsg2 = messages[messages.length - 1]?.content || "";
+      const { reply: finalReply, violations: v3Violations } = await fullReliabilityPipeline(reply, lastUserMsg2, {
         checkContract: true,
         checkGuarantee: true,
         checkCompetitor: true,
       });
+      if (v3Violations.length > 0) {
+        console.warn(`[ZELREX] ${v3Violations.length} violations caught in v3 response:`, v3Violations);
+      }
 
       return NextResponse.json({ reply: finalReply, sessionState, memoryActive: false });
 

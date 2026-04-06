@@ -454,6 +454,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     language: "en" as string,
     // Data
     chatHistoryEnabled: true,
+    dataSharingEnabled: true,
   });
   useEffect(() => { try { const s = localStorage.getItem("zelrex_settings"); if (s) setZelrexSettings(prev => ({ ...prev, ...JSON.parse(s) })); } catch {} }, []);
   const updateSetting = <K extends keyof typeof zelrexSettings>(key: K, val: (typeof zelrexSettings)[K]) => {
@@ -2287,12 +2288,6 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                                 {shouldAnimate(m, activeChat) && !animatedIds.includes(m.id) ? (
                                   <Typewriter text={m.content} speed={6} onFinish={() => setAnimatedIds((p) => p.includes(m.id) ? p : [...p, m.id])} />
                                 ) : ( <div className="msg-content">{formatMessage(m.content)}</div> )}
-                                {/* Persistent disclaimer for financial/business advice */}
-                                {(/\$\d|revenue|pricing|income|earn|charge|profit|invest|ROI|market size|growth rate|per month|per year|valuation/i.test(m.content)) && (
-                                  <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 10, background: "rgba(251,191,36,0.04)", border: "0.5px solid rgba(251,191,36,0.10)", fontSize: 10, color: "rgba(251,191,36,0.55)", lineHeight: 1.5, fontStyle: "italic" }}>
-                                    This is strategic guidance, not financial advice. Verify all numbers independently before making financial decisions.
-                                  </div>
-                                )}
                                 {m.previewUrl && websiteData && <div style={{ marginTop: 14 }}><ActionPill label="Open website preview" onClick={() => setPreviewOpen(true)} /></div>}
                                 <div className="msg-actions">
                                   <button className="msg-act" title="Copy" onClick={() => { navigator.clipboard.writeText(m.content); setCopiedMsgId(m.id); setTimeout(() => setCopiedMsgId(null), 1200); }}>
@@ -2310,7 +2305,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                                 </div>
                                 {copiedMsgId === m.id && <div style={{ fontSize: 11, color: C.accent, marginTop: 2 }}>Copied</div>}
                                 {/* AI Disclaimer */}
-                                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.15)", marginTop: 8, lineHeight: 1.4, userSelect: "none" }}>AI-generated · May contain errors · Not financial or legal advice</div>
+                                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginTop: 8, lineHeight: 1.4, userSelect: "none" }}>AI-generated · May contain errors · Not financial or legal advice</div>
                               </>
                             ) : (
                               <>
@@ -3155,32 +3150,54 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 {/* ─── TOS & PRIVACY TAB ─── */}
                 {settingsTab === "data" && (<>
                   <div className="stg-section">
-                    <div className="stg-section-title">Terms of Service</div>
-                    <div className="stg-card" style={{ padding: "24px 22px" }}>
-                      <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.8, letterSpacing: "-0.005em" }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12, letterSpacing: "-0.02em" }}>Zelrex Terms of Service</div>
-                        <p style={{ marginBottom: 12 }}>By using Zelrex, you agree to the following terms and conditions. Zelrex provides AI-powered business tools including website building, client management, and business analytics.</p>
-                        <p style={{ marginBottom: 12 }}>You are responsible for the content you create and publish through our platform. Zelrex reserves the right to suspend accounts that violate these terms or engage in prohibited activities.</p>
-                        <p style={{ marginBottom: 12 }}>All websites built and deployed through Zelrex remain your intellectual property. Zelrex provides the infrastructure and tools but does not claim ownership over your content, designs, or business data.</p>
-                        <p style={{ marginBottom: 12 }}>Zelrex offers both free and paid subscription tiers. Paid features are subject to the terms of your subscription plan. Refunds are handled on a case-by-case basis within 14 days of purchase.</p>
-                        <p style={{ marginBottom: 0 }}>These terms may be updated periodically. Continued use of Zelrex constitutes acceptance of any modifications.</p>
+                    <div className="stg-section-title">Data Collection</div>
+                    <div className="stg-card" style={{ padding: "20px 22px" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                        <div><div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Chat History</div><div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>Save conversations for memory and continuity</div></div>
+                        <button onClick={() => setZelrexSettings((s: any) => ({ ...s, chatHistoryEnabled: !s.chatHistoryEnabled }))} style={{ width: 42, height: 24, borderRadius: 12, border: "none", background: zelrexSettings.chatHistoryEnabled ? C.accent : "rgba(255,255,255,0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s" }}>
+                          <div style={{ width: 18, height: 18, borderRadius: 9, background: "#fff", position: "absolute", top: 3, left: zelrexSettings.chatHistoryEnabled ? 21 : 3, transition: "left 0.2s" }} />
+                        </button>
                       </div>
-                      <div style={{ marginTop: 16, fontSize: 11, color: C.textMuted }}>Last updated: January 2025</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div><div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Anonymized Data Sharing</div><div style={{ fontSize: 12, color: C.textSec, marginTop: 2, maxWidth: 280 }}>Help improve Zelrex by sharing anonymized business metrics. Individual data is never exposed — only aggregate patterns.</div></div>
+                        <button onClick={() => {
+                          const newVal = !zelrexSettings.dataSharingEnabled;
+                          setZelrexSettings((s: any) => ({ ...s, dataSharingEnabled: newVal }));
+                          fetch("/api/z/data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "opt-out", userId: clerkUser?.id, optOut: !newVal }) }).catch(() => {});
+                        }} style={{ width: 42, height: 24, borderRadius: 12, border: "none", background: (zelrexSettings.dataSharingEnabled !== false) ? C.accent : "rgba(255,255,255,0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
+                          <div style={{ width: 18, height: 18, borderRadius: 9, background: "#fff", position: "absolute", top: 3, left: (zelrexSettings.dataSharingEnabled !== false) ? 21 : 3, transition: "left 0.2s" }} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="stg-section">
-                    <div className="stg-section-title">Privacy Policy</div>
-                    <div className="stg-card" style={{ padding: "24px 22px" }}>
-                      <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.8, letterSpacing: "-0.005em" }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12, letterSpacing: "-0.02em" }}>Zelrex Privacy Policy</div>
-                        <p style={{ marginBottom: 12 }}>Zelrex is committed to protecting your privacy. This policy explains how we collect, use, and safeguard your personal information.</p>
-                        <p style={{ marginBottom: 12 }}>We collect information you provide directly, including your name, email address, business details, and content created through the platform. We also collect usage data to improve our services.</p>
-                        <p style={{ marginBottom: 12 }}>Your data is used solely to provide and improve Zelrex services. We do not sell, share, or distribute your personal data to third parties for marketing purposes. Your conversations and business data are never used to train AI models.</p>
-                        <p style={{ marginBottom: 12 }}>All data is encrypted in transit and at rest. We use industry-standard security measures to protect your information from unauthorized access.</p>
-                        <p style={{ marginBottom: 0 }}>You have the right to access, export, or delete your data at any time through the Account settings. For data-related requests, contact support@zelrex.com.</p>
-                      </div>
-                      <div style={{ marginTop: 16, fontSize: 11, color: C.textMuted }}>Last updated: January 2025</div>
+                    <div className="stg-section-title">Your Data</div>
+                    <div className="stg-card" style={{ padding: "20px 22px" }}>
+                      <button onClick={() => {
+                        const exportData = { chats: chats.map(c => ({ title: c.title, messages: c.messages })), settings: zelrexSettings, goal: userGoal };
+                        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a"); a.href = url; a.download = `zelrex-export-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
+                      }} className="stg-btn" style={{ width: "100%", marginBottom: 10, padding: "12px", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, color: C.text, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                        Export All Data (JSON)
+                      </button>
+                      <button onClick={() => {
+                        if (!confirm("Delete ALL chats? This cannot be undone.")) return;
+                        if (!confirm("Are you absolutely sure? This will permanently delete all conversations.")) return;
+                        setChats([]); setActiveChatId(null);
+                      }} className="stg-btn" style={{ width: "100%", padding: "12px", borderRadius: 10, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", color: "#EF4444", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                        Delete All Chats
+                      </button>
                     </div>
+                  </div>
+                  <div className="stg-section">
+                    <div className="stg-section-title">Legal</div>
+                    <div className="stg-card" style={{ padding: "16px 22px" }}>
+                      <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ display: "block", fontSize: 14, fontWeight: 600, color: C.accent, textDecoration: "none", padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>Terms of Service →</a>
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ display: "block", fontSize: 14, fontWeight: 600, color: C.accent, textDecoration: "none", padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>Privacy Policy →</a>
+                      <a href="/disclaimer" target="_blank" rel="noopener noreferrer" style={{ display: "block", fontSize: 14, fontWeight: 600, color: C.accent, textDecoration: "none", padding: "8px 0" }}>AI Disclaimer →</a>
+                    </div>
+                    <div style={{ marginTop: 10, fontSize: 11, color: C.textMuted }}>By using Zelrex, you agree to our Terms of Service and Privacy Policy.</div>
                   </div>
                 </>)}
 
@@ -3265,7 +3282,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <button onClick={async () => { setUserGoal(null); setGoalDraft({ text: "", target: "", deadline: "" }); await db.deleteGoal(); closeGoalModal(); }} className="z-glass" style={{ flex: 1, padding: "10px", borderRadius: 12, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "-0.01em" }}>Remove goal</button>
                 )}
                 <button onClick={closeGoalModal} className="z-glass" style={{ flex: 1, padding: "10px", borderRadius: 12, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "-0.01em" }}>Cancel</button>
-                <button onClick={async () => { if (goalDraft.text.trim()) { const g = { text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() }; setUserGoal(g); await db.saveGoal(g); setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]); } closeGoalModal(); }} style={{ flex: 1.5, padding: "10px", borderRadius: 12, border: "none", background: `linear-gradient(135deg, ${C.accent}, ${C.accent}cc)`, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em", boxShadow: `0 4px 16px ${C.accent}40, 0 0 0 0.5px ${C.accent}60 inset` }}>Save goal</button>
+                <button onClick={async () => { if (goalDraft.text.trim()) { const g = { text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() }; setUserGoal(g); await db.saveGoal(g); fetch("/api/z/data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "collect", userId: clerkUser?.id, eventType: "goal_set", niche: zelrexSettings?.businessProfile?.niche || null, payload: { goal: g.text, target: g.target || null, deadline: g.deadline || null } }) }).catch(() => {}); setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]); } closeGoalModal(); }} style={{ flex: 1.5, padding: "10px", borderRadius: 12, border: "none", background: `linear-gradient(135deg, ${C.accent}, ${C.accent}cc)`, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em", boxShadow: `0 4px 16px ${C.accent}40, 0 0 0 0.5px ${C.accent}60 inset` }}>Save goal</button>
               </div>
             </div>
           </div>

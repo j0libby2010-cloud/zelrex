@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { validateOutput, RELIABILITY_PROMPT, CONTRACT_PROMPT } from '@/lib/aiSafety';
+import { collectDataPoint, maybeAggregate } from '@/lib/dataCollector';
 
 let _sb: SupabaseClient | null = null;
 function db(): SupabaseClient | null {
@@ -93,6 +94,13 @@ async function clientsCreate(supabase: SupabaseClient, userId: string, body: any
     source: source || 'manual', status: status || 'lead', notes: notes || '', tags: tags || [],
   }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Track client acquisition
+  collectDataPoint(supabase, userId, 'client_acquired', null, {
+    channel: source || 'manual',
+    price_charged: null,
+  }).then(() => maybeAggregate(supabase, null)).catch(() => {});
+
   return NextResponse.json({ client: data });
 }
 

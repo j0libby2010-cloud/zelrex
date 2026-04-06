@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { collectDataPoint, maybeAggregate } from '@/lib/dataCollector';
 
 export interface MemoryFact {
   category: string;
@@ -176,6 +177,13 @@ export class MemoryService {
         { onConflict: 'user_id,stage', ignoreDuplicates: true }
       );
     if (error) { console.error('[Memory] milestone:', error); return false; }
+
+    // Track milestone reached
+    collectDataPoint(this.supabase, userId, 'milestone', null, {
+      stage,
+      stage_name: stageName,
+    }).catch(() => {});
+
     return true;
   }
 

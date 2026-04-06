@@ -5,11 +5,15 @@
  * Import into any route that calls the Anthropic API.
  * 
  * Usage:
- *   import { validateOutput, RELIABILITY_PROMPT, CONTRACT_DISCLAIMER, FINANCIAL_DISCLAIMER } from '@/lib/aiSafety';
+ *   import { validateOutput, factCheck, RELIABILITY_PROMPT } from '@/lib/aiSafety';
  *   
- *   // After getting AI response:
- *   const safeReply = validateOutput(rawReply, { checkFinancial: true, checkContract: true });
+ *   const safeReply = validateOutput(rawReply, { checkFinancial: true });
+ *   const checkedReply = await factCheck(safeReply, userMessage);
  */
+
+import Anthropic from "@anthropic-ai/sdk";
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
 // ─── Disclaimers (exact text, reusable) ──────────────────────────
 
@@ -161,4 +165,75 @@ export function validateOutreachEmail(email: { subject: string; body: string }):
   }
 
   return { subject: email.subject, body };
+}
+
+
+// ─── HAIKU FACT-CHECKER ──────────────────────────────────────────
+// Runs after Opus generates a response. Uses the cheap Haiku model
+// to scan for hallucinations, unsourced claims, and reliability issues.
+// Cost: ~$0.001-0.003 per call. Adds ~1-2 seconds latency.
+
+export async function factCheck(
+  reply: string,
+  userMessage: string
+): Promise<string> {
+  // Skip fact-checking for short/casual responses
+  if (reply.length < 200) return reply;
+  // Skip if response is clearly casual (greetings, simple acknowledgments)
+  if (/^(hey|hi|hello|sure|got it|sounds good|nice|ok|understood)/i.test(reply.trim()) && reply.length < 400) return reply;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 500,
+      messages: [{
+        role: "user",
+        content: `You are a fact-checker for a business advisory AI called Zelrex. Check this AI response for reliability issues.
+
+USER ASKED: "${userMessage.slice(0, 500)}"
+
+AI RESPONDED:
+${reply.slice(0, 3000)}
+
+CHECK FOR THESE SPECIFIC ISSUES:
+1. FABRICATED NUMBERS: Specific dollar amounts, percentages, or statistics stated as fact without [SEARCHED], [ESTIMATED], or [PATTERN] tags
+2. INVENTED NAMES: Company names, person names, or tool names that might be fabricated
+3. GUARANTEE LANGUAGE: Phrases like "you will earn", "guaranteed", "definitely will" 
+4. FALSE MEMORY: Claims like "as we discussed" or "you mentioned" that could be fabricated recall
+5. OVERCONFIDENT CLAIMS: Statements presented as certain fact that should have uncertainty disclosure
+
+RESPOND WITH EXACTLY ONE OF:
+- "CLEAN" — if no issues found
+- "FLAG: [one sentence describing the issue]" — if you found a specific problem
+
+Be conservative. Only flag clear problems, not minor phrasing issues. If the response uses provenance tags or uncertainty language properly, say CLEAN.`
+      }],
+    });
+
+    const check = response.content
+      .filter((b): b is Anthropic.TextBlock => b.type === "text")
+      .map((b) => b.text)
+      .join("")
+      .trim();
+
+    if (check.startsWith("FLAG:")) {
+      const issue = check.replace("FLAG:", "").trim();
+      // Don't append a visible disclaimer — instead, add a subtle inline note
+      // Only flag genuinely problematic content
+      if (/fabricat|invent|made.?up|hallucin|fake|doesn.t exist/i.test(issue)) {
+        return reply + `\n\n*⚠️ Note: ${issue} Verify this information independently.*`;
+      }
+      if (/guarantee|promise|certain/i.test(issue)) {
+        return reply + `\n\n*Note: No outcome is guaranteed. These are estimates based on available data.*`;
+      }
+      // For less severe flags, just log them
+      console.log(`[ZELREX FACT-CHECK] Flag: ${issue}`);
+    }
+
+    return reply;
+  } catch (error) {
+    // If fact-check fails, just return the original reply — never block a response
+    console.warn("[ZELREX FACT-CHECK] Error (non-blocking):", error);
+    return reply;
+  }
 }
