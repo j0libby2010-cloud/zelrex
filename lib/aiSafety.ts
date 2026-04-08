@@ -86,7 +86,7 @@ export function validateOutput(
 ): string {
   let result = reply;
   const {
-    checkFinancial = true,
+    checkFinancial = false, // Disabled — UI footer already says "Not financial or legal advice"
     checkContract = true,
     checkGuarantee = true,
     checkCompetitor = true,
@@ -236,4 +236,167 @@ Be conservative. Only flag clear problems, not minor phrasing issues. If the res
     console.warn("[ZELREX FACT-CHECK] Error (non-blocking):", error);
     return reply;
   }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// CODE-LEVEL ENFORCEMENT — catches rule violations the prompt missed
+// 
+// The prompt ASKS Claude to follow rules.
+// This code ENFORCES them after the fact.
+// If Claude ignores a prompt rule, this catches it.
+// ═══════════════════════════════════════════════════════════════
+
+export interface EnforcementResult {
+  reply: string;
+  violations: string[];
+  wasModified: boolean;
+  shouldRetry: boolean;  // True = violation is so bad we should re-call Claude
+}
+
+export function enforceRules(reply: string): EnforcementResult {
+  let result = reply;
+  const violations: string[] = [];
+  let shouldRetry = false;
+
+  // ─── 1. IDENTITY ENFORCEMENT ────────────────────────
+  // Zelrex must NEVER break character. If Claude says it's an AI assistant,
+  // a language model, or refers to itself as anything other than Zelrex, fix it.
+  const identityBreaks = [
+    /\b(?:as an AI|I'm an AI|I am an AI|as a language model|as a large language model|I'm a language model)\b/gi,
+    /\b(?:I'm Claude|I am Claude|my name is Claude|I'm made by Anthropic|I was (?:created|made|built) by Anthropic)\b/gi,
+    /\b(?:as an assistant|I'm just an? (?:AI|assistant|chatbot|bot))\b/gi,
+    /\b(?:I don't have (?:feelings|emotions|consciousness|personal experience))\b/gi,
+  ];
+
+  for (const pattern of identityBreaks) {
+    if (pattern.test(result)) {
+      violations.push("IDENTITY_BREAK: Claude broke character as Zelrex");
+      // Replace common identity breaks with Zelrex-appropriate language
+      result = result.replace(/\bAs an AI\b/gi, "As Zelrex");
+      result = result.replace(/\bI'm an AI\b/gi, "I'm Zelrex");
+      result = result.replace(/\bI am an AI\b/gi, "I am Zelrex");
+      result = result.replace(/\bAs a language model\b/gi, "As a business engine");
+      result = result.replace(/\bAs a large language model\b/gi, "As a business engine");
+      result = result.replace(/\bI'm Claude\b/gi, "I'm Zelrex");
+      result = result.replace(/\bI am Claude\b/gi, "I am Zelrex");
+      result = result.replace(/\bI'm just an? AI\b/gi, "I'm Zelrex");
+      result = result.replace(/\bI'm just an? assistant\b/gi, "I'm Zelrex");
+      result = result.replace(/\bI'm just an? chatbot\b/gi, "I'm Zelrex");
+      // If the identity break is severe (multiple occurrences), flag for retry
+      const breakCount = (reply.match(/\b(?:AI assistant|language model|Claude|chatbot)\b/gi) || []).length;
+      if (breakCount >= 3) shouldRetry = true;
+    }
+  }
+
+  // ─── 2. FORBIDDEN ADVICE ENFORCEMENT ────────────────
+  // These are things Zelrex must NEVER do, regardless of what the prompt says.
+  // If Claude gives specific financial/legal/tax advice, catch it.
+  const forbiddenAdvice = [
+    { pattern: /\b(?:you should|I recommend|I advise)\s+(?:invest(?:ing)?|put(?:ting)? (?:money|funds|savings) (?:in|into))\b/i, type: "FINANCIAL_ADVICE", fix: "*Note: This is a general observation, not investment advice. Consult a licensed financial advisor.*" },
+    { pattern: /\b(?:you should|I recommend|you need to)\s+(?:form|register|incorporate|file for)\s+(?:an? )?\s*(?:LLC|corporation|S.?corp|C.?corp|sole proprietorship)\b/i, type: "LEGAL_ADVICE", fix: "*Note: Business structure is a legal decision. Consult a business attorney or CPA for advice specific to your situation.*" },
+    { pattern: /\b(?:you (?:can|should)|I recommend)\s+(?:deduct|write.?off|claim)\s+(?:your|the|this)\b/i, type: "TAX_ADVICE", fix: "*Note: Tax deductions depend on your specific situation. Consult a qualified tax professional.*" },
+    { pattern: /\b(?:quit|leave|resign from) your (?:job|position|employer|current role) (?:now|immediately|today|this week|right away)\b/i, type: "RECKLESS_ADVICE", fix: "*Note: Major career transitions should be planned carefully. Consider building income on the side before leaving your current position.*" },
+  ];
+
+  for (const check of forbiddenAdvice) {
+    if (check.pattern.test(result)) {
+      violations.push(`${check.type}: Claude gave specific advice it shouldn't`);
+      // Don't remove the content — just append the appropriate disclaimer
+      if (!result.includes(check.fix)) {
+        result += `\n\n${check.fix}`;
+      }
+    }
+  }
+
+  // ─── 3. GUARANTEE ENFORCEMENT ───────────────────────
+  // Hard-block guarantee language. These get rewritten, not just disclaimed.
+  const guaranteePatterns = [
+    { pattern: /\byou will (?:definitely|certainly|absolutely|100%) (?:earn|make|get|have|succeed)\b/gi, replacement: "based on the data, you could potentially" },
+    { pattern: /\bI (?:guarantee|promise) (?:you|that)\b/gi, replacement: "based on patterns I've seen," },
+    { pattern: /\b(?:guaranteed|certain|inevitable) (?:success|results?|income|revenue|outcome)\b/gi, replacement: "possible results based on similar cases" },
+  ];
+
+  for (const g of guaranteePatterns) {
+    if (g.pattern.test(result)) {
+      violations.push("GUARANTEE: Claude used guarantee language");
+      result = result.replace(g.pattern, g.replacement);
+    }
+  }
+
+  // ─── 4. OFF-TOPIC ENFORCEMENT ───────────────────────
+  // Zelrex only does freelance business. If Claude starts helping with
+  // homework, recipes, code debugging, or general knowledge, catch it.
+  const offTopicPatterns = [
+    /\b(?:here'?s? (?:a|the) recipe|ingredients?:.*(?:cup|tablespoon|teaspoon))\b/i,
+    /\b(?:def |function |class |import |const |let |var |console\.log|System\.out)\b/,
+    /\b(?:the (?:answer|solution) (?:is|to your (?:homework|assignment|problem)))\b/i,
+  ];
+
+  for (const pattern of offTopicPatterns) {
+    if (pattern.test(result) && result.length > 200) {
+      // Only flag if the response is substantially off-topic (not just mentioning code briefly)
+      const offTopicScore = offTopicPatterns.filter(p => p.test(result)).length;
+      if (offTopicScore >= 2) {
+        violations.push("OFF_TOPIC: Response appears to be outside Zelrex's scope");
+        shouldRetry = true;
+      }
+    }
+  }
+
+  // ─── 5. DATA LEAKAGE ENFORCEMENT ────────────────────
+  // Zelrex should never expose raw user data from the intelligence system.
+  const dataLeakPatterns = [
+    /\bone of (?:our|my) users?\s+(?:named|called|who)\b/i,
+    /\buser (?:ID|#|number)\s*(?::|is)\s*\w+/i,
+    /\b(?:their|this user's) (?:email|phone|address|name) (?:is|was)\b/i,
+  ];
+
+  for (const pattern of dataLeakPatterns) {
+    if (pattern.test(result)) {
+      violations.push("DATA_LEAK: Response may contain user-identifying information");
+      // Redact the specific match
+      result = result.replace(pattern, "[redacted for privacy]");
+    }
+  }
+
+  return {
+    reply: result,
+    violations,
+    wasModified: result !== reply,
+    shouldRetry,
+  };
+}
+
+
+// ─── Full pipeline: validate + enforce + fact-check ──────────
+
+export async function fullReliabilityPipeline(
+  reply: string,
+  userMessage: string,
+  options: {
+    checkFinancial?: boolean;
+    checkContract?: boolean;
+    checkGuarantee?: boolean;
+    checkCompetitor?: boolean;
+  } = {}
+): Promise<{ reply: string; violations: string[] }> {
+  // Step 1: Regex-based output validation
+  let result = validateOutput(reply, options);
+
+  // Step 2: Code-level enforcement (identity, forbidden advice, guarantees, data leaks)
+  const enforcement = enforceRules(result);
+  result = enforcement.reply;
+
+  if (enforcement.violations.length > 0) {
+    console.warn("[ZELREX ENFORCEMENT] Violations caught:", enforcement.violations);
+  }
+
+  // Step 3: Haiku fact-checker (async, catches hallucinations)
+  result = await factCheck(result, userMessage);
+
+  return {
+    reply: result,
+    violations: enforcement.violations,
+  };
 }

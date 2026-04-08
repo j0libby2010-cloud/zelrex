@@ -731,11 +731,27 @@ export async function POST(req: Request) {
 
         // 2. Build dynamic prompt with explicit memory transparency
         let memoryTransparency = "";
+        const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
         if (userContext.memory?.length > 0) {
-          const factsList = userContext.memory.map((f: any) => typeof f === "string" ? f : f.fact || f.text || JSON.stringify(f)).join("\n- ");
-          memoryTransparency = `\n\nMEMORY STATUS: Active. You have ${userContext.memory.length} stored facts about this user:\n- ${factsList}\n\nIMPORTANT: These are the ONLY things you know about this user from previous conversations. If asked about anything NOT in this list, say "I don't have that in my memory — can you remind me?" Do NOT guess or infer unstated facts.`;
+          const factsList = userContext.memory.map((f: any) => {
+            const factText = typeof f === "string" ? f : (f.fact_key && f.fact_value ? `${f.fact_key}: ${f.fact_value}` : f.fact || f.text || JSON.stringify(f));
+            const confidence = f.confidence === "inferred" ? " [inferred]" : "";
+            const learnedDate = f.created_at ? ` (learned ${new Date(f.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })})` : "";
+            return `${factText}${confidence}${learnedDate}`;
+          }).join("\n- ");
+          memoryTransparency = `\n\nTODAY'S DATE: ${today}
+
+MEMORY STATUS: Active. You have ${userContext.memory.length} stored facts about this user:
+- ${factsList}
+
+MEMORY RULES:
+- These are the ONLY things you know from previous conversations
+- Facts have dates — if a fact is old (months ago), the user's situation may have changed. Ask to confirm before relying on old facts for major decisions.
+- If asked about anything NOT in this list, say "I don't have that in my memory — can you remind me?"
+- Do NOT guess or infer unstated facts
+- If a fact conflicts with what the user says NOW, trust what they say now and update via save_memory`;
         } else {
-          memoryTransparency = `\n\nMEMORY STATUS: No stored facts for this user yet. You are starting fresh. Do NOT pretend to know things about the user that they haven't told you in THIS conversation. If they reference a previous conversation, say "I don't have context from our previous conversations yet. Can you catch me up?"`;
+          memoryTransparency = `\n\nTODAY'S DATE: ${today}\n\nMEMORY STATUS: No stored facts for this user yet. You are starting fresh. Do NOT pretend to know things about the user that they haven't told you in THIS conversation. If they reference a previous conversation, say "I don't have context from our previous conversations yet. Can you catch me up?"`;
         }
         if (userContext.milestones?.length > 0) {
           memoryTransparency += `\n\nMILESTONES REACHED: ${userContext.milestones.map((m: any) => typeof m === "string" ? m : m.stage || m.name || JSON.stringify(m)).join(", ")}`;
@@ -817,10 +833,15 @@ Do NOT include this for casual conversation, simple questions, or greetings. Onl
             },
             system: fullSystemPrompt,
             messages: currentMessages,
-            tools: ZELREX_TOOLS_IMPORTED as any,
+            tools: [
+              { type: "web_search_20250305" as any, name: "web_search" },
+              ...(ZELREX_TOOLS_IMPORTED as any[]),
+            ],
           });
 
-          const toolCalls = response.content.filter((b: any) => b.type === 'tool_use');
+          const toolCalls = response.content.filter((b: any) => b.type === 'tool_use' && b.name !== 'web_search');
+          // Also check for server-side tool results (web search results come back as server_tool_use)
+          const hasServerToolUse = response.content.some((b: any) => b.type === 'server_tool_use' || b.type === 'web_search_tool_result');
 
           // If no tool calls or end_turn, we're done
           if (toolCalls.length === 0 || response.stop_reason === 'end_turn') {

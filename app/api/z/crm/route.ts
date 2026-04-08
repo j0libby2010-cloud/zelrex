@@ -455,39 +455,56 @@ async function dashboard(supabase: SupabaseClient, userId: string) {
 async function screenClient(supabase: SupabaseClient, userId: string, body: any) {
   const anthropic = ai();
   if (!anthropic) return NextResponse.json({ error: 'AI not configured' }, { status: 500 });
-  const { description } = body;
+  const { description, userNiche } = body;
   if (!description) return NextResponse.json({ error: 'Missing description' }, { status: 400 });
 
   const res = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514', max_tokens: 600,
-    messages: [{ role: 'user', content: `You are a freelancer's business advisor. Analyze this potential client/project for red flags.
+    model: 'claude-sonnet-4-5-20250929', max_tokens: 1500,
+    messages: [{ role: 'user', content: `You are an expert freelancer protection system. A freelancer${userNiche ? ` in ${userNiche}` : ""} is considering working with a potential client. Analyze the client's message/project description for risks.
 
-CLIENT/PROJECT DESCRIPTION:
-${description}
+CLIENT MESSAGE OR PROJECT DESCRIPTION:
+"${description}"
 
-Evaluate for these common freelancer red flags:
-1. Scope creep risk (vague requirements, "we'll figure it out")
-2. Payment risk (no budget mentioned, asking for free work first)
-3. Communication issues (too many stakeholders, micromanagement signals)
-4. Unrealistic expectations (impossible timelines, "quick simple job")
-5. Value mismatch (client doesn't understand the work's value)
+Analyze across these 8 dimensions and score each 0-10 (10 = safest):
 
-Respond JSON only:
+1. BUDGET SIGNALS — Do they mention a specific budget? Is it reasonable for the work described? Red flags: "budget is flexible" (often means low), no budget mentioned, asking for free samples, comparing to Fiverr prices
+2. SCOPE CLARITY — Is the project well-defined? Red flags: vague deliverables, "we'll figure it out as we go", scope that keeps expanding in the description itself
+3. TIMELINE REALITY — Is the deadline realistic? Red flags: "need it by tomorrow", "ASAP", unrealistic expectations for the complexity described
+4. PAYMENT SIGNALS — Any indication of payment reliability? Red flags: "we'll pay after launch", "revenue share", "exposure", no mention of payment terms, asking to work before contract
+5. COMMUNICATION QUALITY — How professional is their communication? Red flags: all caps, aggressive tone, poor grammar suggesting overseas scammer, overly flattering/too good to be true
+6. RESPECT SIGNALS — Do they respect the freelancer's expertise? Red flags: "it should be easy/quick", "my nephew could do this but...", micromanagement hints, asking to replicate someone else's exact work
+7. DECISION MAKER — Is this person the actual decision maker? Red flags: "I'll need to check with my boss/partner/team", committee-based approval, multiple stakeholders mentioned
+8. RED FLAG PATTERNS — Known freelancer exploitation patterns: spec work requests, "quick test project" that's actually the real project, NDA before any discussion, asking for source files before payment, wanting to own all rights for a tiny fee
+
+SCORING:
+- 80-100: Low risk — proceed with standard contract
+- 60-79: Medium risk — proceed with caution, get payment upfront
+- 40-59: High risk — require 50-100% upfront, strict contract, or decline
+- 0-39: Critical risk — strongly recommend declining
+
+Respond with ONLY valid JSON, no markdown, no backticks:
 {
-  "score": 75,
-  "verdict": "Proceed with caution",
-  "flags": ["Vague scope - get specific deliverables in writing", "No budget mentioned - clarify before starting"],
-  "green_lights": ["Long-term project potential", "Professional communication"],
-  "recommendation": "Take this project but get a detailed scope document and 50% deposit before starting."
+  "score": <0-100 weighted average>,
+  "verdict": "<1 sentence summary>",
+  "risk_level": "<low|medium|high|critical>",
+  "flags": ["<specific red flag 1>", "<specific red flag 2>"],
+  "green_lights": ["<positive signal 1>", "<positive signal 2>"],
+  "recommendation": "<2-3 sentence specific advice for this situation>",
+  "suggested_questions": ["<question to ask the client to clarify risk 1>", "<question 2>", "<question 3>"],
+  "pricing_advice": "<specific pricing strategy based on the risk level — e.g., require deposit, milestone payments, etc.>",
+  "contract_warnings": ["<specific clause to include in contract for this client>", "<clause 2>"]
 }
-
-Score 0-100 (100 = perfect client, 0 = run away). Be honest and specific.
 DISCLAIMER: This is AI-generated analysis for informational purposes only. It should not replace your professional judgment.` }],
   });
 
-  const rawText = res.content[0]?.type === 'text' ? res.content[0].text : '{}';
+  const rawText = res.content
+    .filter((b: any) => b.type === 'text')
+    .map((b: any) => b.text)
+    .join('');
+
   try {
-    const result = JSON.parse(rawText.replace(/```json|```/g, '').trim());
+    const cleaned = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    const result = JSON.parse(cleaned);
     if (result.recommendation) {
       result.recommendation = validateOutput(result.recommendation, {
         checkFinancial: false,
@@ -496,7 +513,17 @@ DISCLAIMER: This is AI-generated analysis for informational purposes only. It sh
     }
     return NextResponse.json(result);
   } catch {
-    return NextResponse.json({ score: 50, verdict: 'Unable to analyze', flags: [], green_lights: [], recommendation: 'Provide more details for a thorough analysis.' });
+    return NextResponse.json({
+      score: 50,
+      verdict: 'Unable to fully analyze — review manually',
+      risk_level: 'medium',
+      flags: ['Analysis could not be completed — review the project details carefully'],
+      green_lights: [],
+      recommendation: "The screening system couldn't fully analyze this description. Review it carefully and ask clarifying questions before committing.",
+      suggested_questions: ['What is your specific budget for this project?', 'What is your expected timeline?', 'How will payment be structured?'],
+      pricing_advice: 'Require at least 50% deposit before starting work.',
+      contract_warnings: ['Include a detailed scope of work', 'Specify revision limits'],
+    });
   }
 }
 

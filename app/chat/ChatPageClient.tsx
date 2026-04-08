@@ -454,7 +454,6 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     language: "en" as string,
     // Data
     chatHistoryEnabled: true,
-    dataSharingEnabled: true,
   });
   useEffect(() => { try { const s = localStorage.getItem("zelrex_settings"); if (s) setZelrexSettings(prev => ({ ...prev, ...JSON.parse(s) })); } catch {} }, []);
   const updateSetting = <K extends keyof typeof zelrexSettings>(key: K, val: (typeof zelrexSettings)[K]) => {
@@ -814,6 +813,79 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               }
             }
           } catch {}
+        }
+
+        // ─── PROJECT COMPLETION → Pipeline Gap Detection ─────
+        // If user has invoices recently marked "paid", suggest finding next client
+        if (crm?.recentPaidInvoices > 0) {
+          const key = "notif_pipeline_" + new Date().toISOString().slice(0, 10);
+          if (!sessionStorage.getItem(key)) {
+            const activeClients = crm.activeClients || 0;
+            if (activeClients <= 1) {
+              addNotification(`✅ You just finished a project! With ${activeClients} active client${activeClients === 1 ? "" : "s"} remaining, now is the time to line up your next one. Ask Zelrex to help you find prospects.`);
+            } else {
+              addNotification(`✅ Invoice paid! You've got ${activeClients} active clients. Want Zelrex to run outreach for your next one before this pipeline dries up?`);
+            }
+            sessionStorage.setItem(key, "1");
+          }
+        }
+
+        // ─── Low Pipeline Warning ────────────────────────────
+        // If user has website deployed but very few or no active clients
+        if (deployData?.url && crm?.totalClients !== undefined) {
+          const key = "notif_low_pipeline_" + new Date().toISOString().slice(0, 7); // Once per month
+          if (!sessionStorage.getItem(key)) {
+            if (crm.totalClients === 0) {
+              addNotification(`🎯 Your website is live but you haven't added any clients yet. Tell Zelrex about your first prospect — even a warm lead counts.`);
+              sessionStorage.setItem(key, "1");
+            } else if (crm.activeClients === 0 && crm.totalClients > 0) {
+              addNotification(`⚠️ No active clients right now. Revenue gaps are the #1 freelancer struggle. Ask Zelrex to help you run outreach before it becomes urgent.`);
+              sessionStorage.setItem(key, "1");
+            }
+          }
+        }
+
+        // ─── Old Suggestion Follow-up (deeper scan) ──────────
+        // Scan recent conversations for actionable suggestions Zelrex made 3-7 days ago
+        if (zelrexSettings.inAppSuggestions) {
+          try {
+            const recentChats = chats.filter(ch => ch.messages?.length > 0);
+            for (const ch of recentChats.slice(0, 3)) {
+              const assistantMsgs = ch.messages.filter(m => m.role === "assistant" && m.createdAt);
+              for (const msg of assistantMsgs) {
+                const daysSince = (Date.now() - msg.createdAt) / (1000 * 60 * 60 * 24);
+                if (daysSince >= 3 && daysSince <= 7) {
+                  const lc = msg.content.toLowerCase();
+                  // Check for specific actionable commitments
+                  const hasCommitment = /(?:this week|by (?:monday|tuesday|wednesday|thursday|friday|tomorrow|next)|your (?:first|next) step|i(?:'d| would) recommend you|try reaching out|send (?:an email|a message|a DM)|post (?:on|about)|update your|create (?:a|your))/.test(lc);
+                  if (hasCommitment) {
+                    const key = `notif_old_suggestion_${ch.id}_${msg.id}`;
+                    if (!sessionStorage.getItem(key)) {
+                      addNotification(`📋 Zelrex suggested something ${Math.floor(daysSince)} days ago that you might not have done yet. Check back in to stay on track.`);
+                      sessionStorage.setItem(key, "1");
+                      break; // Only one per chat
+                    }
+                  }
+                }
+              }
+            }
+          } catch {}
+        }
+
+        // ─── Milestone Celebration + Next Step ───────────────
+        // If user just hit a new milestone, congratulate and push forward
+        if (activeChat?.messages?.length) {
+          const lastAssistantMsgs = activeChat.messages.filter(m => m.role === "assistant").slice(-3);
+          for (const msg of lastAssistantMsgs) {
+            const lc = msg.content.toLowerCase();
+            if (lc.includes("first client") || lc.includes("first paying") || lc.includes("milestone")) {
+              const key = "notif_milestone_celebrate_" + new Date().toISOString().slice(0, 10);
+              if (!sessionStorage.getItem(key) && msg.createdAt && (Date.now() - msg.createdAt) < 86400000) {
+                addNotification(`🎉 Major progress detected! Ask Zelrex for your next milestone and what to focus on this week.`);
+                sessionStorage.setItem(key, "1");
+              }
+            }
+          }
         }
       } catch (notifError) {
         console.error("[Zelrex Notifications] Check failed:", notifError);
@@ -3150,54 +3222,32 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 {/* ─── TOS & PRIVACY TAB ─── */}
                 {settingsTab === "data" && (<>
                   <div className="stg-section">
-                    <div className="stg-section-title">Data Collection</div>
-                    <div className="stg-card" style={{ padding: "20px 22px" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                        <div><div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Chat History</div><div style={{ fontSize: 12, color: C.textSec, marginTop: 2 }}>Save conversations for memory and continuity</div></div>
-                        <button onClick={() => setZelrexSettings((s: any) => ({ ...s, chatHistoryEnabled: !s.chatHistoryEnabled }))} style={{ width: 42, height: 24, borderRadius: 12, border: "none", background: zelrexSettings.chatHistoryEnabled ? C.accent : "rgba(255,255,255,0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s" }}>
-                          <div style={{ width: 18, height: 18, borderRadius: 9, background: "#fff", position: "absolute", top: 3, left: zelrexSettings.chatHistoryEnabled ? 21 : 3, transition: "left 0.2s" }} />
-                        </button>
+                    <div className="stg-section-title">Terms of Service</div>
+                    <div className="stg-card" style={{ padding: "24px 22px" }}>
+                      <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.8, letterSpacing: "-0.005em" }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12, letterSpacing: "-0.02em" }}>Zelrex Terms of Service</div>
+                        <p style={{ marginBottom: 12 }}>By using Zelrex, you agree to the following terms and conditions. Zelrex provides AI-powered business tools including website building, client management, and business analytics.</p>
+                        <p style={{ marginBottom: 12 }}>You are responsible for the content you create and publish through our platform. Zelrex reserves the right to suspend accounts that violate these terms or engage in prohibited activities.</p>
+                        <p style={{ marginBottom: 12 }}>All websites built and deployed through Zelrex remain your intellectual property. Zelrex provides the infrastructure and tools but does not claim ownership over your content, designs, or business data.</p>
+                        <p style={{ marginBottom: 12 }}>Zelrex offers both free and paid subscription tiers. Paid features are subject to the terms of your subscription plan. Refunds are handled on a case-by-case basis within 14 days of purchase.</p>
+                        <p style={{ marginBottom: 0 }}>These terms may be updated periodically. Continued use of Zelrex constitutes acceptance of any modifications.</p>
                       </div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div><div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>Anonymized Data Sharing</div><div style={{ fontSize: 12, color: C.textSec, marginTop: 2, maxWidth: 280 }}>Help improve Zelrex by sharing anonymized business metrics. Individual data is never exposed — only aggregate patterns.</div></div>
-                        <button onClick={() => {
-                          const newVal = !zelrexSettings.dataSharingEnabled;
-                          setZelrexSettings((s: any) => ({ ...s, dataSharingEnabled: newVal }));
-                          fetch("/api/z/data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "opt-out", userId: clerkUser?.id, optOut: !newVal }) }).catch(() => {});
-                        }} style={{ width: 42, height: 24, borderRadius: 12, border: "none", background: (zelrexSettings.dataSharingEnabled !== false) ? C.accent : "rgba(255,255,255,0.1)", cursor: "pointer", position: "relative", transition: "background 0.2s", flexShrink: 0 }}>
-                          <div style={{ width: 18, height: 18, borderRadius: 9, background: "#fff", position: "absolute", top: 3, left: (zelrexSettings.dataSharingEnabled !== false) ? 21 : 3, transition: "left 0.2s" }} />
-                        </button>
-                      </div>
+                      <div style={{ marginTop: 16, fontSize: 11, color: C.textMuted }}>Last updated: January 2025</div>
                     </div>
                   </div>
                   <div className="stg-section">
-                    <div className="stg-section-title">Your Data</div>
-                    <div className="stg-card" style={{ padding: "20px 22px" }}>
-                      <button onClick={() => {
-                        const exportData = { chats: chats.map(c => ({ title: c.title, messages: c.messages })), settings: zelrexSettings, goal: userGoal };
-                        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a"); a.href = url; a.download = `zelrex-export-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(url);
-                      }} className="stg-btn" style={{ width: "100%", marginBottom: 10, padding: "12px", borderRadius: 10, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, color: C.text, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                        Export All Data (JSON)
-                      </button>
-                      <button onClick={() => {
-                        if (!confirm("Delete ALL chats? This cannot be undone.")) return;
-                        if (!confirm("Are you absolutely sure? This will permanently delete all conversations.")) return;
-                        setChats([]); setActiveChatId(null);
-                      }} className="stg-btn" style={{ width: "100%", padding: "12px", borderRadius: 10, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", color: "#EF4444", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-                        Delete All Chats
-                      </button>
+                    <div className="stg-section-title">Privacy Policy</div>
+                    <div className="stg-card" style={{ padding: "24px 22px" }}>
+                      <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.8, letterSpacing: "-0.005em" }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 12, letterSpacing: "-0.02em" }}>Zelrex Privacy Policy</div>
+                        <p style={{ marginBottom: 12 }}>Zelrex is committed to protecting your privacy. This policy explains how we collect, use, and safeguard your personal information.</p>
+                        <p style={{ marginBottom: 12 }}>We collect information you provide directly, including your name, email address, business details, and content created through the platform. We also collect usage data to improve our services.</p>
+                        <p style={{ marginBottom: 12 }}>Your data is used solely to provide and improve Zelrex services. We do not sell, share, or distribute your personal data to third parties for marketing purposes. Your conversations and business data are never used to train AI models.</p>
+                        <p style={{ marginBottom: 12 }}>All data is encrypted in transit and at rest. We use industry-standard security measures to protect your information from unauthorized access.</p>
+                        <p style={{ marginBottom: 0 }}>You have the right to access, export, or delete your data at any time through the Account settings. For data-related requests, contact support@zelrex.com.</p>
+                      </div>
+                      <div style={{ marginTop: 16, fontSize: 11, color: C.textMuted }}>Last updated: January 2025</div>
                     </div>
-                  </div>
-                  <div className="stg-section">
-                    <div className="stg-section-title">Legal</div>
-                    <div className="stg-card" style={{ padding: "16px 22px" }}>
-                      <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ display: "block", fontSize: 14, fontWeight: 600, color: C.accent, textDecoration: "none", padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>Terms of Service →</a>
-                      <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ display: "block", fontSize: 14, fontWeight: 600, color: C.accent, textDecoration: "none", padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>Privacy Policy →</a>
-                      <a href="/disclaimer" target="_blank" rel="noopener noreferrer" style={{ display: "block", fontSize: 14, fontWeight: 600, color: C.accent, textDecoration: "none", padding: "8px 0" }}>AI Disclaimer →</a>
-                    </div>
-                    <div style={{ marginTop: 10, fontSize: 11, color: C.textMuted }}>By using Zelrex, you agree to our Terms of Service and Privacy Policy.</div>
                   </div>
                 </>)}
 
@@ -3282,7 +3332,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <button onClick={async () => { setUserGoal(null); setGoalDraft({ text: "", target: "", deadline: "" }); await db.deleteGoal(); closeGoalModal(); }} className="z-glass" style={{ flex: 1, padding: "10px", borderRadius: 12, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "-0.01em" }}>Remove goal</button>
                 )}
                 <button onClick={closeGoalModal} className="z-glass" style={{ flex: 1, padding: "10px", borderRadius: 12, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "-0.01em" }}>Cancel</button>
-                <button onClick={async () => { if (goalDraft.text.trim()) { const g = { text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() }; setUserGoal(g); await db.saveGoal(g); fetch("/api/z/data", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "collect", userId: clerkUser?.id, eventType: "goal_set", niche: zelrexSettings?.businessProfile?.niche || null, payload: { goal: g.text, target: g.target || null, deadline: g.deadline || null } }) }).catch(() => {}); setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]); } closeGoalModal(); }} style={{ flex: 1.5, padding: "10px", borderRadius: 12, border: "none", background: `linear-gradient(135deg, ${C.accent}, ${C.accent}cc)`, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em", boxShadow: `0 4px 16px ${C.accent}40, 0 0 0 0.5px ${C.accent}60 inset` }}>Save goal</button>
+                <button onClick={async () => { if (goalDraft.text.trim()) { const g = { text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() }; setUserGoal(g); await db.saveGoal(g); setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]); } closeGoalModal(); }} style={{ flex: 1.5, padding: "10px", borderRadius: 12, border: "none", background: `linear-gradient(135deg, ${C.accent}, ${C.accent}cc)`, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em", boxShadow: `0 4px 16px ${C.accent}40, 0 0 0 0.5px ${C.accent}60 inset` }}>Save goal</button>
               </div>
             </div>
           </div>

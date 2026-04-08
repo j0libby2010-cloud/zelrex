@@ -341,13 +341,42 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
                     <div style={{ width: 48, height: 48, borderRadius: 16, background: `linear-gradient(135deg, ${screenResult.score >= 70 ? G.green : screenResult.score >= 40 ? G.amber : G.red}18, ${screenResult.score >= 70 ? G.green : screenResult.score >= 40 ? G.amber : G.red}06)`, border: `0.5px solid ${screenResult.score >= 70 ? G.green : screenResult.score >= 40 ? G.amber : G.red}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 900, letterSpacing: "-0.02em", color: screenResult.score >= 70 ? G.green : screenResult.score >= 40 ? G.amber : G.red }}>{screenResult.score}</div>
                     <div>
                       <div style={{ fontSize: 15, fontWeight: 700, color: G.text, letterSpacing: "-0.02em" }}>{screenResult.verdict}</div>
-                      <div style={{ fontSize: 11, color: G.textMuted }}>Client Score</div>
+                      <div style={{ fontSize: 11, color: G.textMuted }}>{screenResult.risk_level ? `${screenResult.risk_level.toUpperCase()} RISK` : "Client Score"}</div>
                     </div>
                   </div>
-                  {screenResult.flags?.length > 0 && <div style={{ marginBottom: 10 }}>{screenResult.flags.map((f: string, i: number) => <div key={i} style={{ fontSize: 12, color: G.red, padding: "3px 0", display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10 }}>⚠</span>{f}</div>)}</div>}
-                  {screenResult.green_lights?.length > 0 && <div style={{ marginBottom: 10 }}>{screenResult.green_lights.map((g: string, i: number) => <div key={i} style={{ fontSize: 12, color: G.green, padding: "3px 0", display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10 }}>✓</span>{g}</div>)}</div>}
+                  {screenResult.flags?.length > 0 && <div style={{ marginBottom: 10 }}><div style={{ fontSize: 10, fontWeight: 700, color: G.red, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Red flags</div>{screenResult.flags.map((f: string, i: number) => <div key={i} style={{ fontSize: 12, color: G.red, padding: "3px 0", display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10 }}>⚠</span>{f}</div>)}</div>}
+                  {screenResult.green_lights?.length > 0 && <div style={{ marginBottom: 10 }}><div style={{ fontSize: 10, fontWeight: 700, color: G.green, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Green lights</div>{screenResult.green_lights.map((g: string, i: number) => <div key={i} style={{ fontSize: 12, color: G.green, padding: "3px 0", display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10 }}>✓</span>{g}</div>)}</div>}
                   <div style={{ fontSize: 12, color: G.textSec, lineHeight: 1.7, marginTop: 10, padding: 14, borderRadius: 14, background: "rgba(255,255,255,0.02)", border: `0.5px solid ${G.glassBorder}` }}>{screenResult.recommendation}</div>
-                  <div style={{ fontSize: 10, color: G.textMuted, marginTop: 10, fontStyle: "italic", opacity: 0.7 }}>AI analysis for informational purposes only.</div>
+                  
+                  {/* Suggested questions to ask the client */}
+                  {screenResult.suggested_questions?.length > 0 && (
+                    <div style={{ marginTop: 14 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: G.accent, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Ask the client</div>
+                      {screenResult.suggested_questions.map((q: string, i: number) => (
+                        <div key={i} style={{ fontSize: 12, color: G.textSec, padding: "6px 12px", marginBottom: 4, borderRadius: 10, background: `${G.accent}06`, border: `0.5px solid ${G.accent}12`, lineHeight: 1.5 }}>"{q}"</div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Pricing advice for this risk level */}
+                  {screenResult.pricing_advice && (
+                    <div style={{ marginTop: 14, padding: 14, borderRadius: 14, background: `${G.amber}06`, border: `0.5px solid ${G.amber}12` }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: G.amber, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Pricing strategy</div>
+                      <div style={{ fontSize: 12, color: G.textSec, lineHeight: 1.6 }}>{screenResult.pricing_advice}</div>
+                    </div>
+                  )}
+
+                  {/* Contract clauses to include */}
+                  {screenResult.contract_warnings?.length > 0 && (
+                    <div style={{ marginTop: 14 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: G.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 8 }}>Include in contract</div>
+                      {screenResult.contract_warnings.map((w: string, i: number) => (
+                        <div key={i} style={{ fontSize: 12, color: G.textSec, padding: "3px 0", display: "flex", alignItems: "center", gap: 6 }}><span style={{ fontSize: 10, color: G.accent }}>§</span>{w}</div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: 10, color: G.textMuted, marginTop: 14, fontStyle: "italic", opacity: 0.7 }}>AI analysis for informational purposes only. Use your own judgment.</div>
                   <GlassBtn onClick={() => { setScreenResult(null); setScreenText(""); }} color={G.textMuted} style={{ fontSize: 10, marginTop: 8 }}>Clear</GlassBtn>
                 </div>
               )}
