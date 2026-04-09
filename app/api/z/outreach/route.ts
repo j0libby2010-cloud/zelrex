@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
-import { validateOutput, validateOutreachEmail, RELIABILITY_PROMPT, OUTREACH_PROMPT } from '@/lib/aiSafety';
 
 let _sb: SupabaseClient | null = null;
 function db(): SupabaseClient | null {
@@ -60,6 +59,7 @@ export async function POST(req: Request) {
       case 'archive': return handleArchive(supabase, body.prospectId);
       case 'regenerate': return handleRegenerate(supabase, userId, body.prospectId);
       case 'stats': return handleStats(supabase, userId);
+      case 'generate-followup': return handleFollowUp(supabase, userId, body.prospectId);
       default: return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (e: any) {
@@ -122,9 +122,7 @@ async function handleFind(supabase: SupabaseClient, userId: string) {
     tools: [{ type: "web_search_20250305" as any, name: "web_search" }],
     messages: [{
       role: 'user',
-      content: `${RELIABILITY_PROMPT}
-
-You are Zelrex's prospect discovery engine. Your job is to find REAL businesses that would benefit from this freelancer's services.
+      content: `You are Zelrex's prospect discovery engine. Your job is to find REAL businesses that would benefit from this freelancer's services.
 
 FREELANCER'S BUSINESS CONTEXT:
 ${chatContext}
@@ -246,10 +244,7 @@ async function handleGenerate(supabase: SupabaseClient, userId: string, prospect
       max_tokens: 600,
       messages: [{
         role: 'user',
-        content: `${RELIABILITY_PROMPT}
-${OUTREACH_PROMPT}
-
-You are writing a cold outreach email for a freelancer. Write ONE personalized cold email.
+        content: `You are writing a cold outreach email for a freelancer. Write ONE personalized cold email.
 
 FREELANCER'S BUSINESS:
 ${chatContext}
@@ -279,8 +274,7 @@ Respond in JSON only, no markdown:
     const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
     try {
       const cleaned = text.replace(/```json|```/g, '').trim();
-      const rawEmail = JSON.parse(cleaned);
-      const email = validateOutreachEmail(rawEmail);
+      const email = JSON.parse(cleaned);
 
       const { data: saved } = await supabase.from('outreach_emails').insert({
         user_id: userId,
@@ -394,4 +388,91 @@ async function handleStats(supabase: SupabaseClient, userId: string) {
     archived: archived.count || 0,
     replyRate: totalSent > 0 ? Math.round((totalReplied / totalSent) * 100) : 0,
   });
+}
+
+
+// ─── Follow-Up Email Generation ───────────────────────────────
+
+async function handleFollowUp(supabase: SupabaseClient, userId: string, prospectId?: string) {
+  const anthropic = ai();
+  if (!anthropic) return NextResponse.json({ error: 'AI not configured' }, { status: 500 });
+
+  // Find prospects that were sent an email but never replied (5+ days ago)
+  let query = supabase.from('outreach_prospects').select(`
+    *,
+    outreach_emails (*)
+  `).eq('user_id', userId).eq('status', 'sent');
+
+  if (prospectId) {
+    query = query.eq('id', prospectId);
+  }
+
+  const { data: prospects } = await query;
+  if (!prospects?.length) return NextResponse.json({ emails: [], message: 'No prospects need follow-up' });
+
+  // Filter to those where original email was sent 5+ days ago
+  const needsFollowUp = prospects.filter((p: any) => {
+    const emails = p.outreach_emails || [];
+    const lastEmail = emails.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    if (!lastEmail) return false;
+    const daysSince = (Date.now() - new Date(lastEmail.created_at).getTime()) / (1000 * 60 * 60 * 24);
+    return daysSince >= 5 && (lastEmail.follow_up_number || 1) <= 2; // Max 2 follow-ups
+  });
+
+  if (!needsFollowUp.length) return NextResponse.json({ emails: [], message: 'No prospects need follow-up yet (wait 5 days after last email)' });
+
+  const emails: any[] = [];
+
+  for (const prospect of needsFollowUp.slice(0, 5)) {
+    const originalEmail = (prospect.outreach_emails || []).find((e: any) => (e.follow_up_number || 1) === 1);
+    const lastEmail = (prospect.outreach_emails || []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    const followUpNumber = (lastEmail?.follow_up_number || 1) + 1;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 400,
+      messages: [{
+        role: 'user',
+        content: `Write a follow-up email (follow-up #${followUpNumber}) for a prospect who didn't reply to the original email.
+
+PROSPECT:
+- Name: ${prospect.name}
+- Company: ${prospect.company}
+- Original email subject: "${originalEmail?.subject || 'N/A'}"
+- Days since last email: ${Math.floor((Date.now() - new Date(lastEmail.created_at).getTime()) / (1000 * 60 * 60 * 24))}
+
+FOLLOW-UP RULES:
+- ${followUpNumber === 2 ? "This is the first follow-up. Keep it SHORT (under 60 words). Reference the original email briefly. Add one new value point or question." : "This is the final follow-up. Make it very brief (under 40 words). Give them an easy out: 'If this isn't relevant, no worries — just let me know and I won't follow up again.'"}
+- DO NOT be pushy, guilt-trippy, or fake-urgent
+- Sound human and respectful of their time
+- Include opt-out: "Not interested? Just reply 'pass'."
+
+JSON only, no markdown:
+{"subject":"Re: ${originalEmail?.subject || ''}","body":"..."}`
+      }],
+    });
+
+    const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
+    try {
+      const cleaned = text.replace(/```json|```/g, '').trim();
+      const email = JSON.parse(cleaned);
+
+      const { data: saved } = await supabase.from('outreach_emails').insert({
+        user_id: userId,
+        prospect_id: prospect.id,
+        subject: email.subject,
+        body: email.body,
+        email_to: prospect.email || '',
+        status: 'draft',
+        follow_up_number: followUpNumber,
+        original_email_id: originalEmail?.id || null,
+      }).select().single();
+
+      if (saved) emails.push({ ...saved, prospect });
+    } catch (e) {
+      console.error('[Outreach] Follow-up generation failed for:', prospect.name);
+    }
+  }
+
+  return NextResponse.json({ emails, followUp: true });
 }

@@ -61,6 +61,12 @@ export async function POST(req: Request) {
       case 'followups-generate': return followupsGenerate(supabase, userId, body);
       case 'followups-mark-sent': return followupsMarkSent(supabase, body);
 
+      // ─── Projects ───
+      case 'projects-list': return handleProjectsList(supabase, userId);
+      case 'projects-create': return handleProjectsCreate(supabase, userId, body);
+      case 'projects-update': return handleProjectsUpdate(supabase, body);
+      case 'projects-delete': return handleProjectsDelete(supabase, body);
+
       // ─── Dashboard / Stats ───
       case 'dashboard': return dashboard(supabase, userId);
       case 'screen-client': return screenClient(supabase, userId, body);
@@ -409,13 +415,15 @@ async function followupsMarkSent(supabase: SupabaseClient, body: any) {
 // ═══════════════════════════════════════════════════════════════
 
 async function dashboard(supabase: SupabaseClient, userId: string) {
-  const [clientsR, activeR, invoicesR, paidR, overdueR, contractsR] = await Promise.all([
+  const [clientsR, activeR, invoicesR, paidR, overdueR, contractsR, activeProjectsR, recentPaidInvoicesR] = await Promise.all([
     supabase.from('crm_clients').select('id', { count: 'exact', head: true }).eq('user_id', userId),
     supabase.from('crm_clients').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'active'),
     supabase.from('crm_invoices').select('amount_cents, status').eq('user_id', userId),
     supabase.from('crm_invoices').select('amount_cents').eq('user_id', userId).eq('status', 'paid'),
     supabase.from('crm_invoices').select('amount_cents').eq('user_id', userId).eq('status', 'overdue'),
     supabase.from('crm_contracts').select('id, status').eq('user_id', userId),
+    supabase.from('crm_projects').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'active'),
+    supabase.from('crm_invoices').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'paid').gte('paid_date', new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10)),
   ]);
 
   const allInvoices = invoicesR.data || [];
@@ -445,6 +453,8 @@ async function dashboard(supabase: SupabaseClient, userId: string) {
     overdueInvoices: overdueInvoices.length,
     activeContracts: (contractsR.data || []).filter(c => c.status === 'accepted').length,
     estimatedMRR,
+    activeProjects: activeProjectsR.count || 0,
+    recentPaidInvoices: recentPaidInvoicesR.count || 0,
   });
 }
 
@@ -459,8 +469,17 @@ async function screenClient(supabase: SupabaseClient, userId: string, body: any)
   if (!description) return NextResponse.json({ error: 'Missing description' }, { status: 400 });
 
   const res = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929', max_tokens: 1500,
+    model: 'claude-sonnet-4-5-20250929', max_tokens: 2000,
+    tools: [{ type: 'web_search_20250305' as any, name: 'web_search' }],
     messages: [{ role: 'user', content: `You are an expert freelancer protection system. A freelancer${userNiche ? ` in ${userNiche}` : ""} is considering working with a potential client. Analyze the client's message/project description for risks.
+
+STEP 1: First, search the web to verify any company or person mentioned in the description. Look for:
+- Does the company exist?
+- Do they have a real website?
+- Any reviews or complaints from freelancers?
+- Any red flags in their online presence?
+
+STEP 2: Then analyze the message itself.
 
 CLIENT MESSAGE OR PROJECT DESCRIPTION:
 "${description}"
@@ -492,7 +511,9 @@ Respond with ONLY valid JSON, no markdown, no backticks:
   "recommendation": "<2-3 sentence specific advice for this situation>",
   "suggested_questions": ["<question to ask the client to clarify risk 1>", "<question 2>", "<question 3>"],
   "pricing_advice": "<specific pricing strategy based on the risk level — e.g., require deposit, milestone payments, etc.>",
-  "contract_warnings": ["<specific clause to include in contract for this client>", "<clause 2>"]
+  "contract_warnings": ["<specific clause to include in contract for this client>", "<clause 2>"],
+  "company_verified": <true if you found the company online and it looks real, false if not found or suspicious>,
+  "company_info": "<1-2 sentence summary of what you found about the company online, or 'No online presence found' if nothing>"
 }
 DISCLAIMER: This is AI-generated analysis for informational purposes only. It should not replace your professional judgment.` }],
   });
@@ -545,4 +566,62 @@ async function handleAutoMarkOverdue(supabase: SupabaseClient, userId: string) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ marked: overdue?.length ?? 0 });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PROJECTS
+// ═══════════════════════════════════════════════════════════════
+
+async function handleProjectsList(supabase: SupabaseClient, userId: string) {
+  const { data, error } = await supabase
+    .from('crm_projects')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  return NextResponse.json({ projects: data || [], error: error?.message });
+}
+
+async function handleProjectsCreate(supabase: SupabaseClient, userId: string, body: any) {
+  const { name, description, clientId, totalValueCents, dueDate, milestones } = body;
+
+  const { data, error } = await supabase.from('crm_projects').insert({
+    user_id: userId,
+    client_id: clientId || null,
+    name,
+    description: description || '',
+    status: 'active',
+    progress_percent: 0,
+    total_value_cents: totalValueCents || 0,
+    due_date: dueDate || null,
+    start_date: new Date().toISOString().slice(0, 10),
+    milestones: milestones || [],
+  }).select().single();
+
+  return NextResponse.json({ project: data, error: error?.message });
+}
+
+async function handleProjectsUpdate(supabase: SupabaseClient, body: any) {
+  const { projectId, ...updates } = body;
+  if (!projectId) return NextResponse.json({ error: 'Missing projectId' }, { status: 400 });
+
+  const updateData: any = { updated_at: new Date().toISOString() };
+  if (updates.name !== undefined) updateData.name = updates.name;
+  if (updates.description !== undefined) updateData.description = updates.description;
+  if (updates.status !== undefined) updateData.status = updates.status;
+  if (updates.progressPercent !== undefined) updateData.progress_percent = updates.progressPercent;
+  if (updates.milestones !== undefined) updateData.milestones = updates.milestones;
+  if (updates.dueDate !== undefined) updateData.due_date = updates.dueDate;
+  if (updates.completedAt !== undefined) updateData.completed_at = updates.completedAt;
+
+  const { error } = await supabase.from('crm_projects').update(updateData).eq('id', projectId);
+  return NextResponse.json({ ok: !error, error: error?.message });
+}
+
+async function handleProjectsDelete(supabase: SupabaseClient, body: any) {
+  const { projectId } = body;
+  if (!projectId) return NextResponse.json({ error: 'Missing projectId' }, { status: 400 });
+
+  const { error } = await supabase.from('crm_projects').delete().eq('id', projectId);
+  return NextResponse.json({ ok: !error, error: error?.message });
 }

@@ -887,6 +887,103 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             }
           }
         }
+
+        // ─── Invoice Due Soon (3 days before) ────────────────
+        if (zelrexSettings.notifOverdueInvoices) {
+          try {
+            const invRes = await fetch("/api/z/crm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "invoices-list", userId: clerkUser.id }) });
+            const invData = await invRes.json();
+            const upcoming = (invData.invoices || []).filter((inv: any) => {
+              if (inv.status !== "sent" || !inv.due_date) return false;
+              const daysUntilDue = Math.ceil((new Date(inv.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+              return daysUntilDue > 0 && daysUntilDue <= 3;
+            });
+            if (upcoming.length > 0) {
+              const key = `notif_due_soon_${new Date().toISOString().slice(0, 10)}`;
+              if (!sessionStorage.getItem(key)) {
+                const inv = upcoming[0];
+                const clientName = inv.crm_clients?.name || "a client";
+                const daysLeft = Math.ceil((new Date(inv.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                addNotification(`📅 Invoice for ${clientName} is due in ${daysLeft} day${daysLeft > 1 ? "s" : ""}. Send a reminder if they haven't paid yet.`);
+                sessionStorage.setItem(key, "1");
+              }
+            }
+          } catch {}
+        }
+
+        // ─── Outreach Follow-up Needed ───────────────────────
+        // If user sent outreach 5-7 days ago and none are marked "replied"
+        try {
+          const outreachRes = await fetch("/api/z/outreach", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "stats", userId: clerkUser.id }) });
+          const outreachStats = await outreachRes.json();
+          if (outreachStats.sent > 0 && outreachStats.replied === 0) {
+            const key = `notif_outreach_followup_${new Date().toISOString().slice(0, 10)}`;
+            if (!sessionStorage.getItem(key)) {
+              addNotification(`📬 You sent ${outreachStats.sent} outreach email${outreachStats.sent > 1 ? "s" : ""} but haven't gotten any replies yet. Follow-up emails get 2-3x more responses — want Zelrex to generate follow-ups?`);
+              sessionStorage.setItem(key, "1");
+            }
+          }
+        } catch {}
+
+        // ─── Weekly Business Digest ──────────────────────────
+        // Every Monday, prompt user to check in
+        {
+          const today = new Date();
+          const isMonday = today.getDay() === 1;
+          const key = `notif_weekly_digest_${today.toISOString().slice(0, 10)}`;
+          if (isMonday && !sessionStorage.getItem(key)) {
+            const clientCount = crm?.totalClients || 0;
+            const activeProjects = crm?.activeProjects || 0;
+            if (clientCount > 0) {
+              addNotification(`📊 Weekly check-in: You have ${clientCount} client${clientCount > 1 ? "s" : ""} and ${activeProjects || "no"} active project${activeProjects !== 1 ? "s" : ""}. Ask Zelrex for your weekly business summary.`);
+            } else {
+              addNotification(`📊 It's Monday — start the week strong. Ask Zelrex what to focus on this week.`);
+            }
+            sessionStorage.setItem(key, "1");
+          }
+        }
+
+        // ─── Project Deadline Approaching ────────────────────
+        try {
+          const projRes = await fetch("/api/z/crm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "projects-list", userId: clerkUser.id }) });
+          const projData = await projRes.json();
+          const activeProjects = (projData.projects || []).filter((p: any) => p.status === "active" && p.due_date);
+          for (const proj of activeProjects) {
+            const daysLeft = Math.ceil((new Date(proj.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+            if (daysLeft <= 3 && daysLeft > 0) {
+              const key = `notif_proj_due_${proj.id}`;
+              if (!sessionStorage.getItem(key)) {
+                addNotification(`⏰ "${proj.name}" is due in ${daysLeft} day${daysLeft > 1 ? "s" : ""} and is at ${proj.progress_percent || 0}% progress. Focus here today.`);
+                sessionStorage.setItem(key, "1");
+              }
+            } else if (daysLeft <= 0) {
+              const key = `notif_proj_overdue_${proj.id}`;
+              if (!sessionStorage.getItem(key)) {
+                addNotification(`🚨 "${proj.name}" is past its deadline. Update the client on delivery timeline.`);
+                sessionStorage.setItem(key, "1");
+              }
+            }
+            // Project almost done — suggest finding next client
+            if (proj.progress_percent >= 80 && proj.progress_percent < 100) {
+              const key = `notif_proj_almost_done_${proj.id}`;
+              if (!sessionStorage.getItem(key)) {
+                addNotification(`🔜 "${proj.name}" is ${proj.progress_percent}% done. Start lining up your next project now to avoid an income gap. Ask Zelrex to find prospects.`);
+                sessionStorage.setItem(key, "1");
+              }
+            }
+          }
+
+          // Income gap risk — all projects completed, no new ones
+          const hasActiveProject = activeProjects.length > 0;
+          const completedRecently = (projData.projects || []).filter((p: any) => p.status === "completed" && p.completed_at && (Date.now() - new Date(p.completed_at).getTime()) < 14 * 86400000);
+          if (!hasActiveProject && completedRecently.length > 0) {
+            const key = `notif_income_gap_${new Date().toISOString().slice(0, 7)}`;
+            if (!sessionStorage.getItem(key)) {
+              addNotification(`⚠️ All projects are completed and you have nothing in the pipeline. This is how income gaps happen. Ask Zelrex to run outreach now.`);
+              sessionStorage.setItem(key, "1");
+            }
+          }
+        } catch {}
       } catch (notifError) {
         console.error("[Zelrex Notifications] Check failed:", notifError);
       }

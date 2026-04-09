@@ -61,15 +61,17 @@ function CRMTabs({ items, active, onChange }: { items: { id: string; label: stri
 }
 
 export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => void }) {
-  const [tab, setTab] = useState<"dashboard" | "clients" | "invoices" | "contracts">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "clients" | "invoices" | "contracts" | "projects">("dashboard");
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
   const [stats, setStats] = useState<DashStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showAddClient, setShowAddClient] = useState(false);
   const [showAddInvoice, setShowAddInvoice] = useState(false);
+  const [showAddProject, setShowAddProject] = useState(false);
   const [showScreen, setShowScreen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [viewContract, setViewContract] = useState<Contract | null>(null);
@@ -80,6 +82,8 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
   const [invItems, setInvItems] = useState<any[]>([{ description: "", qty: 1, rate_cents: 0 }]); const [invDue, setInvDue] = useState(""); const [invClientId, setInvClientId] = useState("");
   const [screenText, setScreenText] = useState(""); const [screenResult, setScreenResult] = useState<any>(null); const [screening, setScreening] = useState(false);
   const [generating, setGenerating] = useState(false);
+  // Project form
+  const [projName, setProjName] = useState(""); const [projDesc, setProjDesc] = useState(""); const [projClientId, setProjClientId] = useState(""); const [projValue, setProjValue] = useState(""); const [projDue, setProjDue] = useState("");
 
   const api = async (action: string, extra: any = {}) => {
     const res = await fetch("/api/z/crm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, userId, ...extra }) });
@@ -88,8 +92,8 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
 
   const loadAll = useCallback(async () => {
     setLoading(true);
-    const [cl, inv, con, dash] = await Promise.all([api("clients-list"), api("invoices-list"), api("contracts-list"), api("dashboard")]);
-    setClients(cl.clients || []); setInvoices(inv.invoices || []); setContracts(con.contracts || []); setStats(dash);
+    const [cl, inv, con, dash, proj] = await Promise.all([api("clients-list"), api("invoices-list"), api("contracts-list"), api("dashboard"), api("projects-list")]);
+    setClients(cl.clients || []); setInvoices(inv.invoices || []); setContracts(con.contracts || []); setStats(dash); setProjects(proj.projects || []);
     setLoading(false);
   }, [userId]);
 
@@ -166,6 +170,7 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
     { id: "clients", label: "Clients" },
     { id: "invoices", label: "Invoices" },
     { id: "contracts", label: "Contracts" },
+    { id: "projects", label: "Projects" },
   ];
 
   return (
@@ -377,6 +382,16 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
                   )}
 
                   <div style={{ fontSize: 10, color: G.textMuted, marginTop: 14, fontStyle: "italic", opacity: 0.7 }}>AI analysis for informational purposes only. Use your own judgment.</div>
+
+                  {/* Company verification */}
+                  {screenResult.company_info && (
+                    <div style={{ marginTop: 10, padding: 12, borderRadius: 12, background: screenResult.company_verified ? `${G.green}06` : `${G.red}06`, border: `0.5px solid ${screenResult.company_verified ? G.green : G.red}15` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                        <span style={{ fontSize: 12, color: screenResult.company_verified ? G.green : G.red }}>{screenResult.company_verified ? "✓ Verified online" : "⚠ Not verified"}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: G.textSec, lineHeight: 1.5 }}>{screenResult.company_info}</div>
+                    </div>
+                  )}
                   <GlassBtn onClick={() => { setScreenResult(null); setScreenText(""); }} color={G.textMuted} style={{ fontSize: 10, marginTop: 8 }}>Clear</GlassBtn>
                 </div>
               )}
@@ -543,7 +558,7 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
               </div>
             ))}
           </div>
-        ) : (
+        ) : tab === "contracts" ? (
           /* ─── CONTRACTS ────────────────────────── */
           <div style={{ maxWidth: 860, margin: "0 auto" }}>
             {contracts.length === 0 ? (
@@ -577,7 +592,128 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
               </div>
             ))}
           </div>
-        )}
+        ) : tab === "projects" ? (
+          /* ─── PROJECTS ─────────────────────────── */
+          <div style={{ maxWidth: 860, margin: "0 auto" }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 24, animation: `crmFadeUp 300ms ${EASE}` }}>
+              <GlassBtn onClick={() => setShowAddProject(!showAddProject)} color={G.green} bg={`${G.green}12`} style={{ border: `0.5px solid ${G.green}25`, padding: "10px 22px", fontSize: 13, fontWeight: 700 }}>
+                {showAddProject ? "Cancel" : "+ New Project"}
+              </GlassBtn>
+              {projects.length > 0 && <span style={{ display: "flex", alignItems: "center", fontSize: 12, color: G.textMuted, fontWeight: 500 }}>{projects.filter(p => p.status === "active").length} active · {projects.length} total</span>}
+            </div>
+
+            {showAddProject && (
+              <div style={{ ...liquidGlass, padding: 24, marginBottom: 20, animation: "crmFadeUp 300ms ease" }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: G.text, letterSpacing: "-0.02em", marginBottom: 16 }}>New Project</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+                  <GlassInput placeholder="Project name *" value={projName} onChange={(e: any) => setProjName(e.target.value)} />
+                  <select className="crm-input" value={projClientId} onChange={e => setProjClientId(e.target.value)} style={{ borderRadius: 16, padding: "10px 14px" }}>
+                    <option value="">Select client...</option>
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}{c.company ? ` (${c.company})` : ""}</option>)}
+                  </select>
+                  <GlassInput placeholder="Value ($)" value={projValue} onChange={(e: any) => setProjValue(e.target.value)} type="number" />
+                  <GlassInput placeholder="Due date" value={projDue} onChange={(e: any) => setProjDue(e.target.value)} type="date" />
+                </div>
+                <textarea className="crm-input" placeholder="Description / scope" value={projDesc} onChange={e => setProjDesc(e.target.value)} style={{ minHeight: 60, resize: "vertical", marginBottom: 14, borderRadius: 16 }} />
+                <GlassBtn onClick={async () => {
+                  if (!projName.trim()) return;
+                  await api("projects-create", {
+                    name: projName, description: projDesc, clientId: projClientId || null,
+                    totalValueCents: Math.round(parseFloat(projValue || "0") * 100),
+                    dueDate: projDue || null,
+                    milestones: [{ name: "Discovery / kickoff", done: false }, { name: "First draft", done: false }, { name: "Revisions", done: false }, { name: "Final delivery", done: false }],
+                  });
+                  setProjName(""); setProjDesc(""); setProjClientId(""); setProjValue(""); setProjDue(""); setShowAddProject(false); loadAll();
+                }} color={G.green} bg={`${G.green}12`} style={{ border: `0.5px solid ${G.green}25` }}>Create Project</GlassBtn>
+              </div>
+            )}
+
+            {projects.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 80, animation: `crmFadeUp 400ms ${EASE}` }}>
+                <div style={{ fontSize: 32, marginBottom: 12, opacity: 0.15 }}>▣</div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: G.text, letterSpacing: "-0.02em", marginBottom: 6 }}>No projects yet</div>
+                <div style={{ fontSize: 13, color: G.textMuted, maxWidth: 300, margin: "0 auto", lineHeight: 1.5 }}>Create a project when you start work for a client. Track progress, milestones, and deadlines in one place.</div>
+              </div>
+            ) : projects.sort((a: any, b: any) => {
+              const order: Record<string, number> = { active: 0, paused: 1, completed: 2, cancelled: 3 };
+              return (order[a.status] || 9) - (order[b.status] || 9);
+            }).map((proj: any, i: number) => {
+              const daysLeft = proj.due_date ? Math.ceil((new Date(proj.due_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+              const isOverdue = daysLeft !== null && daysLeft < 0 && proj.status === "active";
+              const isDueSoon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 3 && proj.status === "active";
+              const clientName = clients.find(c => c.id === proj.client_id)?.name || "";
+              const milestones = proj.milestones || [];
+              const completedMilestones = milestones.filter((m: any) => m.done).length;
+
+              return (
+                <div key={proj.id} style={{ ...liquidGlass, padding: "20px 22px", marginBottom: 10, animation: `crmFadeUp 350ms ${EASE} ${i * 40}ms both`, borderLeft: `3px solid ${proj.status === "completed" ? G.green : isOverdue ? G.red : isDueSoon ? G.amber : G.accent}` }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: G.text, letterSpacing: "-0.02em" }}>{proj.name}</div>
+                      <div style={{ fontSize: 12, color: G.textMuted, marginTop: 3 }}>
+                        {clientName && `${clientName} · `}
+                        {proj.total_value_cents > 0 && `${fmt(proj.total_value_cents)} · `}
+                        <span style={{ textTransform: "capitalize" }}>{proj.status}</span>
+                        {daysLeft !== null && proj.status === "active" && (
+                          <span style={{ color: isOverdue ? G.red : isDueSoon ? G.amber : G.textMuted }}>
+                            {isOverdue ? ` · ${Math.abs(daysLeft)} days overdue` : ` · ${daysLeft} days left`}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: proj.progress_percent >= 100 ? G.green : G.text, letterSpacing: "-0.02em" }}>{proj.progress_percent || 0}%</div>
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div style={{ height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", marginBottom: 14, overflow: "hidden" }}>
+                    <div style={{ height: "100%", borderRadius: 3, width: `${proj.progress_percent || 0}%`, background: proj.progress_percent >= 100 ? G.green : isOverdue ? G.red : G.accent, transition: "width 0.3s ease" }} />
+                  </div>
+
+                  {/* Milestones */}
+                  {milestones.length > 0 && (
+                    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14 }}>
+                      {milestones.map((m: any, mi: number) => (
+                        <button key={mi} onClick={async () => {
+                          const updated = [...milestones];
+                          updated[mi] = { ...updated[mi], done: !updated[mi].done };
+                          const progress = Math.round((updated.filter((x: any) => x.done).length / updated.length) * 100);
+                          await api("projects-update", { projectId: proj.id, milestones: updated, progressPercent: progress, ...(progress >= 100 ? { status: "completed", completedAt: new Date().toISOString() } : {}) });
+                          loadAll();
+                        }} style={{ padding: "4px 12px", borderRadius: 999, background: m.done ? `${G.green}12` : "rgba(255,255,255,0.03)", border: `0.5px solid ${m.done ? G.green : G.glassBorder}`, fontSize: 11, color: m.done ? G.green : G.textMuted, cursor: "pointer", textDecoration: m.done ? "line-through" : "none", transition: "all 0.2s" }}>
+                          {m.done ? "✓ " : ""}{m.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {proj.status === "active" && (
+                      <>
+                        <GlassBtn onClick={async () => {
+                          const newProgress = Math.min(100, (proj.progress_percent || 0) + 25);
+                          await api("projects-update", { projectId: proj.id, progressPercent: newProgress, ...(newProgress >= 100 ? { status: "completed", completedAt: new Date().toISOString() } : {}) });
+                          loadAll();
+                        }} color={G.accent} bg={`${G.accent}08`} style={{ border: `0.5px solid ${G.accent}25`, fontSize: 11 }}>+25%</GlassBtn>
+                        <GlassBtn onClick={async () => { await api("projects-update", { projectId: proj.id, status: "completed", progressPercent: 100, completedAt: new Date().toISOString() }); loadAll(); }} color={G.green} bg={`${G.green}08`} style={{ border: `0.5px solid ${G.green}25`, fontSize: 11 }}>Complete</GlassBtn>
+                        <GlassBtn onClick={async () => { await api("projects-update", { projectId: proj.id, status: "paused" }); loadAll(); }} color={G.amber} style={{ fontSize: 11 }}>Pause</GlassBtn>
+                      </>
+                    )}
+                    {proj.status === "paused" && (
+                      <GlassBtn onClick={async () => { await api("projects-update", { projectId: proj.id, status: "active" }); loadAll(); }} color={G.accent} bg={`${G.accent}08`} style={{ border: `0.5px solid ${G.accent}25`, fontSize: 11 }}>Resume</GlassBtn>
+                    )}
+                    {proj.status === "completed" && (
+                      <GlassBtn onClick={async () => { setInvClientId(proj.client_id); setShowAddInvoice(true); setTab("invoices"); }} color={G.green} bg={`${G.green}08`} style={{ border: `0.5px solid ${G.green}25`, fontSize: 11 }}>Create Invoice</GlassBtn>
+                    )}
+                    <GlassBtn onClick={async () => { if (confirm("Delete this project?")) { await api("projects-delete", { projectId: proj.id }); loadAll(); } }} color={G.red} style={{ fontSize: 11 }}>Delete</GlassBtn>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
     </div>
   );
