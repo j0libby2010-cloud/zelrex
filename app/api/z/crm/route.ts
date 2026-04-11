@@ -24,6 +24,26 @@ function ai() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// RATE LIMITING (in-memory, resets on cold start — fine for v1)
+// ═══════════════════════════════════════════════════════════════
+const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+const AI_ACTIONS = new Set(['invoices-generate', 'contracts-generate', 'followups-generate', 'screen-client', 'outcome-check']);
+function checkRateLimit(userId: string, action: string): boolean {
+  const isAI = AI_ACTIONS.has(action);
+  const windowMs = isAI ? 60_000 : 10_000; // AI: 60s window, CRUD: 10s window
+  const maxReqs = isAI ? 5 : 30; // AI: 5/min, CRUD: 30/10s
+  const key = `${userId}:${isAI ? 'ai' : 'crud'}`;
+  const now = Date.now();
+  const bucket = rateBuckets.get(key);
+  if (!bucket || now > bucket.resetAt) {
+    rateBuckets.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  bucket.count++;
+  return bucket.count <= maxReqs;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // POST /api/z/crm
 // ═══════════════════════════════════════════════════════════════
 
@@ -33,6 +53,12 @@ export async function POST(req: Request) {
     const { action, userId } = body;
     const supabase = db();
     if (!userId || !supabase) return NextResponse.json({ error: 'Missing userId or DB' }, { status: 400 });
+
+    // Rate limit check
+    if (!checkRateLimit(userId, action)) {
+      console.warn(`[CRM] Rate limited: user=${userId} action=${action}`);
+      return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+    }
 
     switch (action) {
       // ─── Clients ───
@@ -48,6 +74,8 @@ export async function POST(req: Request) {
       case 'invoices-update': return invoicesUpdate(supabase, body);
       case 'invoices-send': return invoicesSend(supabase, body);
       case 'invoices-generate': return invoicesGenerate(supabase, userId, body);
+      case 'invoices-create-recurring': return invoicesCreateRecurring(supabase, userId, body);
+      case 'invoices-process-recurring': return invoicesProcessRecurring(supabase, userId);
 
       // ─── Contracts ───
       case 'contracts-list': return contractsList(supabase, userId, body);
@@ -69,13 +97,19 @@ export async function POST(req: Request) {
 
       // ─── Dashboard / Stats ───
       case 'dashboard': return dashboard(supabase, userId);
+      case 'revenue-trend': return revenueTrend(supabase, userId, body);
       case 'screen-client': return screenClient(supabase, userId, body);
       case 'auto-mark-overdue': return handleAutoMarkOverdue(supabase, userId);
+
+      // ─── Outcome Tracking (30/60/90 day check-ins) ───
+      case 'outcome-create': return outcomeCreate(supabase, userId, body);
+      case 'outcome-list': return outcomeList(supabase, userId);
+      case 'outcome-check': return outcomeCheck(supabase, userId, body);
 
       default: return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (e: any) {
-    console.error('[CRM] Error:', e?.message);
+    console.error('[CRM] Error:', e?.message, e?.stack?.slice(0, 300));
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
@@ -188,6 +222,17 @@ async function invoicesUpdate(supabase: SupabaseClient, body: any) {
   if (notes !== undefined) updates.notes = notes;
   const { error } = await supabase.from('crm_invoices').update(updates).eq('id', invoiceId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Track invoice paid event for data collection
+  if (status === 'paid') {
+    const { data: inv } = await supabase.from('crm_invoices').select('user_id, amount_cents, client_id').eq('id', invoiceId).single();
+    if (inv) {
+      collectDataPoint(supabase, inv.user_id, 'invoice_paid', null, {
+        amount_cents: inv.amount_cents,
+        client_id: inv.client_id,
+      }).then(() => maybeAggregate(supabase, null)).catch(() => {});
+    }
+  }
   return NextResponse.json({ ok: true });
 }
 
@@ -455,6 +500,32 @@ async function dashboard(supabase: SupabaseClient, userId: string) {
     estimatedMRR,
     activeProjects: activeProjectsR.count || 0,
     recentPaidInvoices: recentPaidInvoicesR.count || 0,
+
+    // Revenue milestone tracking
+    revenueMilestones: (() => {
+      const thresholds = [
+        { amount: 100_00, label: '$100' },
+        { amount: 500_00, label: '$500' },
+        { amount: 1_000_00, label: '$1,000' },
+        { amount: 5_000_00, label: '$5,000' },
+        { amount: 10_000_00, label: '$10,000' },
+        { amount: 25_000_00, label: '$25,000' },
+        { amount: 50_000_00, label: '$50,000' },
+        { amount: 100_000_00, label: '$100,000' },
+      ];
+      const reached = thresholds.filter(t => totalRevenue >= t.amount).map(t => t.label);
+      const next = thresholds.find(t => totalRevenue < t.amount);
+      return {
+        reached,
+        next: next ? { label: next.label, progress: Math.round((totalRevenue / next.amount) * 100) } : null,
+      };
+    })(),
+
+    // Client lifetime value (average revenue per client)
+    avgClientValue: (clientsR.count || 0) > 0 ? Math.round(totalRevenue / (clientsR.count || 1)) : 0,
+
+    // Pricing benchmark alert (avg invoice size)
+    avgInvoiceSize: paidInvoices.length > 0 ? Math.round(totalRevenue / paidInvoices.length) : 0,
   });
 }
 
@@ -624,4 +695,377 @@ async function handleProjectsDelete(supabase: SupabaseClient, body: any) {
 
   const { error } = await supabase.from('crm_projects').delete().eq('id', projectId);
   return NextResponse.json({ ok: !error, error: error?.message });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REVENUE TREND CHART (monthly breakdown, last 12 months)
+// ═══════════════════════════════════════════════════════════════
+
+async function revenueTrend(supabase: SupabaseClient, userId: string, body: any) {
+  const months = body.months || 12;
+  const now = new Date();
+
+  // Get all paid invoices in the date range
+  const startDate = new Date(now);
+  startDate.setMonth(startDate.getMonth() - months);
+
+  const { data: invoices, error } = await supabase
+    .from('crm_invoices')
+    .select('amount_cents, paid_date, client_id')
+    .eq('user_id', userId)
+    .eq('status', 'paid')
+    .gte('paid_date', startDate.toISOString().slice(0, 10))
+    .order('paid_date', { ascending: true });
+
+  if (error) {
+    console.error('[CRM] Revenue trend error:', error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Group by month
+  const monthlyMap = new Map<string, { revenue: number; invoiceCount: number; uniqueClients: Set<string> }>();
+
+  // Initialize all months (even empty ones)
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now);
+    d.setMonth(d.getMonth() - i);
+    const key = d.toISOString().slice(0, 7); // YYYY-MM
+    monthlyMap.set(key, { revenue: 0, invoiceCount: 0, uniqueClients: new Set() });
+  }
+
+  for (const inv of invoices || []) {
+    if (!inv.paid_date) continue;
+    const key = inv.paid_date.slice(0, 7);
+    const bucket = monthlyMap.get(key);
+    if (bucket) {
+      bucket.revenue += inv.amount_cents || 0;
+      bucket.invoiceCount++;
+      if (inv.client_id) bucket.uniqueClients.add(inv.client_id);
+    }
+  }
+
+  const trend = Array.from(monthlyMap.entries()).map(([month, data]) => ({
+    month,
+    label: new Date(month + '-01').toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+    revenue: data.revenue,
+    invoiceCount: data.invoiceCount,
+    uniqueClients: data.uniqueClients.size,
+  }));
+
+  // Calculate growth rate
+  const currentMonth = trend[trend.length - 1];
+  const prevMonth = trend[trend.length - 2];
+  const growthRate = prevMonth && prevMonth.revenue > 0
+    ? Math.round(((currentMonth.revenue - prevMonth.revenue) / prevMonth.revenue) * 100)
+    : null;
+
+  // Average monthly revenue
+  const totalRev = trend.reduce((s, t) => s + t.revenue, 0);
+  const avgMonthly = Math.round(totalRev / months);
+
+  // Best month
+  const bestMonth = trend.reduce((best, t) => t.revenue > best.revenue ? t : best, trend[0]);
+
+  // Revenue milestones
+  const milestones = [];
+  const totalEver = totalRev; // Could query all-time, but this is close enough for v1
+  if (totalEver >= 100_00) milestones.push({ amount: '$100', reached: true });
+  if (totalEver >= 500_00) milestones.push({ amount: '$500', reached: true });
+  if (totalEver >= 1_000_00) milestones.push({ amount: '$1,000', reached: true });
+  if (totalEver >= 5_000_00) milestones.push({ amount: '$5,000', reached: true });
+  if (totalEver >= 10_000_00) milestones.push({ amount: '$10,000', reached: true });
+  if (totalEver >= 25_000_00) milestones.push({ amount: '$25,000', reached: true });
+  if (totalEver >= 50_000_00) milestones.push({ amount: '$50,000', reached: true });
+  if (totalEver >= 100_000_00) milestones.push({ amount: '$100,000', reached: true });
+
+  // Next milestone
+  const thresholds = [100_00, 500_00, 1_000_00, 5_000_00, 10_000_00, 25_000_00, 50_000_00, 100_000_00];
+  const nextThreshold = thresholds.find(t => totalEver < t);
+  const nextMilestone = nextThreshold ? `$${(nextThreshold / 100).toLocaleString()}` : null;
+  const progressToNext = nextThreshold ? Math.round((totalEver / nextThreshold) * 100) : 100;
+
+  return NextResponse.json({
+    trend,
+    summary: {
+      totalRevenue: totalRev,
+      avgMonthly,
+      growthRate,
+      bestMonth: bestMonth ? { month: bestMonth.label, revenue: bestMonth.revenue } : null,
+      currentMonth: currentMonth.revenue,
+      milestones,
+      nextMilestone,
+      progressToNext,
+    },
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RECURRING INVOICE AUTOMATION
+// ═══════════════════════════════════════════════════════════════
+
+async function invoicesCreateRecurring(supabase: SupabaseClient, userId: string, body: any) {
+  const { clientId, items, frequency, startDate, notes, currency } = body;
+  if (!clientId || !items?.length || !frequency) {
+    return NextResponse.json({ error: 'Client, items, and frequency required' }, { status: 400 });
+  }
+
+  if (!['weekly', 'biweekly', 'monthly', 'quarterly'].includes(frequency)) {
+    return NextResponse.json({ error: 'Frequency must be weekly, biweekly, monthly, or quarterly' }, { status: 400 });
+  }
+
+  const totalCents = items.reduce((s: number, i: any) => s + (i.amount_cents || i.qty * i.rate_cents || 0), 0);
+
+  const { data, error } = await supabase.from('crm_recurring_invoices').insert({
+    user_id: userId,
+    client_id: clientId,
+    items,
+    amount_cents: totalCents,
+    frequency,
+    next_date: startDate || new Date().toISOString().slice(0, 10),
+    notes: notes || '',
+    currency: currency || 'USD',
+    active: true,
+  }).select().single();
+
+  if (error) {
+    console.error('[CRM] Recurring invoice create error:', error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  collectDataPoint(supabase, userId, 'recurring_invoice_created', null, {
+    frequency, amount_cents: totalCents,
+  }).catch(() => {});
+
+  return NextResponse.json({ recurring: data });
+}
+
+async function invoicesProcessRecurring(supabase: SupabaseClient, userId: string) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Find all active recurring invoices that are due today or earlier
+  const { data: due, error } = await supabase
+    .from('crm_recurring_invoices')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('active', true)
+    .lte('next_date', today);
+
+  if (error) {
+    console.error('[CRM] Process recurring error:', error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (!due?.length) return NextResponse.json({ created: 0, message: 'No recurring invoices due' });
+
+  const created: any[] = [];
+
+  for (const rec of due) {
+    // Create the invoice
+    const { count } = await supabase.from('crm_invoices').select('id', { count: 'exact', head: true }).eq('user_id', userId);
+    const num = (count || 0) + 1;
+    const invoiceNumber = `INV-${String(num).padStart(3, '0')}`;
+
+    // Calculate due date (14 days from creation)
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 14);
+
+    const { data: invoice } = await supabase.from('crm_invoices').insert({
+      user_id: userId,
+      client_id: rec.client_id,
+      invoice_number: invoiceNumber,
+      amount_cents: rec.amount_cents,
+      items: rec.items,
+      due_date: dueDate.toISOString().slice(0, 10),
+      notes: `${rec.notes || ''}\n[Auto-generated from recurring invoice]`.trim(),
+      currency: rec.currency || 'USD',
+    }).select().single();
+
+    if (invoice) created.push(invoice);
+
+    // Calculate next date
+    const nextDate = new Date(rec.next_date);
+    switch (rec.frequency) {
+      case 'weekly': nextDate.setDate(nextDate.getDate() + 7); break;
+      case 'biweekly': nextDate.setDate(nextDate.getDate() + 14); break;
+      case 'monthly': nextDate.setMonth(nextDate.getMonth() + 1); break;
+      case 'quarterly': nextDate.setMonth(nextDate.getMonth() + 3); break;
+    }
+
+    await supabase.from('crm_recurring_invoices').update({
+      next_date: nextDate.toISOString().slice(0, 10),
+      last_generated_at: new Date().toISOString(),
+    }).eq('id', rec.id);
+  }
+
+  return NextResponse.json({ created: created.length, invoices: created });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OUTCOME TRACKING (30/60/90 DAY CHECK-INS)
+// ═══════════════════════════════════════════════════════════════
+
+async function outcomeCreate(supabase: SupabaseClient, userId: string, body: any) {
+  const { clientId, projectId, goalDescription, targetDate, targetRevenue, checkpoints } = body;
+  if (!goalDescription) return NextResponse.json({ error: 'Goal description required' }, { status: 400 });
+
+  // Default checkpoints at 30, 60, 90 days
+  const startDate = new Date();
+  const defaultCheckpoints = [30, 60, 90].map(days => {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + days);
+    return {
+      day: days,
+      date: d.toISOString().slice(0, 10),
+      status: 'pending',
+      notes: '',
+      metrics: {},
+    };
+  });
+
+  const { data, error } = await supabase.from('crm_outcomes').insert({
+    user_id: userId,
+    client_id: clientId || null,
+    project_id: projectId || null,
+    goal_description: goalDescription,
+    target_date: targetDate || null,
+    target_revenue_cents: targetRevenue || null,
+    start_date: startDate.toISOString().slice(0, 10),
+    checkpoints: checkpoints || defaultCheckpoints,
+    status: 'active',
+  }).select().single();
+
+  if (error) {
+    console.error('[CRM] Outcome create error:', error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ outcome: data });
+}
+
+async function outcomeList(supabase: SupabaseClient, userId: string) {
+  const { data, error } = await supabase
+    .from('crm_outcomes')
+    .select('*, crm_clients(name), crm_projects(name)')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) {
+    console.error('[CRM] Outcome list error:', error.message);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Check which outcomes have upcoming checkpoints
+  const today = new Date().toISOString().slice(0, 10);
+  const outcomes = (data || []).map((o: any) => {
+    const checkpoints = o.checkpoints || [];
+    const nextCheckpoint = checkpoints.find((cp: any) => cp.status === 'pending' && cp.date <= today);
+    const upcomingCheckpoint = checkpoints.find((cp: any) => cp.status === 'pending');
+    return {
+      ...o,
+      needsCheckIn: !!nextCheckpoint,
+      nextCheckpoint: nextCheckpoint || upcomingCheckpoint || null,
+    };
+  });
+
+  return NextResponse.json({ outcomes });
+}
+
+async function outcomeCheck(supabase: SupabaseClient, userId: string, body: any) {
+  const anthropic = ai();
+  if (!anthropic) return NextResponse.json({ error: 'AI not configured' }, { status: 500 });
+
+  const { outcomeId, checkpointDay, notes, metricsUpdate } = body;
+  if (!outcomeId || !checkpointDay) return NextResponse.json({ error: 'Missing outcomeId or checkpointDay' }, { status: 400 });
+
+  // Get the outcome
+  const { data: outcome } = await supabase.from('crm_outcomes')
+    .select('*, crm_clients(name, company), crm_projects(name, status, progress_percent)')
+    .eq('id', outcomeId).single();
+
+  if (!outcome) return NextResponse.json({ error: 'Outcome not found' }, { status: 404 });
+
+  // Update the checkpoint
+  const checkpoints = outcome.checkpoints || [];
+  const cpIndex = checkpoints.findIndex((cp: any) => cp.day === checkpointDay);
+  if (cpIndex === -1) return NextResponse.json({ error: 'Checkpoint not found' }, { status: 404 });
+
+  checkpoints[cpIndex] = {
+    ...checkpoints[cpIndex],
+    status: 'completed',
+    notes: notes || '',
+    metrics: metricsUpdate || {},
+    completed_at: new Date().toISOString(),
+  };
+
+  // Get revenue data for context
+  let revContext = '';
+  if (outcome.client_id) {
+    const { data: invoices } = await supabase.from('crm_invoices')
+      .select('amount_cents, status, paid_date')
+      .eq('client_id', outcome.client_id)
+      .gte('created_at', outcome.start_date);
+    const paid = (invoices || []).filter(i => i.status === 'paid');
+    const totalPaid = paid.reduce((s, i) => s + (i.amount_cents || 0), 0);
+    revContext = `Revenue from this client since goal started: $${(totalPaid / 100).toFixed(2)} (${paid.length} paid invoices)`;
+  }
+
+  // AI analysis of progress
+  const res = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514', max_tokens: 500,
+    messages: [{ role: 'user', content: `You are analyzing a freelancer's progress at their ${checkpointDay}-day check-in.
+
+GOAL: ${outcome.goal_description}
+TARGET DATE: ${outcome.target_date || 'No specific deadline'}
+TARGET REVENUE: ${outcome.target_revenue_cents ? `$${(outcome.target_revenue_cents / 100).toFixed(2)}` : 'Not specified'}
+${revContext}
+
+USER'S CHECK-IN NOTES: ${notes || 'No notes provided'}
+
+PREVIOUS CHECKPOINTS:
+${checkpoints.filter((cp: any) => cp.status === 'completed' && cp.day < checkpointDay).map((cp: any) => `Day ${cp.day}: ${cp.notes || 'No notes'}`).join('\n') || 'None yet'}
+
+Analyze their progress and give actionable feedback. Be specific and honest — no vague encouragement.
+
+Respond JSON only, no markdown:
+{
+  "progress_rating": "on_track|behind|ahead|at_risk",
+  "analysis": "2-3 sentence honest assessment",
+  "wins": ["specific win 1", "win 2"],
+  "concerns": ["specific concern if any"],
+  "next_actions": ["concrete action 1", "action 2", "action 3"],
+  "adjusted_confidence": 0-100
+}` }],
+  });
+
+  const text = res.content[0]?.type === 'text' ? res.content[0].text : '{}';
+  let analysis: any = {};
+  try {
+    analysis = JSON.parse(text.replace(/```json|```/g, '').trim());
+    if (analysis.analysis) {
+      analysis.analysis = validateOutput(analysis.analysis, { checkFinancial: false, checkGuarantee: true });
+    }
+  } catch {
+    analysis = {
+      progress_rating: 'unknown',
+      analysis: 'Could not fully analyze progress. Review your goals and update manually.',
+      wins: [], concerns: [], next_actions: ['Review your original goal', 'Update your metrics'],
+      adjusted_confidence: 50,
+    };
+  }
+
+  // Save updated checkpoints
+  await supabase.from('crm_outcomes').update({
+    checkpoints,
+    last_check_in: new Date().toISOString(),
+  }).eq('id', outcomeId);
+
+  // Track data point
+  collectDataPoint(supabase, userId, 'outcome_checkin', null, {
+    day: checkpointDay,
+    rating: analysis.progress_rating,
+    confidence: analysis.adjusted_confidence,
+  }).catch(() => {});
+
+  return NextResponse.json({ analysis, checkpoint: checkpoints[cpIndex] });
 }

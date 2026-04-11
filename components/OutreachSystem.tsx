@@ -34,6 +34,11 @@ interface Stats {
   replied: number;
   archived: number;
   replyRate: number;
+  templateStats?: {
+    currentTone: string;
+    initialEmails: { sent: number; replied: number; replyRate: number };
+    followUps: { sent: number; replied: number; replyRate: number };
+  };
 }
 
 interface Settings {
@@ -107,6 +112,8 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
   const [manualForm, setManualForm] = useState({ name: "", company: "", email: "", platform_url: "", notes: "" });
   const [setupMode, setSetupMode] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [linkedInDm, setLinkedInDm] = useState<any>(null);
+  const [linkedInLoading, setLinkedInLoading] = useState(false);
 
   // Settings form
   const [formTarget, setFormTarget] = useState("");
@@ -221,6 +228,30 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
 
   const copyEmail = (email: Email) => {
     navigator.clipboard.writeText(`Subject: ${email.subject}\n\n${email.body}`);
+  };
+
+  const generateLinkedInDM = async (prospectId: string) => {
+    setLinkedInLoading(true);
+    setLinkedInDm(null);
+    try {
+      const res = await fetch("/api/z/outreach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "generate-linkedin-dm", userId, prospectId }),
+      });
+      const data = await res.json();
+      if (data.linkedinDm) {
+        setLinkedInDm({ ...data.linkedinDm, prospectName: data.prospect?.name, prospectCompany: data.prospect?.company });
+      }
+    } catch (e) {
+      console.error("[Outreach] LinkedIn DM error:", e);
+    } finally {
+      setLinkedInLoading(false);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
   };
 
   const queueProspects = prospects.filter((p) => ["discovered", "queued"].includes(p.status));
@@ -557,6 +588,27 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
         </div>
       )}
 
+      {/* Template performance breakdown */}
+      {stats?.templateStats && (stats.templateStats.initialEmails.sent > 0 || stats.templateStats.followUps.sent > 0) && !setupMode && (
+        <div style={{
+          padding: "8px 28px 10px", display: "flex", gap: 16, alignItems: "center",
+          borderBottom: `0.5px solid ${G.glassBorder}`, fontSize: 11,
+        }}>
+          <span style={{ color: G.textMuted, fontWeight: 500 }}>Performance:</span>
+          <span style={{ color: G.textSec }}>
+            Initial {stats.templateStats.initialEmails.replyRate}% reply rate ({stats.templateStats.initialEmails.replied}/{stats.templateStats.initialEmails.sent})
+          </span>
+          {stats.templateStats.followUps.sent > 0 && (
+            <span style={{ color: G.textSec }}>
+              · Follow-ups {stats.templateStats.followUps.replyRate}% ({stats.templateStats.followUps.replied}/{stats.templateStats.followUps.sent})
+            </span>
+          )}
+          <span style={{ color: G.textMuted }}>
+            · Tone: {stats.templateStats.currentTone}
+          </span>
+        </div>
+      )}
+
       {/* ─── Content ────────────────────────────────── */}
       <div className="or-gs or-content" style={{ flex: 1, overflow: "auto", padding: 28 }}>
         {loading ? (
@@ -818,6 +870,12 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                               padding: "9px 18px", border: `0.5px solid ${G.glassBorder}`,
                               background: G.glass, color: G.red, fontSize: 12, fontWeight: 600,
                             }}><span>Skip</span></button>
+                            <button className="or-btn" onClick={() => generateLinkedInDM(p.id)} style={{
+                              padding: "9px 18px", border: `0.5px solid ${G.glassBorder}`,
+                              background: `linear-gradient(135deg, ${G.purple}20, ${G.purple}06)`,
+                              color: G.purple, fontSize: 12, fontWeight: 700,
+                              boxShadow: `0 0 12px ${G.purple}08`,
+                            }}><span>LinkedIn DM</span></button>
                           </div>
                         </div>
                       )}
@@ -915,6 +973,118 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
           </div>
         )}
       </div>
+
+      {/* LinkedIn DM Modal */}
+      {(linkedInDm || linkedInLoading) && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 10000, padding: 20,
+        }} onClick={() => { setLinkedInDm(null); setLinkedInLoading(false); }}>
+          <div style={{
+            ...liquidGlass,
+            maxWidth: 520, width: "100%", padding: 0, overflow: "hidden",
+            animation: `or-fadeUp 300ms ${EASE}`,
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{
+              padding: "20px 24px", borderBottom: `1px solid ${G.glassBorder}`,
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+            }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: G.text, letterSpacing: "-0.01em" }}>
+                  LinkedIn DM Script
+                </div>
+                {linkedInDm && (
+                  <div style={{ fontSize: 12, color: G.textMuted, marginTop: 2 }}>
+                    {linkedInDm.prospectName} · {linkedInDm.prospectCompany}
+                  </div>
+                )}
+              </div>
+              <button onClick={() => { setLinkedInDm(null); setLinkedInLoading(false); }} style={{
+                background: "none", border: "none", color: G.textMuted, cursor: "pointer",
+                fontSize: 18, padding: "4px 8px",
+              }}>✕</button>
+            </div>
+
+            {linkedInLoading ? (
+              <div style={{ padding: "40px 24px", textAlign: "center", color: G.textSec, fontSize: 13 }}>
+                Generating LinkedIn script...
+              </div>
+            ) : linkedInDm && (
+              <div style={{ padding: "20px 24px 24px" }}>
+                {/* Connection Note */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: G.purple, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    Connection Request Note
+                  </div>
+                  <div style={{
+                    padding: "12px 16px", borderRadius: 10,
+                    background: `linear-gradient(135deg, ${G.purple}10, ${G.purple}04)`,
+                    border: `0.5px solid ${G.purple}20`,
+                    color: G.textSec, fontSize: 13, lineHeight: 1.6,
+                  }}>
+                    {linkedInDm.connection_note}
+                  </div>
+                  <button className="or-btn" onClick={() => copyToClipboard(linkedInDm.connection_note)} style={{
+                    marginTop: 6, padding: "5px 12px", border: `0.5px solid ${G.glassBorder}`,
+                    background: G.glass, color: G.textMuted, fontSize: 11, fontWeight: 600,
+                  }}><span>Copy</span></button>
+                </div>
+
+                {/* Opening DM */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: G.accentSoft, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    Opening DM
+                  </div>
+                  <div style={{
+                    padding: "12px 16px", borderRadius: 10,
+                    background: "rgba(255,255,255,0.02)",
+                    border: `0.5px solid ${G.glassBorder}`,
+                    color: G.textSec, fontSize: 13, lineHeight: 1.7, whiteSpace: "pre-wrap",
+                  }}>
+                    {linkedInDm.opening_dm}
+                  </div>
+                  <button className="or-btn" onClick={() => copyToClipboard(linkedInDm.opening_dm)} style={{
+                    marginTop: 6, padding: "5px 12px", border: `0.5px solid ${G.glassBorder}`,
+                    background: G.glass, color: G.textMuted, fontSize: 11, fontWeight: 600,
+                  }}><span>Copy</span></button>
+                </div>
+
+                {/* Follow-up DM */}
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: G.amber, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    Follow-up DM (5 days later)
+                  </div>
+                  <div style={{
+                    padding: "12px 16px", borderRadius: 10,
+                    background: `linear-gradient(135deg, ${G.amber}08, ${G.amber}02)`,
+                    border: `0.5px solid ${G.amber}15`,
+                    color: G.textSec, fontSize: 13, lineHeight: 1.7, whiteSpace: "pre-wrap",
+                  }}>
+                    {linkedInDm.follow_up_dm}
+                  </div>
+                  <button className="or-btn" onClick={() => copyToClipboard(linkedInDm.follow_up_dm)} style={{
+                    marginTop: 6, padding: "5px 12px", border: `0.5px solid ${G.glassBorder}`,
+                    background: G.glass, color: G.textMuted, fontSize: 11, fontWeight: 600,
+                  }}><span>Copy</span></button>
+                </div>
+
+                {/* Profile tip */}
+                {linkedInDm.profile_tip && (
+                  <div style={{
+                    padding: "10px 14px", borderRadius: 8,
+                    background: "rgba(255,255,255,0.02)", border: `0.5px solid ${G.glassBorder}`,
+                    fontSize: 12, color: G.textMuted, lineHeight: 1.6,
+                  }}>
+                    💡 {linkedInDm.profile_tip}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
+import { collectDataPoint, maybeAggregate } from '@/lib/dataCollector';
 
 let _sb: SupabaseClient | null = null;
 function db(): SupabaseClient | null {
@@ -21,6 +22,26 @@ function ai() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// RATE LIMITING
+// ═══════════════════════════════════════════════════════════════
+const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+const AI_ACTIONS = new Set(['find', 'generate', 'regenerate', 'generate-followup', 'generate-linkedin-dm']);
+function checkRateLimit(userId: string, action: string): boolean {
+  const isAI = AI_ACTIONS.has(action);
+  const windowMs = isAI ? 60_000 : 10_000;
+  const maxReqs = isAI ? 5 : 30;
+  const key = `${userId}:${isAI ? 'ai' : 'crud'}`;
+  const now = Date.now();
+  const bucket = rateBuckets.get(key);
+  if (!bucket || now > bucket.resetAt) {
+    rateBuckets.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  bucket.count++;
+  return bucket.count <= maxReqs;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // POST /api/z/outreach
 //
 // action=setup         → Save outreach settings (target audience, tone, limits)
@@ -33,7 +54,8 @@ function ai() {
 // action=mark-replied  → Mark as replied
 // action=archive       → Archive a prospect
 // action=regenerate    → Regenerate email for a prospect
-// action=stats         → Get outreach stats
+// action=stats         → Get outreach stats (includes per-template response rate)
+// action=generate-linkedin-dm → Generate LinkedIn DM script for a prospect
 // ═══════════════════════════════════════════════════════════════
 
 export async function POST(req: Request) {
@@ -44,6 +66,12 @@ export async function POST(req: Request) {
 
     if (!userId || !supabase) {
       return NextResponse.json({ error: 'Missing userId or DB' }, { status: 400 });
+    }
+
+    // Rate limit check
+    if (!checkRateLimit(userId, action)) {
+      console.warn(`[Outreach] Rate limited: user=${userId} action=${action}`);
+      return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
     }
 
     switch (action) {
@@ -60,10 +88,11 @@ export async function POST(req: Request) {
       case 'regenerate': return handleRegenerate(supabase, userId, body.prospectId);
       case 'stats': return handleStats(supabase, userId);
       case 'generate-followup': return handleFollowUp(supabase, userId, body.prospectId);
+      case 'generate-linkedin-dm': return handleLinkedInDM(supabase, userId, body.prospectId);
       default: return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (e: any) {
-    console.error('[Outreach] Error:', e?.message);
+    console.error('[Outreach] Error:', e?.message, e?.stack?.slice(0, 300));
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
 }
@@ -331,6 +360,14 @@ async function handleMarkSent(supabase: SupabaseClient, emailId: string) {
 
   if (email?.prospect_id) {
     await supabase.from('outreach_prospects').update({ status: 'sent' }).eq('id', email.prospect_id);
+
+    // Track outreach sent for data collection
+    const { data: prospect } = await supabase.from('outreach_prospects').select('user_id').eq('id', email.prospect_id).single();
+    if (prospect?.user_id) {
+      collectDataPoint(supabase, prospect.user_id, 'outreach_sent', null, {
+        prospect_id: email.prospect_id,
+      }).catch(() => {});
+    }
   }
   return NextResponse.json({ ok: true });
 }
@@ -341,6 +378,14 @@ async function handleMarkReplied(supabase: SupabaseClient, emailId: string, pros
   }
   if (prospectId) {
     await supabase.from('outreach_prospects').update({ status: 'replied' }).eq('id', prospectId);
+
+    // Track outreach reply for data collection
+    const { data: prospect } = await supabase.from('outreach_prospects').select('user_id').eq('id', prospectId).single();
+    if (prospect?.user_id) {
+      collectDataPoint(supabase, prospect.user_id, 'outreach_replied', null, {
+        prospect_id: prospectId,
+      }).then(() => maybeAggregate(supabase, null)).catch(() => {});
+    }
   }
   return NextResponse.json({ ok: true });
 }
@@ -387,7 +432,122 @@ async function handleStats(supabase: SupabaseClient, userId: string) {
     replied: totalReplied,
     archived: archived.count || 0,
     replyRate: totalSent > 0 ? Math.round((totalReplied / totalSent) * 100) : 0,
+    // Per-tone response rate tracking
+    templateStats: await getTemplateStats(supabase, userId),
   });
+}
+
+async function getTemplateStats(supabase: SupabaseClient, userId: string) {
+  // Get all emails with their prospect data to calculate per-tone stats
+  const { data: emails } = await supabase.from('outreach_emails')
+    .select('status, follow_up_number')
+    .eq('user_id', userId)
+    .in('status', ['sent', 'replied']);
+
+  const { data: settings } = await supabase.from('outreach_settings')
+    .select('tone')
+    .eq('user_id', userId)
+    .single();
+
+  const currentTone = settings?.tone || 'professional';
+
+  // Count sent/replied for initial emails vs follow-ups
+  const initial = { sent: 0, replied: 0 };
+  const followUp = { sent: 0, replied: 0 };
+
+  for (const e of emails || []) {
+    const isFollowUp = (e.follow_up_number || 1) > 1;
+    const bucket = isFollowUp ? followUp : initial;
+    bucket.sent++;
+    if (e.status === 'replied') bucket.replied++;
+  }
+
+  return {
+    currentTone,
+    initialEmails: {
+      sent: initial.sent,
+      replied: initial.replied,
+      replyRate: initial.sent > 0 ? Math.round((initial.replied / initial.sent) * 100) : 0,
+    },
+    followUps: {
+      sent: followUp.sent,
+      replied: followUp.replied,
+      replyRate: followUp.sent > 0 ? Math.round((followUp.replied / followUp.sent) * 100) : 0,
+    },
+  };
+}
+
+// ─── LinkedIn DM Script Generation ──────────────────────────────
+
+async function handleLinkedInDM(supabase: SupabaseClient, userId: string, prospectId?: string) {
+  const anthropic = ai();
+  if (!anthropic) return NextResponse.json({ error: 'AI not configured' }, { status: 500 });
+  if (!prospectId) return NextResponse.json({ error: 'Missing prospectId' }, { status: 400 });
+
+  const { data: prospect } = await supabase.from('outreach_prospects')
+    .select('*')
+    .eq('id', prospectId)
+    .single();
+
+  if (!prospect) return NextResponse.json({ error: 'Prospect not found' }, { status: 404 });
+
+  const { data: settings } = await supabase.from('outreach_settings').select('tone').eq('user_id', userId).single();
+  const { data: chats } = await supabase.from('chats').select('messages').eq('user_id', userId).order('updated_at', { ascending: false }).limit(1);
+  const chatContext = (chats?.[0]?.messages || [])
+    .filter((m: any) => m.role === 'assistant')
+    .map((m: any) => m.content)
+    .join('\n')
+    .slice(0, 2000);
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 600,
+    messages: [{
+      role: 'user',
+      content: `Write a LinkedIn direct message script for a freelancer reaching out to a prospect. This is NOT an email — it's a DM, so it should feel conversational and brief.
+
+FREELANCER'S BUSINESS:
+${chatContext}
+
+PROSPECT:
+- Name: ${prospect.name}
+- Company: ${prospect.company}
+- Platform URL: ${prospect.platform_url}
+- Why they're a fit: ${prospect.relevance_reason}
+
+TONE: ${settings?.tone || 'professional'}
+
+LINKEDIN DM RULES:
+- Keep it under 80 words (LinkedIn DMs should be SHORT)
+- Open with something specific about their company or recent activity
+- One clear value proposition — what you can do for them
+- Soft CTA — ask a question, don't push a call
+- No attachments, no links in first message
+- Sound like a human, not a sales bot
+- NO fake urgency, NO "I noticed you might need..."
+- End with a simple question they can easily answer
+
+Also write a follow-up DM (sent 5 days later if no reply) — under 40 words, very casual.
+
+Respond JSON only, no markdown:
+{
+  "opening_dm": "...",
+  "follow_up_dm": "...",
+  "connection_note": "Short note to include with connection request (under 30 words)",
+  "profile_tip": "One tip about what to check on their LinkedIn before reaching out"
+}`
+    }],
+  });
+
+  const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
+  try {
+    const cleaned = text.replace(/```json|```/g, '').trim();
+    const result = JSON.parse(cleaned);
+    return NextResponse.json({ linkedinDm: result, prospect });
+  } catch {
+    console.error('[Outreach] LinkedIn DM generation failed for:', prospect.name);
+    return NextResponse.json({ error: 'Failed to generate LinkedIn DM script' }, { status: 500 });
+  }
 }
 
 

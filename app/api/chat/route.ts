@@ -309,10 +309,41 @@ RULES:
   return text;
 }
 
+// ─── Rate Limiting ───────────────────────────────────────────────
+const chatRateBuckets = new Map<string, { count: number; resetAt: number }>();
+function checkChatRateLimit(userId: string): { allowed: boolean; retryAfter?: number } {
+  const windowMs = 60_000; // 1 minute window
+  const maxReqs = 15; // 15 messages per minute
+  const now = Date.now();
+  const bucket = chatRateBuckets.get(userId);
+  if (!bucket || now > bucket.resetAt) {
+    chatRateBuckets.set(userId, { count: 1, resetAt: now + windowMs });
+    return { allowed: true };
+  }
+  bucket.count++;
+  if (bucket.count > maxReqs) {
+    return { allowed: false, retryAfter: Math.ceil((bucket.resetAt - now) / 1000) };
+  }
+  return { allowed: true };
+}
+
 // ─── Main API handler ───────────────────────────────────────────
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+
+    // Rate limit check
+    let userId = body.userId || body.messages?.[0]?.userId;
+    if (userId) {
+      const rl = checkChatRateLimit(userId);
+      if (!rl.allowed) {
+        return new Response(JSON.stringify({
+          reply: "You're sending messages too quickly. Please wait a moment before trying again.",
+          rateLimited: true,
+        }), { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': String(rl.retryAfter || 30) } });
+      }
+    }
+
     const messages = body.messages ?? [];
     const surveyData = body.surveyData;
     const responseStyle: string = body.responseStyle || "direct";
@@ -402,7 +433,7 @@ export async function POST(req: Request) {
     }
 
     // Get or create user progress
-    const userId = body.userId || "anonymous";
+    userId = userId || "anonymous";
     let progress = await getProgress(userId);
 
     // ─── Stripe Connect ──────────────────────────────────────
