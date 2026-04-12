@@ -33,7 +33,9 @@ export type EventType =
   | "revenue_report"
   | "client_acquired"
   | "goal_set"
-  | "goal_achieved";
+  | "goal_achieved"
+  | "outreach_sent"
+  | "outreach_replied";
 
 export type Niche =
   | "video_editing"

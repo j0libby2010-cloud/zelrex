@@ -8,6 +8,7 @@ interface SummaryMeta {
   week_end: string;
   analytics_snapshot: any;
   created_at: string;
+  auto_generated?: boolean;
 }
 
 interface SummaryFull extends SummaryMeta {
@@ -515,8 +516,13 @@ export function WeeklySummaries({
                         border: activeSummary?.id === s.id ? `1px solid ${G.accent}40` : `1px solid ${G.glassBorder}`,
                       }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: G.text }}>
-                            {formatWeek(s.week_start, s.week_end)}
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: G.text }}>
+                              {formatWeek(s.week_start, s.week_end)}
+                            </div>
+                            {(s as any).auto_generated && (
+                              <span style={{ padding: "2px 8px", borderRadius: 999, background: `${G.purple}15`, border: `0.5px solid ${G.purple}25`, fontSize: 9, fontWeight: 600, color: G.purple, letterSpacing: "0.04em" }}>AUTO</span>
+                            )}
                           </div>
                           <div style={{ fontSize: 11, color: G.textMuted }}>
                             {new Date(s.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}

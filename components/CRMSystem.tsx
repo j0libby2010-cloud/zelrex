@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 interface Client { id: string; name: string; email: string; company: string; phone: string; source: string; status: string; value_cents: number; notes: string; tags: string[]; last_contacted_at: string | null; created_at: string; crm_invoices?: any[]; crm_contracts?: any[]; crm_followups?: any[]; }
 interface Invoice { id: string; client_id: string; invoice_number: string; status: string; amount_cents: number; currency: string; due_date: string | null; paid_date: string | null; items: any[]; notes: string; sent_at: string | null; reminder_count: number; created_at: string; crm_clients?: { name: string; email: string; company: string }; }
 interface Contract { id: string; client_id: string; title: string; status: string; type: string; content: string; amount_cents: number; created_at: string; crm_clients?: { name: string; email: string }; }
-interface DashStats { totalClients: number; activeClients: number; totalRevenue: number; totalOutstanding: number; totalPending: number; totalInvoices: number; paidInvoices: number; overdueInvoices: number; activeContracts: number; estimatedMRR: number; }
+interface DashStats { totalClients: number; activeClients: number; totalRevenue: number; totalOutstanding: number; totalPending: number; totalInvoices: number; paidInvoices: number; overdueInvoices: number; activeContracts: number; estimatedMRR: number; activeProjects?: number; recentPaidInvoices?: number; revenueMilestones?: { reached: string[]; next: { label: string; progress: number } | null }; avgClientValue?: number; avgInvoiceSize?: number; }
 
 /* ─── Design Tokens (consistent with Zelrex) ─────── */
 const G = {
@@ -77,6 +77,25 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
   const [viewContract, setViewContract] = useState<Contract | null>(null);
   const [screenHistory, setScreenHistory] = useState<any[]>([]);
 
+  // Revenue trend
+  const [revenueTrend, setRevenueTrend] = useState<any>(null);
+  const [trendLoading, setTrendLoading] = useState(false);
+  // Recurring invoices
+  const [recurringInvoices, setRecurringInvoices] = useState<any[]>([]);
+  const [showAddRecurring, setShowAddRecurring] = useState(false);
+  const [recFreq, setRecFreq] = useState("monthly");
+  const [recClientId, setRecClientId] = useState("");
+  const [recItems, setRecItems] = useState<any[]>([{ description: "", qty: 1, rate_cents: 0 }]);
+  // Outcomes (30/60/90 day)
+  const [outcomes, setOutcomes] = useState<any[]>([]);
+  const [showAddOutcome, setShowAddOutcome] = useState(false);
+  const [outcomeGoal, setOutcomeGoal] = useState("");
+  const [outcomeClientId, setOutcomeClientId] = useState("");
+  const [outcomeTarget, setOutcomeTarget] = useState("");
+  const [checkingIn, setCheckingIn] = useState<string | null>(null);
+  const [checkInNotes, setCheckInNotes] = useState("");
+  const [checkInResult, setCheckInResult] = useState<any>(null);
+
   // Forms
   const [formName, setFormName] = useState(""); const [formEmail, setFormEmail] = useState(""); const [formCompany, setFormCompany] = useState(""); const [formPhone, setFormPhone] = useState(""); const [formNotes, setFormNotes] = useState(""); const [formSource, setFormSource] = useState("manual");
   const [invItems, setInvItems] = useState<any[]>([{ description: "", qty: 1, rate_cents: 0 }]); const [invDue, setInvDue] = useState(""); const [invClientId, setInvClientId] = useState("");
@@ -92,8 +111,19 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
 
   const loadAll = useCallback(async () => {
     setLoading(true);
-    const [cl, inv, con, dash, proj] = await Promise.all([api("clients-list"), api("invoices-list"), api("contracts-list"), api("dashboard"), api("projects-list")]);
+    const [cl, inv, con, dash, proj, trend, outcomeRes] = await Promise.all([
+      api("clients-list"), api("invoices-list"), api("contracts-list"),
+      api("dashboard"), api("projects-list"),
+      api("revenue-trend", { months: 12 }).catch(() => null),
+      api("outcome-list").catch(() => ({ outcomes: [] })),
+    ]);
     setClients(cl.clients || []); setInvoices(inv.invoices || []); setContracts(con.contracts || []); setStats(dash); setProjects(proj.projects || []);
+    if (trend && !trend.error) setRevenueTrend(trend);
+    setOutcomes(outcomeRes.outcomes || []);
+    // Process any due recurring invoices
+    api("invoices-process-recurring").catch(() => {});
+    // Auto-mark overdue
+    api("auto-mark-overdue").catch(() => {});
     setLoading(false);
   }, [userId]);
 
@@ -322,6 +352,200 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Revenue Trend Chart */}
+            {revenueTrend?.trend?.length > 0 && (
+              <div style={{ ...liquidGlass, padding: 24, marginBottom: 28, animation: `crmFadeUp 400ms ${EASE} 380ms both` }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: G.text, letterSpacing: "-0.02em" }}>Revenue trend</div>
+                    <div style={{ fontSize: 11, color: G.textMuted, marginTop: 2 }}>
+                      {revenueTrend.summary?.growthRate !== null && revenueTrend.summary?.growthRate !== undefined && (
+                        <span style={{ color: revenueTrend.summary.growthRate >= 0 ? G.green : G.red, fontWeight: 600 }}>
+                          {revenueTrend.summary.growthRate >= 0 ? "+" : ""}{revenueTrend.summary.growthRate}% vs last month
+                        </span>
+                      )}
+                      {revenueTrend.summary?.avgMonthly > 0 && <span> · Avg {fmtShort(revenueTrend.summary.avgMonthly)}/mo</span>}
+                    </div>
+                  </div>
+                  {revenueTrend.summary?.bestMonth && (
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 10, color: G.textMuted, textTransform: "uppercase", letterSpacing: "0.06em" }}>Best month</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: G.green }}>{revenueTrend.summary.bestMonth.month} · {fmtShort(revenueTrend.summary.bestMonth.revenue)}</div>
+                    </div>
+                  )}
+                </div>
+                {/* Bar chart */}
+                <div style={{ display: "flex", alignItems: "flex-end", gap: 4, height: 120, marginBottom: 12 }}>
+                  {revenueTrend.trend.map((t: any, i: number) => {
+                    const maxRev = Math.max(...revenueTrend.trend.map((x: any) => x.revenue), 1);
+                    const h = Math.max(2, (t.revenue / maxRev) * 100);
+                    const isLast = i === revenueTrend.trend.length - 1;
+                    return (
+                      <div key={t.month} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                        <div style={{ fontSize: 9, color: G.textMuted, fontWeight: 500 }}>{t.revenue > 0 ? fmtShort(t.revenue) : ""}</div>
+                        <div style={{ width: "100%", height: h, borderRadius: 4, background: isLast ? `linear-gradient(180deg, ${G.green}, ${G.green}66)` : `linear-gradient(180deg, ${G.accent}88, ${G.accent}33)`, transition: `height 800ms ${EASE}`, boxShadow: isLast ? `0 0 12px ${G.green}30` : "none" }} />
+                        <div style={{ fontSize: 8, color: G.textMuted, fontWeight: 500 }}>{t.label}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Next milestone */}
+                {stats?.revenueMilestones?.next && (
+                  <div style={{ padding: "10px 14px", borderRadius: 12, background: `${G.accent}06`, border: `0.5px solid ${G.accent}12`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ fontSize: 12, color: G.textSec }}>Next milestone: <span style={{ fontWeight: 700, color: G.accent }}>{stats.revenueMilestones.next.label}</span></div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 80, height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                        <div style={{ height: "100%", borderRadius: 2, width: `${stats.revenueMilestones.next.progress}%`, background: G.accent, transition: `width 800ms ${EASE}` }} />
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: G.accent }}>{stats.revenueMilestones.next.progress}%</span>
+                    </div>
+                  </div>
+                )}
+                {(stats?.revenueMilestones?.reached?.length ?? 0) > 0 && (
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+                    {stats?.revenueMilestones?.reached?.map((m: string) => (
+                      <span key={m} style={{ padding: "3px 10px", borderRadius: 999, background: `${G.green}10`, border: `0.5px solid ${G.green}20`, fontSize: 10, fontWeight: 600, color: G.green }}>✓ {m}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Outcomes (30/60/90 Day Tracking) */}
+            <div style={{ ...liquidGlass, padding: 24, marginBottom: 28, animation: `crmFadeUp 400ms ${EASE} 420ms both` }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: G.text, letterSpacing: "-0.02em" }}>Goal tracking</div>
+                <GlassBtn onClick={() => setShowAddOutcome(!showAddOutcome)} color={G.accent} style={{ fontSize: 11 }}>{showAddOutcome ? "Cancel" : "+ New goal"}</GlassBtn>
+              </div>
+
+              {showAddOutcome && (
+                <div style={{ ...liquidGlass, padding: 18, marginBottom: 16, borderRadius: 16 }}>
+                  <GlassInput value={outcomeGoal} onChange={(e: any) => setOutcomeGoal(e.target.value)} placeholder="Goal: e.g., Land 3 new clients at $2k+ each" style={{ marginBottom: 10 }} />
+                  <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+                    <select className="crm-input" value={outcomeClientId} onChange={(e: any) => setOutcomeClientId(e.target.value)} style={{ flex: 1 }}>
+                      <option value="">Link to client (optional)</option>
+                      {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    <GlassInput value={outcomeTarget} onChange={(e: any) => setOutcomeTarget(e.target.value)} placeholder="Revenue target ($)" style={{ flex: 1 }} />
+                  </div>
+                  <GlassBtn onClick={async () => {
+                    if (!outcomeGoal.trim()) return;
+                    await api("outcome-create", { goalDescription: outcomeGoal, clientId: outcomeClientId || undefined, targetRevenue: outcomeTarget ? Math.round(parseFloat(outcomeTarget) * 100) : undefined });
+                    setOutcomeGoal(""); setOutcomeClientId(""); setOutcomeTarget(""); setShowAddOutcome(false); loadAll();
+                  }} color={G.green} bg={`${G.green}12`} style={{ border: `0.5px solid ${G.green}25` }}>Create goal with 30/60/90 day check-ins</GlassBtn>
+                </div>
+              )}
+
+              {outcomes.length === 0 && !showAddOutcome ? (
+                <div style={{ textAlign: "center", padding: 32, color: G.textMuted, fontSize: 13 }}>No goals yet. Create one to track your progress with AI-powered check-ins at 30, 60, and 90 days.</div>
+              ) : outcomes.map((o: any, i: number) => {
+                const checkpoints = o.checkpoints || [];
+                const completed = checkpoints.filter((cp: any) => cp.status === "completed").length;
+                const needsCheckIn = o.needsCheckIn;
+                return (
+                  <div key={o.id} style={{ ...liquidGlass, padding: 18, marginBottom: 10, borderRadius: 16, borderLeft: `3px solid ${needsCheckIn ? G.amber : o.status === "completed" ? G.green : G.accent}`, animation: `crmFadeUp 300ms ${EASE} ${i * 40}ms both` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: G.text, letterSpacing: "-0.02em" }}>{o.goal_description}</div>
+                        <div style={{ fontSize: 11, color: G.textMuted, marginTop: 3 }}>
+                          {o.crm_clients?.name ? `${o.crm_clients.name} · ` : ""}
+                          Started {new Date(o.start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          {o.target_revenue_cents ? ` · Target ${fmt(o.target_revenue_cents)}` : ""}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: needsCheckIn ? G.amber : G.textMuted }}>{needsCheckIn ? "CHECK-IN DUE" : `${completed}/${checkpoints.length} done`}</span>
+                    </div>
+                    {/* Checkpoint dots */}
+                    <div style={{ display: "flex", gap: 8, marginBottom: needsCheckIn ? 12 : 0 }}>
+                      {checkpoints.map((cp: any, ci: number) => (
+                        <div key={ci} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: 999, background: cp.status === "completed" ? G.green : cp.status === "pending" && cp.date <= new Date().toISOString().slice(0, 10) ? G.amber : "rgba(255,255,255,0.1)", boxShadow: cp.status === "completed" ? `0 0 6px ${G.green}50` : "none" }} />
+                          <span style={{ fontSize: 10, color: cp.status === "completed" ? G.green : G.textMuted }}>Day {cp.day}</span>
+                          {ci < checkpoints.length - 1 && <div style={{ width: 16, height: 1, background: cp.status === "completed" ? G.green : "rgba(255,255,255,0.06)" }} />}
+                        </div>
+                      ))}
+                    </div>
+                    {/* Check-in form */}
+                    {needsCheckIn && checkingIn !== o.id && (
+                      <GlassBtn onClick={() => setCheckingIn(o.id)} color={G.amber} bg={`${G.amber}12`} style={{ border: `0.5px solid ${G.amber}25`, fontSize: 11, marginTop: 6 }}>Do check-in (Day {o.nextCheckpoint?.day})</GlassBtn>
+                    )}
+                    {checkingIn === o.id && (
+                      <div style={{ marginTop: 10 }}>
+                        <GlassInput value={checkInNotes} onChange={(e: any) => setCheckInNotes(e.target.value)} placeholder="How's it going? What have you achieved?" style={{ marginBottom: 8 }} />
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <GlassBtn onClick={async () => {
+                            const res = await api("outcome-check", { outcomeId: o.id, checkpointDay: o.nextCheckpoint?.day, notes: checkInNotes });
+                            setCheckInResult(res.analysis); setCheckInNotes(""); setCheckingIn(null); loadAll();
+                          }} color={G.green} bg={`${G.green}12`} style={{ border: `0.5px solid ${G.green}25`, fontSize: 11 }}>Submit check-in</GlassBtn>
+                          <GlassBtn onClick={() => { setCheckingIn(null); setCheckInNotes(""); }} color={G.textMuted} style={{ fontSize: 11 }}>Cancel</GlassBtn>
+                        </div>
+                      </div>
+                    )}
+                    {/* Check-in result */}
+                    {checkInResult && checkingIn === null && (
+                      <div style={{ marginTop: 10, padding: 14, borderRadius: 14, background: "rgba(255,255,255,0.02)", border: `0.5px solid ${G.glassBorder}`, animation: `crmFadeUp 300ms ${EASE}` }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: checkInResult.progress_rating === "on_track" || checkInResult.progress_rating === "ahead" ? G.green : checkInResult.progress_rating === "behind" ? G.amber : G.red, textTransform: "uppercase", letterSpacing: "0.06em" }}>{(checkInResult.progress_rating || "").replace("_", " ")}</span>
+                          {checkInResult.adjusted_confidence && <span style={{ fontSize: 10, color: G.textMuted }}>· {checkInResult.adjusted_confidence}% confidence</span>}
+                        </div>
+                        <div style={{ fontSize: 12, color: G.textSec, lineHeight: 1.7, marginBottom: 8 }}>{checkInResult.analysis}</div>
+                        {checkInResult.next_actions?.length > 0 && (
+                          <div style={{ fontSize: 11, color: G.textMuted }}>
+                            {checkInResult.next_actions.map((a: string, ai: number) => <div key={ai} style={{ padding: "2px 0" }}>→ {a}</div>)}
+                          </div>
+                        )}
+                        <GlassBtn onClick={() => setCheckInResult(null)} color={G.textMuted} style={{ fontSize: 10, marginTop: 6 }}>Dismiss</GlassBtn>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Recurring Invoices */}
+            <div style={{ ...liquidGlass, padding: 24, marginBottom: 28, animation: `crmFadeUp 400ms ${EASE} 460ms both` }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: G.text, letterSpacing: "-0.02em" }}>Recurring invoices</div>
+                  <div style={{ fontSize: 11, color: G.textMuted, marginTop: 2 }}>Auto-generate invoices on a schedule</div>
+                </div>
+                <GlassBtn onClick={() => setShowAddRecurring(!showAddRecurring)} color={G.purple} style={{ fontSize: 11 }}>{showAddRecurring ? "Cancel" : "+ New recurring"}</GlassBtn>
+              </div>
+
+              {showAddRecurring && (
+                <div style={{ ...liquidGlass, padding: 18, marginBottom: 16, borderRadius: 16 }}>
+                  <select className="crm-input" value={recClientId} onChange={(e: any) => setRecClientId(e.target.value)} style={{ marginBottom: 10 }}>
+                    <option value="">Select client *</option>
+                    {clients.filter(c => c.status === "active").map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <div style={{ display: "flex", gap: 10, marginBottom: 10 }}>
+                    <select className="crm-input" value={recFreq} onChange={(e: any) => setRecFreq(e.target.value)} style={{ flex: 1 }}>
+                      <option value="weekly">Weekly</option>
+                      <option value="biweekly">Every 2 weeks</option>
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                    </select>
+                  </div>
+                  {recItems.map((item: any, idx: number) => (
+                    <div key={idx} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                      <GlassInput value={item.description} onChange={(e: any) => { const u = [...recItems]; u[idx].description = e.target.value; setRecItems(u); }} placeholder="Service description" style={{ flex: 2 }} />
+                      <GlassInput type="number" value={item.rate_cents / 100 || ""} onChange={(e: any) => { const u = [...recItems]; u[idx].rate_cents = Math.round(parseFloat(e.target.value || "0") * 100); setRecItems(u); }} placeholder="$" style={{ flex: 1 }} />
+                    </div>
+                  ))}
+                  <GlassBtn onClick={async () => {
+                    if (!recClientId || recItems.every((i: any) => !i.description)) return;
+                    const items = recItems.map((i: any) => ({ ...i, qty: 1, amount_cents: i.rate_cents }));
+                    await api("invoices-create-recurring", { clientId: recClientId, items, frequency: recFreq });
+                    setRecItems([{ description: "", qty: 1, rate_cents: 0 }]); setRecClientId(""); setShowAddRecurring(false); loadAll();
+                  }} color={G.purple} bg={`${G.purple}12`} style={{ border: `0.5px solid ${G.purple}25` }}>Create recurring invoice</GlassBtn>
+                </div>
+              )}
+
+              <div style={{ fontSize: 12, color: G.textMuted, textAlign: "center", padding: 16 }}>
+                Recurring invoices auto-generate when they're due. Check the Invoices tab for generated invoices.
               </div>
             </div>
 

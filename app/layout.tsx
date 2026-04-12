@@ -12,6 +12,15 @@ export const metadata: Metadata = {
       { url: "/favicon.ico", type: "image/x-icon" },
     ],
   },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Zelrex",
+  },
+  other: {
+    "theme-color": "#06090F",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

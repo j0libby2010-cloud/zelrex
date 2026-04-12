@@ -89,6 +89,8 @@ export async function POST(req: Request) {
       case 'stats': return handleStats(supabase, userId);
       case 'generate-followup': return handleFollowUp(supabase, userId, body.prospectId);
       case 'generate-linkedin-dm': return handleLinkedInDM(supabase, userId, body.prospectId);
+      case 'ab-generate': return handleABGenerate(supabase, userId, body.prospectId);
+      case 'ab-results': return handleABResults(supabase, userId);
       default: return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (e: any) {
@@ -635,4 +637,116 @@ JSON only, no markdown:
   }
 
   return NextResponse.json({ emails, followUp: true });
+}
+// ─── A/B Test Email Variants ──────────────────────────────────────
+
+async function handleABGenerate(supabase: SupabaseClient, userId: string, prospectId?: string) {
+  const anthropic = ai();
+  if (!anthropic) return NextResponse.json({ error: 'AI not configured' }, { status: 500 });
+  if (!prospectId) return NextResponse.json({ error: 'Missing prospectId' }, { status: 400 });
+
+  const { data: prospect } = await supabase.from('outreach_prospects').select('*').eq('id', prospectId).single();
+  if (!prospect) return NextResponse.json({ error: 'Prospect not found' }, { status: 404 });
+
+  const { data: settings } = await supabase.from('outreach_settings').select('tone').eq('user_id', userId).single();
+  const { data: chats } = await supabase.from('chats').select('messages').eq('user_id', userId).order('updated_at', { ascending: false }).limit(1);
+  const chatContext = (chats?.[0]?.messages || []).filter((m: any) => m.role === 'assistant').map((m: any) => m.content).join('\n').slice(0, 2000);
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 1200,
+    messages: [{
+      role: 'user',
+      content: `Write TWO completely different cold email variants for A/B testing. Each should take a different angle to reach the same prospect.
+
+FREELANCER'S BUSINESS:
+${chatContext}
+
+PROSPECT:
+- Name: ${prospect.name}
+- Company: ${prospect.company}
+- Why they're a fit: ${prospect.relevance_reason}
+
+VARIANT A: "${settings?.tone || 'professional'}" approach — lead with credibility and results
+VARIANT B: "curiosity" approach — lead with a question or observation about their business
+
+Both must:
+- Be under 120 words each
+- Have different subject lines
+- Reference something specific about the prospect
+- Include opt-out line
+- Sound human, not templated
+
+Respond JSON only, no markdown:
+{
+  "variant_a": { "subject": "...", "body": "...", "approach": "credibility" },
+  "variant_b": { "subject": "...", "body": "...", "approach": "curiosity" }
+}`
+    }],
+  });
+
+  const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
+  try {
+    const cleaned = text.replace(/```json|```/g, '').trim();
+    const result = JSON.parse(cleaned);
+
+    // Save both variants
+    const variants = [];
+    for (const [key, variant] of Object.entries(result) as any[]) {
+      const { data: saved } = await supabase.from('outreach_emails').insert({
+        user_id: userId,
+        prospect_id: prospectId,
+        subject: variant.subject,
+        body: variant.body,
+        email_to: prospect.email || '',
+        status: 'draft',
+        ab_variant: key === 'variant_a' ? 'A' : 'B',
+        ab_approach: variant.approach,
+      }).select().single();
+      if (saved) variants.push({ ...saved, prospect });
+    }
+
+    // Update prospect status
+    await supabase.from('outreach_prospects').update({ status: 'queued' }).eq('id', prospectId);
+
+    return NextResponse.json({ variants, abTest: true });
+  } catch {
+    console.error('[Outreach] A/B generation failed for:', prospect.name);
+    return NextResponse.json({ error: 'Failed to generate A/B variants' }, { status: 500 });
+  }
+}
+
+async function handleABResults(supabase: SupabaseClient, userId: string) {
+  // Get all A/B tested emails with their outcomes
+  const { data: emails } = await supabase.from('outreach_emails')
+    .select('ab_variant, ab_approach, status')
+    .eq('user_id', userId)
+    .not('ab_variant', 'is', null)
+    .in('status', ['sent', 'replied']);
+
+  if (!emails?.length) return NextResponse.json({ results: null, message: 'No A/B test data yet' });
+
+  const stats: Record<string, { sent: number; replied: number; approach: string }> = {};
+  for (const e of emails) {
+    const key = e.ab_variant || 'unknown';
+    if (!stats[key]) stats[key] = { sent: 0, replied: 0, approach: e.ab_approach || '' };
+    stats[key].sent++;
+    if (e.status === 'replied') stats[key].replied++;
+  }
+
+  const results = Object.entries(stats).map(([variant, data]) => ({
+    variant,
+    approach: data.approach,
+    sent: data.sent,
+    replied: data.replied,
+    replyRate: data.sent > 0 ? Math.round((data.replied / data.sent) * 100) : 0,
+  }));
+
+  const winner = results.length >= 2 ? results.sort((a, b) => b.replyRate - a.replyRate)[0] : null;
+
+  return NextResponse.json({
+    results,
+    winner: winner ? { variant: winner.variant, approach: winner.approach, replyRate: winner.replyRate } : null,
+    totalTests: emails.length,
+  });
 }

@@ -7,6 +7,9 @@ const EVENTS: Record<string, string> = {
   pv: 'pageview', cc: 'cta_click', cs: 'checkout_start', sd: 'scroll_depth', tp: 'time_on_page',
 };
 
+// Known bot user-agent patterns
+const BOT_PATTERNS = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|mediapartners|google|baidu|yandex|duckduckbot|pingdom|uptimerobot|headlesschrome|phantomjs|prerender|lighthouse|pagespeed|gtmetrix|semrush|ahrefs|mj12bot|dotbot|bytespider/i;
+
 let _sb: SupabaseClient | null = null;
 function db(): SupabaseClient | null {
   if (_sb) return _sb;
@@ -27,6 +30,10 @@ export async function GET(req: Request) {
 
   if (!userId || !code || !EVENTS[code]) return new NextResponse(PIXEL, { status: 200, headers: ph });
 
+  // Bot filtering — skip tracking for known bots
+  const ua = req.headers.get('user-agent') || '';
+  if (BOT_PATTERNS.test(ua)) return new NextResponse(PIXEL, { status: 200, headers: ph });
+
   const supabase = db();
   if (!supabase) return new NextResponse(PIXEL, { status: 200, headers: ph });
 
@@ -39,10 +46,28 @@ export async function GET(req: Request) {
   const devMap: Record<string, string> = { d: 'desktop', m: 'mobile', t: 'tablet' };
   const country = req.headers.get('x-vercel-ip-country') || 'unknown';
 
+  // UTM parameter extraction
+  const utmSource = url.searchParams.get('utm_source') || '';
+  const utmMedium = url.searchParams.get('utm_medium') || '';
+  const utmCampaign = url.searchParams.get('utm_campaign') || '';
+  const utmTerm = url.searchParams.get('utm_term') || '';
+  const utmContent = url.searchParams.get('utm_content') || '';
+
   let metadata: any = {};
   if (eventType === 'scroll_depth') metadata = { depth: parseInt(extra) || 0 };
   else if (eventType === 'time_on_page') metadata = { seconds: parseInt(extra) || 0 };
   else if (extra) metadata = { detail: extra };
+
+  // Add UTM data to metadata if present
+  if (utmSource || utmMedium || utmCampaign) {
+    metadata.utm = {
+      ...(utmSource && { source: utmSource }),
+      ...(utmMedium && { medium: utmMedium }),
+      ...(utmCampaign && { campaign: utmCampaign }),
+      ...(utmTerm && { term: utmTerm }),
+      ...(utmContent && { content: utmContent }),
+    };
+  }
 
   try {
     const { error } = await supabase.from('site_analytics').insert({
@@ -105,7 +130,25 @@ async function handleDash(url: URL) {
     const byTier = Object.entries(tierMap).map(([tier, d]) => ({ tier, ...d }));
     const dRevMap: Record<string, { amount: number; count: number }> = {}; revData.forEach((r: any) => { const day = r.created_at?.slice(0, 10); if (!day) return; if (!dRevMap[day]) dRevMap[day] = { amount: 0, count: 0 }; dRevMap[day].amount += r.amount_cents || 0; dRevMap[day].count++; });
     const dailyRevenue = Object.entries(dRevMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({ date, ...d }));
-    return NextResponse.json({ timeRange: range, pageviews, uniqueVisitors, ctaClicks, checkoutStarts, conversionRate: pageviews > 0 ? Math.round((ctaClicks / pageviews) * 1000) / 10 : 0, checkoutRate: pageviews > 0 ? Math.round((checkoutStarts / pageviews) * 1000) / 10 : 0, avgTimeOnPage, topPages, topReferrers, deviceBreakdown, dailyData, revenue: { total: revTotal, count: revCount, avgOrder, byTier, dailyRevenue } }, { headers: jh });
+    
+    // UTM source breakdown
+    const utmMap: Record<string, { views: number; clicks: number }> = {};
+    pvData.forEach((r: any) => {
+      const m = typeof r.metadata === 'string' ? (() => { try { return JSON.parse(r.metadata); } catch { return {}; } })() : (r.metadata || {});
+      const src = m?.utm?.source;
+      if (src) {
+        if (!utmMap[src]) utmMap[src] = { views: 0, clicks: 0 };
+        utmMap[src].views++;
+      }
+    });
+    ccData.forEach((r: any) => {
+      const m = typeof r.metadata === 'string' ? (() => { try { return JSON.parse(r.metadata); } catch { return {}; } })() : (r.metadata || {});
+      const src = m?.utm?.source;
+      if (src && utmMap[src]) utmMap[src].clicks++;
+    });
+    const utmBreakdown = Object.entries(utmMap).map(([source, d]) => ({ source, ...d, conversionRate: d.views > 0 ? Math.round((d.clicks / d.views) * 1000) / 10 : 0 })).sort((a, b) => b.views - a.views).slice(0, 10);
+
+    return NextResponse.json({ timeRange: range, pageviews, uniqueVisitors, ctaClicks, checkoutStarts, conversionRate: pageviews > 0 ? Math.round((ctaClicks / pageviews) * 1000) / 10 : 0, checkoutRate: pageviews > 0 ? Math.round((checkoutStarts / pageviews) * 1000) / 10 : 0, avgTimeOnPage, topPages, topReferrers, deviceBreakdown, dailyData, utmBreakdown, revenue: { total: revTotal, count: revCount, avgOrder, byTier, dailyRevenue } }, { headers: jh });
   } catch (e: any) { console.error('[ZPX] DASH ERR:', e?.message); return NextResponse.json({ pageviews: 0 }, { headers: jh }); }
 }
 

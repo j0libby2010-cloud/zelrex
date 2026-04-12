@@ -78,6 +78,7 @@ function detectPhase(msgs: Msg[], hasWebsite?: boolean, hasClients?: boolean, ha
   // Real state takes priority over message patterns
   if (hasDeployed || hasRevenue) return "live";
   if (hasWebsite) return "live";
+  if (hasClients) return "live";
   // Check messages for state indicators
   const allText = msgs.map((m) => m.content.toLowerCase()).join(" ");
   if (msgs.some((m) => m.previewUrl)) return "live";
@@ -86,6 +87,20 @@ function detectPhase(msgs: Msg[], hasWebsite?: boolean, hasClients?: boolean, ha
   if (allText.includes("market evaluation") || allText.includes("weighted score") || allText.includes("validation plan")) return "evaluating";
   if (msgs.length >= 2) return "intake";
   return "ready";
+}
+
+// Persist phase to Supabase so it survives reloads
+async function persistPhase(userId: string, chatId: string, phase: BusinessPhase) {
+  try {
+    const stored = sessionStorage.getItem(`phase_${chatId}`);
+    if (stored === phase) return; // no change
+    sessionStorage.setItem(`phase_${chatId}`, phase);
+    await fetch("/api/user-data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, key: `phase_${chatId}`, value: phase }),
+    }).catch(() => {});
+  } catch {}
 }
 
 function getBusinessName(msgs: Msg[]): string | null {
@@ -401,6 +416,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => { const check = () => setIsMobile(window.innerWidth < 768); check(); window.addEventListener("resize", check); return () => window.removeEventListener("resize", check); }, []);
+
+  // Register PWA service worker
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, []);
 
   // Mobile: prevent zoom on input focus, ensure viewport meta
   useEffect(() => {
@@ -801,16 +823,53 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             const analyticsRes = await fetch("/api/z/px", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dashboard", domain: deployData.url.replace("https://", "").replace("http://", "") }) });
             const analytics = await analyticsRes.json();
             if (analytics.pageviews !== undefined) {
-              const prevKey = "zelrex_prev_traffic";
-              const prev = parseInt(sessionStorage.getItem(prevKey) || "0");
-              sessionStorage.setItem(prevKey, String(analytics.pageviews));
-              if (prev > 10 && analytics.pageviews < prev * 0.5) {
-                const key = "notif_traffic_drop_" + new Date().toISOString().slice(0, 10);
+              // Use localStorage for persistent baseline (survives tab close)
+              const prevKey = "zelrex_traffic_baseline_" + clerkUser.id;
+              const baselineRaw = localStorage.getItem(prevKey);
+              let baseline: { views: number; date: string } | null = null;
+              try { baseline = baselineRaw ? JSON.parse(baselineRaw) : null; } catch {}
+              
+              const today = new Date().toISOString().slice(0, 10);
+              // Only compare if baseline is from a different day (prevents same-session false alarms)
+              if (baseline && baseline.date !== today && baseline.views > 10 && analytics.pageviews < baseline.views * 0.5) {
+                const key = "notif_traffic_drop_" + today;
                 if (!sessionStorage.getItem(key)) {
-                  addNotification(`📉 Your website traffic dropped significantly (${prev} → ${analytics.pageviews} views). Check if something changed.`);
+                  addNotification(`📉 Your website traffic dropped significantly (${baseline.views} → ${analytics.pageviews} views). Check if something changed.`);
                   sessionStorage.setItem(key, "1");
                 }
               }
+              // Always update baseline at end of day
+              if (!baseline || baseline.date !== today) {
+                localStorage.setItem(prevKey, JSON.stringify({ views: analytics.pageviews, date: today }));
+              }
+            }
+          } catch {}
+        }
+
+        // ─── Revenue Change Detection ─────────────────────────
+        if (zelrexSettings.notifRevenueChanges && crm?.totalRevenue !== undefined) {
+          try {
+            const revKey = "zelrex_revenue_baseline_" + clerkUser.id;
+            const revRaw = localStorage.getItem(revKey);
+            let revBaseline: { amount: number; date: string } | null = null;
+            try { revBaseline = revRaw ? JSON.parse(revRaw) : null; } catch {}
+            
+            const today = new Date().toISOString().slice(0, 10);
+            const currentRev = crm.totalRevenue;
+            
+            if (revBaseline && revBaseline.date !== today) {
+              const diff = currentRev - revBaseline.amount;
+              if (diff > 0 && diff >= 1000) { // $10+ new revenue
+                const key = "notif_rev_up_" + today;
+                if (!sessionStorage.getItem(key)) {
+                  addNotification(`💰 Revenue update: You've earned $${(diff / 100).toFixed(2)} since yesterday. Total: $${(currentRev / 100).toFixed(2)}. Keep the momentum going!`);
+                  sessionStorage.setItem(key, "1");
+                }
+              }
+            }
+            // Update baseline daily
+            if (!revBaseline || revBaseline.date !== today) {
+              localStorage.setItem(revKey, JSON.stringify({ amount: currentRev, date: today }));
             }
           } catch {}
         }
@@ -983,6 +1042,67 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               sessionStorage.setItem(key, "1");
             }
           }
+
+          // ─── Client Anniversary Reminders ─────────────────────
+          try {
+            const clientsRes = await fetch("/api/z/crm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "clients-list", userId: clerkUser.id }) });
+            const clientsData = await clientsRes.json();
+            const today = new Date();
+            for (const client of (clientsData.clients || [])) {
+              if (!client.created_at || client.status === "lost") continue;
+              const created = new Date(client.created_at);
+              const monthsSince = (today.getFullYear() - created.getFullYear()) * 12 + (today.getMonth() - created.getMonth());
+              // Check for 3, 6, 12 month anniversaries (within 3 day window)
+              const dayOfMonth = today.getDate();
+              const createdDay = created.getDate();
+              const dayDiff = Math.abs(dayOfMonth - createdDay);
+              if (dayDiff <= 3 && [3, 6, 12].includes(monthsSince)) {
+                const key = `notif_anniversary_${client.id}_${monthsSince}m`;
+                if (!sessionStorage.getItem(key)) {
+                  const period = monthsSince === 12 ? "1 year" : `${monthsSince} months`;
+                  addNotification(`🎂 It's been ${period} since ${client.name} became a client! Send a quick check-in to strengthen the relationship and ask for a referral.`);
+                  sessionStorage.setItem(key, "1");
+                }
+              }
+            }
+          } catch {}
+
+          // ─── Seasonal Opportunity Alerts ────────────────────────
+          try {
+            const month = new Date().getMonth(); // 0-indexed
+            const monthKey = `notif_seasonal_${new Date().toISOString().slice(0, 7)}`;
+            if (!sessionStorage.getItem(monthKey)) {
+              const seasonalTips: Record<number, string> = {
+                0: "🎯 January is when businesses set new budgets. Perfect time to reach out to prospects with fresh proposals for the new year.",
+                1: "💝 Valentine's Day season — businesses in retail, food, and events need extra help. If that's your niche, now's the time to pitch.",
+                2: "📊 Q1 is ending soon. Companies review budgets and often have leftover funds to spend. Great time for project proposals.",
+                3: "🌱 Spring refresh — many businesses update their websites and branding. If you do design or web work, pitch seasonal refreshes.",
+                5: "☀️ Summer slowdowns coming. Lock in contracts NOW before decision-makers go on vacation. Follow up on all open proposals.",
+                7: "📚 Back-to-school season. Education, e-learning, and content businesses ramp up. Great time for content creators and designers.",
+                8: "📈 Q4 planning starts. Businesses are budgeting for the biggest revenue quarter. Get your proposals in early.",
+                9: "🎃 Holiday season prep begins. E-commerce, marketing, and creative freelancers — this is your peak. Raise your rates.",
+                10: "🛒 Black Friday / holiday rush. If you haven't raised your rates for Q4, do it now. Demand is at its highest.",
+                11: "📋 Year-end wrap-up. Send thank-you notes to clients, request testimonials, and plan your Q1 outreach now.",
+              };
+              const tip = seasonalTips[month];
+              if (tip) {
+                addNotification(tip);
+                sessionStorage.setItem(monthKey, "1");
+              }
+            }
+          } catch {}
+
+          // ─── Market Disruption Alerts (from cron) ──────────────
+          try {
+            const alertRes = await fetch("/api/z/crm", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "dashboard", userId: clerkUser.id }),
+            }).catch(() => null);
+            // Also check for stored market alerts
+            // (These are created by the market-alert cron and stored in notifications table)
+            // They'll show up via the normal notification system
+          } catch {}
+
         } catch {}
       } catch (notifError) {
         console.error("[Zelrex Notifications] Check failed:", notifError);
@@ -992,7 +1112,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     const initialCheck = setTimeout(runChecks, 5000);
     const checkInterval = setInterval(runChecks, 120000);
     return () => { clearInterval(checkInterval); clearTimeout(initialCheck); };
-  }, [dataLoaded, clerkUser?.id, addNotification, zelrexSettings.notifOverdueInvoices, zelrexSettings.notifContractReminders, zelrexSettings.notifGoalProgress, zelrexSettings.notifPositiveEncouragement, zelrexSettings.inAppSuggestions, userGoal, chats]);
+  }, [dataLoaded, clerkUser?.id, addNotification, zelrexSettings.notifOverdueInvoices, zelrexSettings.notifContractReminders, zelrexSettings.notifGoalProgress, zelrexSettings.notifPositiveEncouragement, zelrexSettings.inAppSuggestions, zelrexSettings.notifTrafficDrops, zelrexSettings.notifRevenueChanges, userGoal, chats]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const filteredChats = useMemo(() => { const sorted = [...chats].sort((a, b) => b.updatedAt - a.updatedAt); const q = searchQuery.trim().toLowerCase(); if (!q) return sorted; return sorted.filter((c) => c.title?.toLowerCase().includes(q) || c.messages.some((m) => m.content.toLowerCase().includes(q))); }, [chats, searchQuery]);
@@ -1645,7 +1765,23 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const phase = useMemo(() => isSending && buildStage.includes("market") ? "evaluating" as BusinessPhase : isSending && (buildStage.includes("Build") || buildStage.includes("Generat")) ? "building" as BusinessPhase : detectPhase(activeChat?.messages ?? [], !!websiteData, false, false, !!deployData?.url), [activeChat?.messages, isSending, buildStage, websiteData, deployData]);
+  const phase = useMemo(() => {
+    if (isSending && buildStage.includes("market")) return "evaluating" as BusinessPhase;
+    if (isSending && (buildStage.includes("Build") || buildStage.includes("Generat"))) return "building" as BusinessPhase;
+    const detected = detectPhase(activeChat?.messages ?? [], !!websiteData, false, false, !!deployData?.url);
+    // Use stored phase as floor — never regress
+    const chatId = activeChat?.id || "";
+    const stored = sessionStorage.getItem(`phase_${chatId}`) as BusinessPhase | null;
+    const phaseOrder = ["ready", "intake", "evaluating", "building", "live"];
+    const detectedIdx = phaseOrder.indexOf(detected);
+    const storedIdx = stored ? phaseOrder.indexOf(stored) : -1;
+    const best = storedIdx > detectedIdx ? stored! : detected;
+    // Persist the highest phase
+    if (chatId && clerkUser?.id && best !== stored) {
+      sessionStorage.setItem(`phase_${chatId}`, best);
+    }
+    return best;
+  }, [activeChat?.messages, activeChat?.id, isSending, buildStage, websiteData, deployData]);
   const businessName = useMemo(() => getBusinessName(activeChat?.messages ?? []), [activeChat?.messages]);
   const hasMessages = (activeChat?.messages?.length ?? 0) > 0;
 
@@ -1917,7 +2053,54 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       handleVerifyDomain();
       return;
     }
-    // ─── END DEPLOY COMMANDS ────────────────────────────────────────
+
+    // ─── CRM AUTO-EXTRACTION: "yes add them" handler ────────────────
+    if (/^(yes[,.]?\s*(add|create)|add them|yes,?\s*add them|create (the )?(client|invoice)|add .+ (to|as) (crm|client))/i.test(lc)) {
+      const recentMsgs = activeChat.messages.slice(-4);
+      const lastAssistant = recentMsgs.reverse().find(m => m.role === "assistant");
+      if (lastAssistant) {
+        const content = lastAssistant.content;
+        // Extract client name from bold text in the suggestion
+        const nameMatch = content.match(/(?:mentioned|about|for|with|client)\s+\*\*([^*]+)\*\*/i) || content.match(/\*\*([^*]{2,40})\*\*/);
+        // Extract dollar amount
+        const amountMatch = content.match(/\$([0-9,]+(?:\.[0-9]{2})?)/);
+        
+        if (nameMatch) {
+          const clientName = nameMatch[1].trim();
+          const userMsg: Msg = { id: uid("m"), role: "user", content: text, createdAt: Date.now() };
+          setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, messages: [...c.messages, userMsg], updatedAt: Date.now() } : c));
+          setInput("");
+          
+          try {
+            // Create the client
+            const clientRes = await fetch("/api/z/crm", {
+              method: "POST", headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "clients-create", userId: clerkUser?.id, name: clientName, source: "chat" }),
+            });
+            const clientData = await clientRes.json();
+            let reply = `✅ Added **${clientName}** to your Client Manager.`;
+            
+            // If there's an amount, create an invoice too
+            if (amountMatch && clientData.client?.id) {
+              const amountCents = Math.round(parseFloat(amountMatch[1].replace(/,/g, "")) * 100);
+              if (amountCents > 0) {
+                await fetch("/api/z/crm", {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "invoices-create", userId: clerkUser?.id, clientId: clientData.client.id, items: [{ description: "Project work", qty: 1, rate_cents: amountCents, amount_cents: amountCents }] }),
+                });
+                reply += ` Also created a draft invoice for **$${amountMatch[1]}**. Open the Client Manager to review and send it.`;
+              }
+            }
+            
+            pushAssistantMsg(reply);
+          } catch {
+            pushAssistantMsg("Something went wrong adding to CRM. Try adding them manually in the Client Manager.");
+          }
+          return;
+        }
+      }
+    }
+    // ─── END CRM AUTO-EXTRACTION ────────────────────────────────────
 
     setIsSending(true); setOpenMsgMenuId(null);
     const userMsg: Msg = { id: uid("m"), role: "user", content: text, createdAt: Date.now() };
