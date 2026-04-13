@@ -10,6 +10,22 @@ const EVENTS: Record<string, string> = {
 // Known bot user-agent patterns
 const BOT_PATTERNS = /bot|crawl|spider|slurp|bingpreview|facebookexternalhit|mediapartners|google|baidu|yandex|duckduckbot|pingdom|uptimerobot|headlesschrome|phantomjs|prerender|lighthouse|pagespeed|gtmetrix|semrush|ahrefs|mj12bot|dotbot|bytespider/i;
 
+// Deduplication: prevent same visitor+page+event from being counted within 30s
+const recentEvents = new Map<string, number>();
+const DEDUP_WINDOW_MS = 30_000;
+function isDuplicate(visitorId: string, eventType: string, pagePath: string): boolean {
+  const key = `${visitorId}:${eventType}:${pagePath}`;
+  const now = Date.now();
+  const last = recentEvents.get(key);
+  if (last && now - last < DEDUP_WINDOW_MS) return true;
+  recentEvents.set(key, now);
+  // Cleanup old entries every 100 inserts to prevent memory leak
+  if (recentEvents.size > 5000) {
+    for (const [k, v] of recentEvents) { if (now - v > DEDUP_WINDOW_MS * 2) recentEvents.delete(k); }
+  }
+  return false;
+}
+
 let _sb: SupabaseClient | null = null;
 function db(): SupabaseClient | null {
   if (_sb) return _sb;
@@ -45,6 +61,11 @@ export async function GET(req: Request) {
   const devCode = url.searchParams.get('d') || 'd';
   const devMap: Record<string, string> = { d: 'desktop', m: 'mobile', t: 'tablet' };
   const country = req.headers.get('x-vercel-ip-country') || 'unknown';
+
+  // Deduplicate: skip if same visitor+event+page within 30s
+  if (visitorId && isDuplicate(visitorId, eventType, pagePath)) {
+    return new NextResponse(PIXEL, { status: 200, headers: ph });
+  }
 
   // UTM parameter extraction
   const utmSource = url.searchParams.get('utm_source') || '';

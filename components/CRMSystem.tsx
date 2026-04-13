@@ -247,8 +247,13 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
           .crm-new-form{grid-template-columns:1fr!important}
           .crm-action-btns button{min-height:40px!important;font-size:12px!important}
           .crm-gs{-webkit-overflow-scrolling:touch!important}
+          .crm-btn-glass{min-height:40px!important;padding:10px 16px!important}
         }
-        @media(max-width:480px){.crm-stat-grid{grid-template-columns:1fr!important}}
+        @media(max-width:480px){
+          .crm-stat-grid{grid-template-columns:1fr!important}
+          .crm-content{padding:10px!important}
+          .crm-header-wrap{padding:12px 14px!important}
+        }
         @supports(padding-bottom:env(safe-area-inset-bottom)){.crm-content{padding-bottom:calc(14px + env(safe-area-inset-bottom))!important}}
         @media(hover:none){
           .crm-btn-glass:active{transform:scale(0.95)!important;transition-duration:80ms!important}
@@ -406,7 +411,7 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
                 )}
                 {(stats?.revenueMilestones?.reached?.length ?? 0) > 0 && (
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-                    {stats?.revenueMilestones?.reached?.map((m: string) => (
+                    {stats!.revenueMilestones!.reached!.map((m: string) => (
                       <span key={m} style={{ padding: "3px 10px", borderRadius: 999, background: `${G.green}10`, border: `0.5px solid ${G.green}20`, fontSize: 10, fontWeight: 600, color: G.green }}>✓ {m}</span>
                     ))}
                   </div>

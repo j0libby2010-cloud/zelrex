@@ -36,7 +36,7 @@ let ZELREX_TOOLS_IMPORTED: any[] | null = null;
 try {
   const memoryModule = require('@/lib/memory');
   MemoryServiceClass = memoryModule.MemoryService;
-  console.log('[ZELREX BOOT] MemoryService loaded');
+  if(process.env.NODE_ENV==='development') console.log('[ZELREX BOOT] MemoryService loaded');
 } catch (e) {
   console.warn('[ZELREX BOOT] MemoryService failed to load — running without memory:', (e as Error).message);
 }
@@ -45,7 +45,7 @@ try {
   const promptModule = require('@/lib/systemPrompt');
   buildSystemPromptFn = promptModule.buildSystemPrompt;
   ZELREX_TOOLS_IMPORTED = promptModule.ZELREX_TOOLS;
-  console.log('[ZELREX BOOT] v5 system prompt loaded');
+  if(process.env.NODE_ENV==='development') console.log('[ZELREX BOOT] v5 system prompt loaded');
 } catch (e) {
   console.warn('[ZELREX BOOT] v5 system prompt failed to load — falling back to v3:', (e as Error).message);
 }
@@ -55,7 +55,7 @@ let kv: any = null;
 try {
   const kvModule = require('@vercel/kv');
   kv = kvModule.kv;
-  console.log('[ZELREX BOOT] Vercel KV loaded');
+  if(process.env.NODE_ENV==='development') console.log('[ZELREX BOOT] Vercel KV loaded');
 } catch (e) {
   console.warn('[ZELREX BOOT] Vercel KV not available — progress tracking disabled:', (e as Error).message);
 }
@@ -78,7 +78,7 @@ let stripeService: any = null;
 try {
   const { StripeService: SC } = require('@/lib/stripe');
   stripeService = new SC(supabase);
-  console.log('[ZELREX BOOT] StripeService loaded');
+  if(process.env.NODE_ENV==='development') console.log('[ZELREX BOOT] StripeService loaded');
 } catch (e) {
   console.warn('[ZELREX BOOT] StripeService not available:', (e as Error).message);
 }
@@ -407,7 +407,7 @@ export async function POST(req: Request) {
         ? lastUserMessage.content
         : "";
 
-    console.log(`[ZELREX] Processing message: "${userText.substring(0, 80)}..." | Memory: ${memoryService ? 'ON' : 'OFF'} | v5 prompt: ${buildSystemPromptFn ? 'ON' : 'OFF'} | KV: ${kv ? 'ON' : 'OFF'}`);
+    if(process.env.NODE_ENV==='development') console.log(`[ZELREX] Processing message: "${userText.substring(0, 80)}..." | Memory: ${memoryService ? 'ON' : 'OFF'} | v5 prompt: ${buildSystemPromptFn ? 'ON' : 'OFF'} | KV: ${kv ? 'ON' : 'OFF'}`);
 
     // ─── Assumption update flow ──────────────────────────────
     const assumptionUpdate = updateAssumptionsFromMessage(
@@ -476,7 +476,7 @@ export async function POST(req: Request) {
 
     // ─── Market Evaluation ───────────────────────────────────
     if (lastUserMessage && wantsMarketEval(lastUserMessage.content)) {
-      console.log('[ZELREX] Market evaluation triggered');
+      if(process.env.NODE_ENV==='development') console.log('[ZELREX] Market evaluation triggered');
       const mentionedBusiness = extractBusinessTypeFromText(userText);
       if (mentionedBusiness && !isAllowedBusiness(mentionedBusiness)) {
         return NextResponse.json({
@@ -512,7 +512,7 @@ export async function POST(req: Request) {
 
     // ─── Weekly Summary ──────────────────────────────────────
     if (lastUserMessage && wantsWeeklySummary(lastUserMessage.content)) {
-      console.log('[ZELREX] Weekly summary triggered');
+      if(process.env.NODE_ENV==='development') console.log('[ZELREX] Weekly summary triggered');
       try {
         const reply = await generateWeeklySummary(messages, progress);
         return NextResponse.json({ reply });
@@ -549,7 +549,7 @@ export async function POST(req: Request) {
     // ─── Website generation flow ─────────────────────────────
     if (wantsWebsite(userText) || wantsBusiness(userText) || body.action === "buildWebsite") {
       const siteId = randomUUID();
-      console.log("[ZELREX] Entering website build path");
+      if(process.env.NODE_ENV==='development') console.log("[ZELREX] Entering website build path");
 
       const surveyInput: SurveyData | undefined = body.surveyData;
       const stripePreference = surveyInput?.stripeCheckout || "none";
@@ -570,14 +570,14 @@ export async function POST(req: Request) {
       }
 
       // ─── STRIPE CHECK: If user wants checkout, verify Stripe is connected BEFORE building ───
-      console.log(`[ZELREX] Stripe check: preference=${stripePreference}, stripeService=${!!stripeService}, userId=${userId}`);
+      if(process.env.NODE_ENV==='development') console.log(`[ZELREX] Stripe check: preference=${stripePreference}, stripeService=${!!stripeService}, userId=${userId}`);
       if (stripePreference !== "none" && stripeService && userId !== "anonymous") {
         try {
           const stripeStatus = await stripeService.getAccountStatus(userId);
 
           if (!stripeStatus.connected || !stripeStatus.chargesEnabled) {
             // User wants Stripe but hasn't connected yet — send them to onboard FIRST
-            console.log("[ZELREX] User wants Stripe but not connected — sending onboarding link");
+            if(process.env.NODE_ENV==='development') console.log("[ZELREX] User wants Stripe but not connected — sending onboarding link");
             const userEmail = body.userEmail || "user@example.com";
             const businessName = surveyInput?.businessName || "";
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://zelrex.ai';
@@ -617,13 +617,13 @@ export async function POST(req: Request) {
       let website;
       try {
         if (surveyInput) {
-          console.log("ZELREX: building from survey data");
+          if(process.env.NODE_ENV==='development') console.log("ZELREX: building from survey data");
           website = await buildWebsite({
             id: siteId,
             surveyData: surveyInput,
           });
         } else {
-          console.log("ZELREX: building from chat context");
+          if(process.env.NODE_ENV==='development') console.log("ZELREX: building from chat context");
           const context = await extractBusinessContext(messages, sessionState);
           website = await buildWebsite({
             id: siteId,
@@ -652,7 +652,7 @@ export async function POST(req: Request) {
         );
       }
 
-      console.log("ZELREX: website build completed", website.id);
+      if(process.env.NODE_ENV==='development') console.log("ZELREX: website build completed", website.id);
       try { await saveWebsite(website); } catch (e) { console.warn("ZELREX: saveWebsite skipped:", (e as Error).message); }
 
       // ─── STRIPE: Create checkout + inject into website (if connected) ────
@@ -664,7 +664,7 @@ export async function POST(req: Request) {
           const stripeStatus = await stripeService.getAccountStatus(userId);
 
           if (stripeStatus.connected && stripeStatus.chargesEnabled) {
-            console.log("[ZELREX] Stripe connected — creating products from pricing tiers");
+            if(process.env.NODE_ENV==='development') console.log("[ZELREX] Stripe connected — creating products from pricing tiers");
 
             const copyTiers = website.copy?.pricing?.pricing?.tiers;
 
@@ -686,7 +686,7 @@ export async function POST(req: Request) {
 
               if (products.length > 0) {
                 stripeCheckoutUrls = await stripeService.createPaymentLinks(userId);
-                console.log(`[ZELREX] Created ${products.length} products, ${Object.keys(stripeCheckoutUrls).length} payment links`);
+                if(process.env.NODE_ENV==='development') console.log(`[ZELREX] Created ${products.length} products, ${Object.keys(stripeCheckoutUrls).length} payment links`);
 
                 if (stripePreference === "auto") {
                   (website as any).stripeCheckoutUrls = stripeCheckoutUrls;
@@ -749,16 +749,23 @@ export async function POST(req: Request) {
     const chatId = body.chatId || "unknown";
 
     // STRATEGY: Try v5 (memory + dynamic prompt + tools) first.
-    // If anything in v5 fails, fall back to v3 (static prompt, no tools).
+    // If anything in v5 fails, RETRY ONCE before falling back to v3.
 
-    // --- ATTEMPT 1: v5 with memory + tools ---
+    // --- ATTEMPT 1 & 2: v5 with memory + tools (with retry) ---
     if (memoryService && buildSystemPromptFn && ZELREX_TOOLS_IMPORTED) {
-      try {
-        console.log('[ZELREX] Using v5 path (memory + dynamic prompt + tools)');
+      let v5Attempts = 0;
+      const maxV5Attempts = 2;
+      
+      while (v5Attempts < maxV5Attempts) {
+        v5Attempts++;
+        try {
+          if(process.env.NODE_ENV==='development') console.log(`[ZELREX] Using v5 path (attempt ${v5Attempts}/${maxV5Attempts})`);
 
-        // 1. Load user memory
-        const userContext = await memoryService.loadFullContext(userId);
-        console.log(`[ZELREX] Memory loaded: ${userContext.memory?.length || 0} facts, stage ${userContext.progressStage}`);
+          // 1. Load user memory (with timeout)
+          const memoryPromise = memoryService.loadFullContext(userId);
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Memory load timeout (8s)')), 8000));
+          const userContext = await Promise.race([memoryPromise, timeoutPromise]) as any;
+          if(process.env.NODE_ENV==='development') console.log(`[ZELREX] Memory loaded: ${userContext.memory?.length || 0} facts, stage ${userContext.progressStage}`);
 
         // 2. Build dynamic prompt with explicit memory transparency
         let memoryTransparency = "";
@@ -816,7 +823,16 @@ MEDIUM = based on reasonable inference or training knowledge but not verified
 LOW = you're guessing or working with very limited information
 Do NOT include this for casual conversation, simple questions, or greetings. Only for substantive business guidance.`;
 
-        const fullSystemPrompt = dynamicSystemPrompt + ruleReminder + confidenceInstruction;
+        const webSearchInstruction = `\n\nWEB SEARCH POLICY: You have access to web_search. USE IT proactively whenever the user asks about:
+- Current market conditions, trends, pricing, or rates in any industry
+- Specific companies, products, platforms, or tools (check if they still exist, current pricing)
+- "How much should I charge" or "what are rates for" — ALWAYS search for current market data
+- Competitor analysis, market sizing, or industry benchmarks
+- Any claim about market growth, demand, or industry changes
+- News, recent events, or anything that could have changed recently
+Do NOT rely on training data for market-specific information. Search first, then advise. If you're unsure whether data is current, search.`;
+
+        const fullSystemPrompt = dynamicSystemPrompt + ruleReminder + confidenceInstruction + webSearchInstruction;
 
         // 3. Call Claude with tools in a loop
         let currentMessages: any[] = messages.map((m: any, idx: number) => {
@@ -846,7 +862,7 @@ Do NOT include this for casual conversation, simple questions, or greetings. Onl
 
         while (loops < 5) {
           loops++;
-          console.log(`[ZELREX] Claude call loop ${loops}`);
+          if(process.env.NODE_ENV==='development') console.log(`[ZELREX] Claude call loop ${loops}`);
 
           // Dynamically adjust thinking budget based on message complexity
           const lastMsg = currentMessages[currentMessages.length - 1];
@@ -972,13 +988,21 @@ Do NOT include this for casual conversation, simple questions, or greetings. Onl
         return NextResponse.json({ reply: finalReply + crmSuggestion, sessionState, memoryActive: true });
 
       } catch (v5Error) {
-        // v5 failed — log the SPECIFIC error and fall through to v3
-        console.error('[ZELREX] v5 path FAILED. Falling back to v3. Error:', v5Error);
-        console.error('[ZELREX] v5 error name:', (v5Error as Error).name);
-        console.error('[ZELREX] v5 error message:', (v5Error as Error).message);
+        // v5 failed — log the SPECIFIC error
+        console.error(`[ZELREX] v5 attempt ${v5Attempts}/${maxV5Attempts} FAILED:`, (v5Error as Error).message);
         if ((v5Error as any).status) console.error('[ZELREX] v5 API status:', (v5Error as any).status);
+        
+        if (v5Attempts < maxV5Attempts) {
+          if(process.env.NODE_ENV==='development') console.log('[ZELREX] Retrying v5 path...');
+          await new Promise(r => setTimeout(r, 1000)); // 1s backoff before retry
+          continue;
+        }
+        
+        console.error('[ZELREX] v5 exhausted all retries. Falling back to v3.');
+        console.error('[ZELREX] v5 error details:', (v5Error as Error).name, (v5Error as Error).message);
         if ((v5Error as any).error) console.error('[ZELREX] v5 API error body:', JSON.stringify((v5Error as any).error));
       }
+      } // end while
     }
 
     // --- ATTEMPT 2: v3 fallback (static prompt, no tools, no memory) ---
@@ -1021,7 +1045,7 @@ Do NOT include this for casual conversation, simple questions, or greetings. Onl
 📊 *Confidence: [HIGH/MEDIUM/LOW] — [one sentence why]*
 Only for substantive guidance, not casual chat.`;
 
-      const v3FullPrompt = SYSTEM_PROMPT + styleInstruction + v3MemoryWarning + v3RuleReminder + v3ConfidenceInstruction;
+      const v3FullPrompt = SYSTEM_PROMPT + styleInstruction + v3MemoryWarning + v3RuleReminder + v3ConfidenceInstruction + `\n\nWEB SEARCH: You have web_search available. Use it proactively for any market data, pricing, current info, or factual claims. Do not rely on training data for market-specific information.`;
 
       const response = await anthropic.messages.create({
         model: 'claude-opus-4-6',
@@ -1033,6 +1057,9 @@ Only for substantive guidance, not casual chat.`;
         },
         system: v3FullPrompt,
         messages: currentMessages,
+        tools: [
+          { type: "web_search_20250305" as any, name: "web_search" },
+        ],
       });
 
       const reply = response.content

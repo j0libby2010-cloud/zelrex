@@ -4,22 +4,18 @@ import { dark } from "@clerk/themes";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Zelrex · AI Business Engine",
-  description: "Go independent. Get paid. Zelrex builds and runs your freelance business.",
-  icons: {
-    icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", type: "image/x-icon" },
-    ],
-  },
+  title: "Zelrex",
+  description: "AI Business Engine for Freelancers",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Zelrex",
   },
-  other: {
-    "theme-color": "#06090F",
+  themeColor: "#06090F",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/icon-192.png",
   },
 };
 

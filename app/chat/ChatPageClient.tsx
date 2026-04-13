@@ -24,6 +24,8 @@ const i18n: Record<string, Record<string, string>> = {
   hi: { newBusiness: "नया व्यापार", weeklySummaries: "साप्ताहिक सारांश", businessAnalytics: "विश्लेषण", outreach: "आउटरीच", clients: "ग्राहक", setGoal: "लक्ष्य निर्धारित करें", myGoal: "मेरा लक्ष्य", searchBiz: "खोजें...", askAnything: "कुछ भी पूछें", notifications: "सूचनाएं", noNotif: "कोई सूचना नहीं", readAll: "सब पढ़ें", clearAll: "सब हटाएं", copied: "कॉपी किया", showMore: "और दिखाएं", settings: "सेटिंग्स", send: "भेजें", retry: "पुनः प्रयास", copy: "कॉपी", goodResponse: "अच्छा जवाब", badResponse: "बुरा जवाब", welcome: "Zelrex में आपका स्वागत है", tutorialStep1: "Zelrex से बात करके अपना व्यापार बनाएं", tutorialStep2: "आउटरीच से संभावित ग्राहक खोजें", tutorialStep3: "ग्राहक, चालान और अनुबंध प्रबंधित करें", tutorialStep4: "अपनी विश्लेषण और राजस्व वृद्धि ट्रैक करें", gotIt: "समझ गया", next: "अगला", skip: "छोड़ें", justNow: "अभी", mAgo: "मिनट पहले", hAgo: "घंटे पहले" },
 };
 import { CRMSystem } from "@/components/CRMSystem";
+import { DomainManager } from "@/components/DomainManager";
+import { WebsiteEditMode } from "@/components/WebsiteEditMode";
 import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
 
@@ -564,6 +566,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const outreachOriginRef = useRef<{ x: number; y: number } | null>(null);
   const [crmOpen, setCrmOpen] = useState(false);
   const [crmClosing, setCrmClosing] = useState(false);
+  const [domainManagerOpen, setDomainManagerOpen] = useState(false);
+  const [editModeOpen, setEditModeOpen] = useState(false);
   const crmOriginRef = useRef<{ x: number; y: number } | null>(null);
   const settingsOriginRef = useRef<{ x: number; y: number } | null>(null);
   const goalOriginRef = useRef<{ x: number; y: number } | null>(null);
@@ -726,7 +730,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         if (zelrexSettings.notifGoalProgress && userGoal?.deadline) {
           const key = `notif_goal_${new Date().toISOString().slice(0, 10)}`;
           if (!sessionStorage.getItem(key)) {
-            // Smart date parsing — handles "June 2026", "6 months", "end of year", ISO dates, etc.
+            // Smart date parsing — handles many natural language formats
             let deadlineDate: Date | null = null;
             const dl = userGoal.deadline.trim().toLowerCase();
             const now = new Date();
@@ -736,27 +740,66 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             if (!isNaN(parsed.getTime()) && parsed.getFullYear() > 2000) {
               deadlineDate = parsed;
             }
-            // "X months" / "X weeks" / "X days"
-            else if (/^\d+\s*(month|week|day|year)s?$/i.test(dl)) {
-              const num = parseInt(dl);
+            // "X months" / "X weeks" / "X days" / "in X months"
+            else if (/^(?:in\s+)?\d+\s*(month|week|day|year)s?(?:\s*from\s*now)?$/i.test(dl)) {
+              const num = parseInt(dl.match(/\d+/)?.[0] || "0");
               deadlineDate = new Date(now);
               if (dl.includes("month")) deadlineDate.setMonth(deadlineDate.getMonth() + num);
               else if (dl.includes("week")) deadlineDate.setDate(deadlineDate.getDate() + num * 7);
               else if (dl.includes("day")) deadlineDate.setDate(deadlineDate.getDate() + num);
               else if (dl.includes("year")) deadlineDate.setFullYear(deadlineDate.getFullYear() + num);
             }
-            // "end of year" / "end of 2026"
-            else if (/end\s*of\s*(the\s*)?(year|\d{4})/i.test(dl)) {
+            // "next month" / "next week" / "next quarter" / "next year"
+            else if (/^next\s+(month|week|quarter|year)$/i.test(dl)) {
+              deadlineDate = new Date(now);
+              if (dl.includes("month")) deadlineDate.setMonth(deadlineDate.getMonth() + 1);
+              else if (dl.includes("week")) deadlineDate.setDate(deadlineDate.getDate() + 7);
+              else if (dl.includes("quarter")) deadlineDate.setMonth(deadlineDate.getMonth() + 3);
+              else if (dl.includes("year")) deadlineDate.setFullYear(deadlineDate.getFullYear() + 1);
+            }
+            // "Q1 2026", "Q2 2027", etc.
+            else if (/^q[1-4]\s*\d{4}$/i.test(dl)) {
+              const q = parseInt(dl.match(/q(\d)/i)?.[1] || "1");
+              const y = parseInt(dl.match(/\d{4}/)?.[0] || String(now.getFullYear()));
+              const qMonths: Record<number, number> = { 1: 2, 2: 5, 3: 8, 4: 11 }; // last month of quarter (0-indexed)
+              deadlineDate = new Date(y, qMonths[q] || 2, 0); // last day of quarter
+            }
+            // "end of year" / "end of 2026" / "end of month" / "end of quarter"
+            else if (/end\s*of\s*(the\s*)?(year|month|quarter|\d{4})/i.test(dl)) {
               const ym = dl.match(/\d{4}/);
-              deadlineDate = new Date(ym ? parseInt(ym[0]) : now.getFullYear(), 11, 31);
+              if (dl.includes("month")) deadlineDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+              else if (dl.includes("quarter")) { const nextQ = Math.ceil((now.getMonth() + 1) / 3) * 3; deadlineDate = new Date(now.getFullYear(), nextQ, 0); }
+              else deadlineDate = new Date(ym ? parseInt(ym[0]) : now.getFullYear(), 11, 31);
+            }
+            // Just a year: "2026", "2027"
+            else if (/^\d{4}$/.test(dl)) {
+              deadlineDate = new Date(parseInt(dl), 11, 31);
+            }
+            // "this summer" / "this fall" / "this winter" / "this spring"
+            else if (/this\s*(summer|fall|autumn|winter|spring)/i.test(dl)) {
+              const y = now.getFullYear();
+              if (dl.includes("spring")) deadlineDate = new Date(y, 4, 31);
+              else if (dl.includes("summer")) deadlineDate = new Date(y, 7, 31);
+              else if (dl.includes("fall") || dl.includes("autumn")) deadlineDate = new Date(y, 10, 30);
+              else if (dl.includes("winter")) deadlineDate = new Date(y + 1, 1, 28);
+            }
+            // "by June" / "by December" (assumes current or next year)
+            else if (/^by\s+/i.test(dl)) {
+              const monthNames = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+              const mi = monthNames.findIndex(m => dl.includes(m));
+              if (mi >= 0) {
+                const year = mi <= now.getMonth() ? now.getFullYear() + 1 : now.getFullYear();
+                deadlineDate = new Date(year, mi + 1, 0);
+              }
             }
             // "Month Year" like "June 2026", "Dec 2025"
             else {
               const monthNames = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
               const monthMatch = monthNames.findIndex(m => dl.includes(m));
               const yearMatch = dl.match(/\d{4}/);
-              if (monthMatch >= 0 && yearMatch) {
-                deadlineDate = new Date(parseInt(yearMatch[0]), monthMatch + 1, 0); // last day of that month
+              if (monthMatch >= 0) {
+                const year = yearMatch ? parseInt(yearMatch[0]) : (monthMatch <= now.getMonth() ? now.getFullYear() + 1 : now.getFullYear());
+                deadlineDate = new Date(year, monthMatch + 1, 0); // last day of that month
               }
             }
 
@@ -796,7 +839,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         }
 
         // Follow-up tracking — if Zelrex asked a question or made a suggestion and user never responded
-        if (zelrexSettings.inAppSuggestions && chats.length > 0) {
+        if (zelrexSettings.inAppSuggestions && zelrexSettings.permProactiveFollowups && chats.length > 0) {
           const activeMessages = chats.flatMap(c => c.messages).sort((a, b) => b.createdAt - a.createdAt);
           const lastAssistant = activeMessages.find(m => m.role === "assistant");
           const lastUser = activeMessages.find(m => m.role === "user");
@@ -1092,16 +1135,22 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             }
           } catch {}
 
-          // ─── Market Disruption Alerts (from cron) ──────────────
-          try {
-            const alertRes = await fetch("/api/z/crm", {
-              method: "POST", headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ action: "dashboard", userId: clerkUser.id }),
-            }).catch(() => null);
-            // Also check for stored market alerts
-            // (These are created by the market-alert cron and stored in notifications table)
-            // They'll show up via the normal notification system
-          } catch {}
+          // ─── Server-Side Notifications (market alerts, cron-generated) ────
+          if (zelrexSettings.marketMonitoring) {
+            try {
+              const srvRes = await fetch("/api/z/notifications?userId=" + clerkUser.id);
+              if (srvRes.ok) {
+                const srvData = await srvRes.json();
+                for (const n of (srvData.notifications || [])) {
+                  const key = `notif_srv_${n.id}`;
+                  if (!sessionStorage.getItem(key)) {
+                    addNotification(n.message);
+                    sessionStorage.setItem(key, "1");
+                  }
+                }
+              }
+            } catch {}
+          }
 
         } catch {}
       } catch (notifError) {
@@ -1847,7 +1896,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
       const dd = { projectId: data.projectId, url: data.url, projectName: data.projectName || "" };
       saveDeployData(dd);
-      addNotification(`🚀 Your website is live at ${data.url}`);
+      if (zelrexSettings.inAppDeployStatus) addNotification(`🚀 Your website is live at ${data.url}`);
 
       pushAssistantMsg(
         `**Your site is live!** 🚀\n\n` +
@@ -1983,7 +2032,6 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       const raw = await res.text();
       let result: { reply?: string; previewUrl?: string; websiteData?: any; stripeCheckoutUrls?: any; stripeOnboardingUrl?: string; pendingSurveyData?: any } = {};
       try { result = JSON.parse(raw); } catch {}
-      console.log("FULL API RESPONSE:", result);
       if (result.websiteData) {
         // Merge raw survey data into websiteData so templates always have it
         const enriched = {
@@ -2378,6 +2426,16 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             {websiteData && (
               <HBtn onClick={handleDeploy} style={{ padding: isMobile ? "5px 8px" : "5px 12px", borderRadius: 999, border: `1px solid ${deployData?.url ? "#10B98140" : C.border}`, background: deployData?.url ? "rgba(16,185,129,0.08)" : "transparent", color: deployData?.url ? "#10B981" : C.textSec, fontSize: 12, fontWeight: 500, gap: 5, opacity: isDeploying ? 0.5 : 1 }}>
                 <Ic n="send" className="h-3.5 w-3.5" />{!isMobile && (isDeploying ? " Deploying..." : deployData?.url ? " Redeploy" : " Deploy")}
+              </HBtn>
+            )}
+            {websiteData && !isMobile && (
+              <HBtn onClick={() => setEditModeOpen(true)} style={{ padding: "5px 12px", borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
+                <Ic n="edit" className="h-3.5 w-3.5" /> Edit
+              </HBtn>
+            )}
+            {deployData?.url && !isMobile && (
+              <HBtn onClick={() => setDomainManagerOpen(true)} style={{ padding: "5px 12px", borderRadius: 999, border: `1px solid ${deployData?.customDomain ? "#A78BFA40" : C.border}`, background: deployData?.customDomain ? "rgba(167,139,250,0.08)" : "transparent", color: deployData?.customDomain ? "#A78BFA" : C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
+                <Ic n="globe" className="h-3.5 w-3.5" /> {deployData?.customDomain || "Domain"}
               </HBtn>
             )}
             {!isMobile && !isSignedIn && (
@@ -2885,6 +2943,50 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {/* ─── FULL-SCREEN SETTINGS ─────────────────────────── */}
+
+        {/* ─── DOMAIN MANAGER ───────────────────────────────── */}
+        {domainManagerOpen && deployData?.url && (
+          <DomainManager
+            deployData={deployData}
+            onAddDomain={async (domain: string) => {
+              const res = await fetch("/api/deploy", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "addDomain", projectId: deployData.projectId, domain }),
+              });
+              const result = await res.json();
+              if (result.verified || result.dnsRecords) {
+                setDeployData((prev: any) => ({ ...prev, customDomain: domain, domainStatus: result.verified ? "verified" : "pending", dnsRecords: result.dnsRecords }));
+              }
+              return result;
+            }}
+            onVerifyDomain={async () => {
+              const res = await fetch("/api/deploy", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "verifyDomain", projectId: deployData.projectId, domain: deployData.customDomain }),
+              });
+              const result = await res.json();
+              if (result.verified) {
+                setDeployData((prev: any) => ({ ...prev, domainStatus: "verified" }));
+              }
+              return result;
+            }}
+            onClose={() => setDomainManagerOpen(false)}
+          />
+        )}
+
+        {/* ─── WEBSITE EDIT MODE ─────────────────────────────── */}
+        {editModeOpen && websiteData && (
+          <WebsiteEditMode
+            websiteData={websiteData}
+            onSave={(updatedData: any) => {
+              saveWebsiteData(updatedData);
+              setEditModeOpen(false);
+              addNotification("✏️ Website updated. Click Preview to see changes, then Redeploy to push live.");
+            }}
+            onClose={() => setEditModeOpen(false)}
+          />
+        )}
+
         {(settingsOpen || settingsClosing) && (
           <div className="stg-layout" style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.97)", backdropFilter: "blur(32px) saturate(1.6)", WebkitBackdropFilter: "blur(32px) saturate(1.6)", transformOrigin: settingsOriginRef.current ? `${settingsOriginRef.current.x}px ${settingsOriginRef.current.y}px` : "center center", animation: `${settingsClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: settingsClosing ? "none" : undefined }}>
             <style>{`
@@ -3063,6 +3165,10 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                         </div>
                         {websiteData?.stripeConnected ? (
                           <span style={{ padding: "6px 14px", borderRadius: 999, background: "rgba(16,185,129,0.10)", border: "1px solid rgba(16,185,129,0.20)", color: "#10B981", fontSize: 12, fontWeight: 600 }}>Connected</span>
+                        ) : websiteData?.stripeCheckoutUrls ? (
+                          <span style={{ padding: "6px 14px", borderRadius: 999, background: "rgba(16,185,129,0.10)", border: "1px solid rgba(16,185,129,0.20)", color: "#10B981", fontSize: 12, fontWeight: 600 }}>Active</span>
+                        ) : !websiteData ? (
+                          <span style={{ padding: "6px 14px", borderRadius: 999, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, color: C.textMuted, fontSize: 12, fontWeight: 500 }}>Build site first</span>
                         ) : (
                           <button className="stg-btn" onClick={() => { closeSettings(); const msg = "Connect my Stripe account"; setInput(msg); setTimeout(() => sendMessage(msg), 100); }}><span>Connect</span></button>
                         )}
@@ -3411,28 +3517,28 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Weekly Business Report</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Summary of your business metrics every Monday</div>
                         </div>
-                        <button className={tglClass("emailWeeklyReport")} onClick={() => handleToggle("emailWeeklyReport")}><span className="stg-knob" /></button>
+                        <span style={{ padding: "5px 12px", borderRadius: 999, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, color: C.textMuted, fontSize: 11, fontWeight: 500, letterSpacing: "0.02em" }}>Coming soon</span>
                       </div>
                       <div className="stg-row" style={{ padding: "16px 22px" }}>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Goal Milestones</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Get notified when you hit revenue targets</div>
                         </div>
-                        <button className={tglClass("emailGoalMilestones")} onClick={() => handleToggle("emailGoalMilestones")}><span className="stg-knob" /></button>
+                        <span style={{ padding: "5px 12px", borderRadius: 999, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, color: C.textMuted, fontSize: 11, fontWeight: 500, letterSpacing: "0.02em" }}>Coming soon</span>
                       </div>
                       <div className="stg-row" style={{ padding: "16px 22px" }}>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Market Alerts</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>Opportunities and threats in your market</div>
                         </div>
-                        <button className={tglClass("emailMarketAlerts")} onClick={() => handleToggle("emailMarketAlerts")}><span className="stg-knob" /></button>
+                        <span style={{ padding: "5px 12px", borderRadius: 999, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, color: C.textMuted, fontSize: 11, fontWeight: 500, letterSpacing: "0.02em" }}>Coming soon</span>
                       </div>
                       <div className="stg-row" style={{ padding: "16px 22px", borderBottom: "none" }}>
                         <div>
                           <div style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Product Updates</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>New Zelrex features and improvements</div>
                         </div>
-                        <button className={tglClass("emailProductUpdates")} onClick={() => handleToggle("emailProductUpdates")}><span className="stg-knob" /></button>
+                        <span style={{ padding: "5px 12px", borderRadius: 999, background: "rgba(255,255,255,0.04)", border: `1px solid ${C.border}`, color: C.textMuted, fontSize: 11, fontWeight: 500, letterSpacing: "0.02em" }}>Coming soon</span>
                       </div>
                     </div>
                   </div>

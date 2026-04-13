@@ -114,6 +114,8 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
   const [mounted, setMounted] = useState(false);
   const [linkedInDm, setLinkedInDm] = useState<any>(null);
   const [linkedInLoading, setLinkedInLoading] = useState(false);
+  const [emailFinderResult, setEmailFinderResult] = useState<any>(null);
+  const [emailFinderLoading, setEmailFinderLoading] = useState(false);
 
   // Settings form
   const [formTarget, setFormTarget] = useState("");
@@ -252,6 +254,33 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
+  };
+
+  const findEmail = async (prospectId: string) => {
+    setEmailFinderLoading(true);
+    setEmailFinderResult(null);
+    try {
+      const res = await fetch("/api/z/outreach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "find-email", userId, prospectId }),
+      });
+      const data = await res.json();
+      setEmailFinderResult(data);
+      if (data.found && data.email) {
+        // Refresh the prospect list to show the updated email
+        const listRes = await fetch("/api/z/outreach", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "list", userId }),
+        });
+        const listData = await listRes.json();
+        setProspects(listData.prospects || []);
+      }
+    } catch (e) {
+      console.error("[Outreach] Email finder error:", e);
+    } finally {
+      setEmailFinderLoading(false);
+    }
   };
 
   const queueProspects = prospects.filter((p) => ["discovered", "queued"].includes(p.status));
@@ -876,6 +905,15 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                               color: G.purple, fontSize: 12, fontWeight: 700,
                               boxShadow: `0 0 12px ${G.purple}08`,
                             }}><span>LinkedIn DM</span></button>
+                            {!p.email && (
+                              <button className="or-btn" onClick={() => findEmail(p.id)} disabled={emailFinderLoading} style={{
+                                padding: "9px 18px", border: `0.5px solid ${G.glassBorder}`,
+                                background: `linear-gradient(135deg, ${G.accent}20, ${G.accent}06)`,
+                                color: G.accent, fontSize: 12, fontWeight: 700,
+                                boxShadow: `0 0 12px ${G.accent}08`,
+                                opacity: emailFinderLoading ? 0.5 : 1,
+                              }}><span>{emailFinderLoading ? "Searching..." : "Find Email"}</span></button>
+                            )}
                           </div>
                         </div>
                       )}
@@ -1082,6 +1120,84 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                 )}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Email Finder Result Modal */}
+      {emailFinderResult && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 10000, padding: 20,
+        }} onClick={() => setEmailFinderResult(null)}>
+          <div style={{
+            ...liquidGlass, maxWidth: 460, width: "100%", padding: 0, overflow: "hidden",
+            animation: `or-fadeUp 300ms ${EASE}`,
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{
+              padding: "20px 24px", borderBottom: `1px solid ${G.glassBorder}`,
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+            }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: G.text }}>Email finder</div>
+              <button onClick={() => setEmailFinderResult(null)} style={{
+                background: "none", border: "none", color: G.textMuted, cursor: "pointer", fontSize: 18,
+              }}>✕</button>
+            </div>
+            <div style={{ padding: "20px 24px" }}>
+              {emailFinderResult.found ? (
+                <>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 12, marginBottom: 16,
+                    padding: "14px 18px", borderRadius: 14,
+                    background: `${G.green}08`, border: `0.5px solid ${G.green}20`,
+                  }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 999, background: G.green, boxShadow: `0 0 8px ${G.green}50` }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: G.text, fontFamily: "monospace" }}>{emailFinderResult.email}</div>
+                      <div style={{ fontSize: 11, color: G.textMuted, marginTop: 2 }}>
+                        {emailFinderResult.confidence} confidence · {emailFinderResult.source}
+                      </div>
+                    </div>
+                    <button onClick={() => copyToClipboard(emailFinderResult.email)} style={{
+                      padding: "5px 12px", borderRadius: 8, border: `0.5px solid ${G.glassBorder}`,
+                      background: G.glass, color: G.textSec, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                    }}>Copy</button>
+                  </div>
+                  {emailFinderResult.alternatives?.length > 0 && (
+                    <div style={{ marginBottom: 12 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: G.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Alternatives</div>
+                      {emailFinderResult.alternatives.map((alt: string, i: number) => (
+                        <div key={i} style={{ fontSize: 12, color: G.textSec, padding: "3px 0", fontFamily: "monospace" }}>{alt}</div>
+                      ))}
+                    </div>
+                  )}
+                  {emailFinderResult.email_pattern && (
+                    <div style={{ fontSize: 11, color: G.textMuted, marginBottom: 8 }}>
+                      Pattern: <span style={{ color: G.accent, fontFamily: "monospace" }}>{emailFinderResult.email_pattern}</span>
+                    </div>
+                  )}
+                  <div style={{ fontSize: 11, color: G.green }}>
+                    ✓ Email saved to prospect. You can now generate an email for them.
+                  </div>
+                </>
+              ) : (
+                <div style={{ textAlign: "center", padding: 16 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: G.text, marginBottom: 8 }}>No email found</div>
+                  <div style={{ fontSize: 12, color: G.textSec, lineHeight: 1.6 }}>
+                    Try checking their website's contact page manually, or use LinkedIn to send a connection request instead.
+                  </div>
+                  {emailFinderResult.contact_page_url && (
+                    <a href={emailFinderResult.contact_page_url} target="_blank" rel="noopener noreferrer" style={{
+                      display: "inline-block", marginTop: 12, padding: "8px 16px", borderRadius: 10,
+                      border: `0.5px solid ${G.glassBorder}`, color: G.accent, fontSize: 12, fontWeight: 600,
+                      textDecoration: "none",
+                    }}>Visit contact page ↗</a>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

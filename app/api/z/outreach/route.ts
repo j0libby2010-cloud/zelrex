@@ -91,6 +91,7 @@ export async function POST(req: Request) {
       case 'generate-linkedin-dm': return handleLinkedInDM(supabase, userId, body.prospectId);
       case 'ab-generate': return handleABGenerate(supabase, userId, body.prospectId);
       case 'ab-results': return handleABResults(supabase, userId);
+      case 'find-email': return handleFindEmail(supabase, userId, body.prospectId);
       default: return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
   } catch (e: any) {
@@ -749,4 +750,77 @@ async function handleABResults(supabase: SupabaseClient, userId: string) {
     winner: winner ? { variant: winner.variant, approach: winner.approach, replyRate: winner.replyRate } : null,
     totalTests: emails.length,
   });
+}
+
+// ─── Email Address Finder ─────────────────────────────────────────
+
+async function handleFindEmail(supabase: SupabaseClient, userId: string, prospectId?: string) {
+  const anthropic = ai();
+  if (!anthropic) return NextResponse.json({ error: 'AI not configured' }, { status: 500 });
+  if (!prospectId) return NextResponse.json({ error: 'Missing prospectId' }, { status: 400 });
+
+  const { data: prospect } = await supabase.from('outreach_prospects')
+    .select('*').eq('id', prospectId).single();
+  if (!prospect) return NextResponse.json({ error: 'Prospect not found' }, { status: 404 });
+
+  // Use Claude with web search to find contact info
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 800,
+    tools: [{ type: "web_search_20250305" as any, name: "web_search" }],
+    messages: [{
+      role: 'user',
+      content: `Find the business email address for this person/company. Search their website and any public profiles.
+
+NAME: ${prospect.name}
+COMPANY: ${prospect.company}
+WEBSITE: ${prospect.platform_url}
+
+SEARCH STRATEGY:
+1. Check their website's contact page, about page, or footer
+2. Look for "mailto:" links on their site
+3. Check their LinkedIn or other public profiles
+4. Look for the company's general contact email
+5. If you find a personal email pattern (like firstname@company.com), note the pattern
+
+RESPOND WITH JSON ONLY, no markdown:
+{
+  "found": true/false,
+  "email": "their@email.com or null",
+  "confidence": "high/medium/low",
+  "source": "where you found it (e.g., 'company website contact page')",
+  "alternatives": ["other possible emails"],
+  "email_pattern": "pattern if detected (e.g., 'firstname@company.com')",
+  "contact_page_url": "URL of their contact page if found"
+}
+
+If you cannot find any email, set found: false and suggest the best approach to find it.`
+    }],
+  });
+
+  let text = '';
+  for (const block of response.content) {
+    if (block.type === 'text') text += block.text;
+  }
+
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return NextResponse.json({ error: 'Could not parse email search results' }, { status: 500 });
+    const result = JSON.parse(jsonMatch[0]);
+
+    // If found, update the prospect's email
+    if (result.found && result.email) {
+      await supabase.from('outreach_prospects')
+        .update({ email: result.email })
+        .eq('id', prospectId);
+    }
+
+    return NextResponse.json({
+      ...result,
+      prospect: { name: prospect.name, company: prospect.company },
+    });
+  } catch {
+    console.error('[Outreach] Email finder parse failed');
+    return NextResponse.json({ error: 'Failed to find email address' }, { status: 500 });
+  }
 }
