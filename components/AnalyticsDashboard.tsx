@@ -17,6 +17,11 @@ interface AnalyticsData {
   topReferrers: { referrer: string; count: number }[];
   deviceBreakdown: { device: string; count: number; pct: number }[];
   dailyData: { date: string; pageviews: number; visitors: number; clicks: number; checkouts: number }[];
+  funnel?: {
+    stages: { name: string; count: number; pct: number }[];
+    dropoffs: { from: string; to: string; lost: number; pct: number }[];
+  };
+  utmBreakdown?: { source: string; views: number; clicks: number; conversionRate: number }[];
   revenue: {
     total: number;
     count: number;
@@ -779,6 +784,77 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
                 </div>
               </div>
             </div>
+
+            {/* Conversion Funnel */}
+            {data.funnel && data.funnel.stages.some(s => s.count > 0) && (
+              <div className="z-stat" style={{
+                ...liquidGlass, padding: 22, marginTop: 16,
+                animation: `z-fadeUp 600ms ${EASE} 720ms both`,
+              }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: G.text, marginBottom: 18, letterSpacing: "0.01em" }}>Conversion funnel</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {data.funnel.stages.map((stage, i) => {
+                    const maxCount = Math.max(...data.funnel!.stages.map(s => s.count), 1);
+                    const barWidth = Math.max(4, (stage.count / maxCount) * 100);
+                    const stageColors = [G.accent, G.accentSoft, G.amber, G.purple, G.green];
+                    const color = stageColors[i % stageColors.length];
+                    const dropoff = i > 0 ? data.funnel!.dropoffs[i - 1] : null;
+                    return (
+                      <div key={stage.name}>
+                        {dropoff && dropoff.lost > 0 && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 0 3px 12px" }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(248,113,113,0.5)" strokeWidth="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+                            <span style={{ fontSize: 10.5, color: "rgba(248,113,113,0.6)", fontWeight: 500 }}>
+                              {dropoff.pct}% dropped ({dropoff.lost.toLocaleString()} lost)
+                            </span>
+                          </div>
+                        )}
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{ width: 100, fontSize: 11.5, color: G.textSec, fontWeight: 450, flexShrink: 0 }}>{stage.name}</div>
+                          <div style={{ flex: 1, height: 20, borderRadius: 6, background: "rgba(255,255,255,0.03)", overflow: "hidden" }}>
+                            <div style={{
+                              height: "100%", borderRadius: 6, width: `${barWidth}%`,
+                              background: `linear-gradient(90deg, ${color}, ${color}88)`,
+                              boxShadow: `0 0 8px ${color}15`,
+                              transition: `width 800ms ${EASE}`,
+                            }} />
+                          </div>
+                          <div style={{ width: 55, textAlign: "right", fontSize: 12.5, fontWeight: 600, color: G.text, fontVariantNumeric: "tabular-nums" }}>{stage.count.toLocaleString()}</div>
+                          {i > 0 && <div style={{ width: 40, textAlign: "right", fontSize: 11, color: stage.pct > 20 ? G.green : stage.pct > 5 ? G.amber : "rgba(248,113,113,0.7)", fontWeight: 600 }}>{stage.pct}%</div>}
+                          {i === 0 && <div style={{ width: 40 }} />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* UTM Traffic Sources */}
+            {data.utmBreakdown && data.utmBreakdown.length > 0 && (
+              <div className="z-stat" style={{
+                ...liquidGlass, padding: 22, marginTop: 16,
+                animation: `z-fadeUp 600ms ${EASE} 780ms both`,
+              }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: G.text, marginBottom: 16, letterSpacing: "0.01em" }}>Traffic sources (UTM)</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px 80px", padding: "8px 0", borderBottom: `0.5px solid ${G.glassBorder}` }}>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, color: G.textMuted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Source</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, color: G.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", textAlign: "right" }}>Views</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, color: G.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", textAlign: "right" }}>Clicks</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 600, color: G.textMuted, textTransform: "uppercase", letterSpacing: "0.08em", textAlign: "right" }}>Conv.</span>
+                  </div>
+                  {data.utmBreakdown.map((utm, i) => (
+                    <div key={utm.source} style={{ display: "grid", gridTemplateColumns: "1fr 70px 70px 80px", padding: "10px 0", borderBottom: i < data.utmBreakdown!.length - 1 ? `0.5px solid rgba(255,255,255,0.03)` : "none", alignItems: "center" }}>
+                      <span style={{ fontSize: 12.5, color: G.text, fontWeight: 500 }}>{utm.source}</span>
+                      <span style={{ fontSize: 12.5, color: G.textSec, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{utm.views.toLocaleString()}</span>
+                      <span style={{ fontSize: 12.5, color: G.textSec, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{utm.clicks.toLocaleString()}</span>
+                      <span style={{ fontSize: 12.5, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: utm.conversionRate > 5 ? G.green : utm.conversionRate > 0 ? G.amber : G.textMuted }}>{utm.conversionRate}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

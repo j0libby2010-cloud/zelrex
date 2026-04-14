@@ -13,6 +13,8 @@ import { ZelrexAssumptions } from "./deriveAssumptions";
 export interface SurveyData {
   businessName: string;
   tagline: string;
+  aboutBusiness?: string;
+  contactEmail?: string;
   businessType: string;
   targetAudience: string;
   mainService: string;

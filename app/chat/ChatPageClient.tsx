@@ -1628,6 +1628,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           <div ${isEditorial ? 'style="max-width:560px"' : isStudio ? 'style="max-width:480px"' : isLuxury ? `style="display:flex;justify-content:center;flex-wrap:wrap;gap:32px"` : `class="grid-2" style="max-width:540px"`}>${contactCards}</div>
         </section>
         ${nextSteps.length ? `<div class="divider"></div><section class="section"><div class="eyebrow">${c.contact?.nextSteps?.eyebrow || "Next steps"}</div><h2 class="h2" style="margin-bottom:8px">${c.contact?.nextSteps?.title || "What happens next"}</h2><div ${(isEditorial || isStudio) ? 'style="max-width:700px;margin-top:28px"' : 'class="grid-2" style="margin-top:28px"'}>${cards(nextSteps)}</div></section>` : ""}
+        ${site.contactFormHtml || ""}
         ${ctaBlock(c.contact?.cta)}`;
     })();
 
@@ -1693,12 +1694,36 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   })();
   </script>`;
 
+    // SEO meta tags (from buildWebsite seoData)
+    const seo = site.seoData || {};
+    const seoDesc = (seo.description || seo.tagline || `${name} — professional services`).slice(0, 160).replace(/"/g, '&quot;');
+    const seoTitle = seo.tagline ? `${name} — ${seo.tagline}` : name;
+    const seoTags = `
+  <meta name="description" content="${seoDesc}">
+  <meta name="robots" content="index, follow">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="${seoTitle.replace(/"/g, '&quot;')}">
+  <meta property="og:description" content="${seoDesc}">
+  <meta property="og:site_name" content="${name.replace(/"/g, '&quot;')}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${seoTitle.replace(/"/g, '&quot;')}">
+  <meta name="twitter:description" content="${seoDesc}">
+  <meta name="theme-color" content="${accent}">
+  <script type="application/ld+json">${JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    name: name,
+    description: seoDesc,
+    ...(seo.services?.length ? { hasOfferCatalog: { "@type": "OfferCatalog", name: "Services", itemListElement: seo.services.map((s: string, i: number) => ({ "@type": "Offer", itemOffered: { "@type": "Service", name: s }, position: i + 1 })) } } : {}),
+  })}</script>`;
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${name}</title>
+  <title>${seoTitle}</title>
+  ${seoTags}
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='${encodeURIComponent(accent)}'/><text x='16' y='22' text-anchor='middle' fill='white' font-family='system-ui,sans-serif' font-weight='700' font-size='18'>${encodeURIComponent((name || 'Z')[0].toUpperCase())}</text></svg>" type="image/svg+xml">
   ${fontLinks}
   ${analyticsScript}
@@ -2951,7 +2976,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             onAddDomain={async (domain: string) => {
               const res = await fetch("/api/deploy", {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "addDomain", projectId: deployData.projectId, domain }),
+                body: JSON.stringify({ action: "add-domain", projectId: deployData.projectId, domain }),
               });
               const result = await res.json();
               if (result.verified || result.dnsRecords) {
@@ -2962,7 +2987,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             onVerifyDomain={async () => {
               const res = await fetch("/api/deploy", {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "verifyDomain", projectId: deployData.projectId, domain: deployData.customDomain }),
+                body: JSON.stringify({ action: "verify-domain", projectId: deployData.projectId, domain: deployData.customDomain }),
               });
               const result = await res.json();
               if (result.verified) {

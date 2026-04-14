@@ -9,6 +9,8 @@ import { selectTheme } from "./selectTheme";
 import { inferBrandProfile } from "./brandIntelligence";
 import { validateWebsite } from "./validateWebsite";
 import { deriveAssumptions } from "./deriveAssumptions";
+import { injectSEO, generateSitemap, generateRobotsTxt } from "@/lib/seo";
+import { generateContactFormHtml } from "@/lib/websiteContactForm";
 
 // Re-export SurveyData so route.ts can import from here
 export type { SurveyData } from "./generateCopy";
@@ -146,6 +148,40 @@ export async function buildWebsite(input: {
     // Pass template choice through to frontend
     ...(template ? { template } : {}),
   } as any;
+
+  // ── Inject SEO metadata ───────────────────────────────────────
+  try {
+    const seoData = {
+      businessName: branding.name,
+      tagline: branding.tagline || "",
+      description: input.surveyData?.aboutBusiness || input.surveyData?.tagline || `${branding.name} — professional ${businessContext.businessType} services`,
+      url: "", // Will be set after deploy — for now it's empty and gets filled by the frontend
+      niche: input.surveyData?.businessType || businessContext.businessType || "",
+      services: input.surveyData?.mainService ? [input.surveyData.mainService] : [],
+      location: input.surveyData?.location || undefined,
+      primaryColor: branding.primaryColor || "#4A90FF",
+      pricing: input.surveyData?.hasMultipleTiers && input.surveyData?.tiers
+        ? input.surveyData.tiers.map((t: any) => ({ name: t.name, price: t.price }))
+        : input.surveyData?.price ? [{ name: "Starting at", price: input.surveyData.price }] : undefined,
+    };
+    (website as any).seoData = seoData;
+  } catch (e) {
+    console.warn("ZELREX BUILD: SEO data generation warning:", e);
+  }
+
+  // ── Generate contact form HTML ────────────────────────────────
+  try {
+    const contactEmail = input.surveyData?.email || input.surveyData?.contactEmail || "";
+    if (contactEmail) {
+      (website as any).contactFormHtml = generateContactFormHtml(
+        contactEmail,
+        branding.name,
+        branding.primaryColor || "#4A90FF"
+      );
+    }
+  } catch (e) {
+    console.warn("ZELREX BUILD: Contact form generation warning:", e);
+  }
 
   try {
     validateWebsite(website);

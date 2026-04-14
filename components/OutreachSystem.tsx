@@ -116,6 +116,8 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
   const [linkedInLoading, setLinkedInLoading] = useState(false);
   const [emailFinderResult, setEmailFinderResult] = useState<any>(null);
   const [emailFinderLoading, setEmailFinderLoading] = useState(false);
+  const [abTesting, setAbTesting] = useState(false);
+  const [abResults, setAbResults] = useState<any>(null);
 
   // Settings form
   const [formTarget, setFormTarget] = useState("");
@@ -151,6 +153,10 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
       setSetupMode(true);
     }
     setLoading(false);
+  }, [userId]);
+
+  const loadStats = useCallback(async () => {
+    try { const s = await api("stats"); setStats(s); } catch {}
   }, [userId]);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -280,6 +286,31 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
       console.error("[Outreach] Email finder error:", e);
     } finally {
       setEmailFinderLoading(false);
+    }
+  };
+
+  const generateABTest = async (prospectId: string) => {
+    setAbTesting(true);
+    try {
+      const res = await fetch("/api/z/outreach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "ab-generate", userId, prospectId }),
+      });
+      const data = await res.json();
+      if (data.variants) {
+        const listRes = await fetch("/api/z/outreach", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "list", userId }),
+        });
+        const listData = await listRes.json();
+        setProspects(listData.prospects || []);
+        loadStats();
+      }
+    } catch (e) {
+      console.error("[Outreach] A/B test error:", e);
+    } finally {
+      setAbTesting(false);
     }
   };
 
@@ -919,13 +950,20 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                       )}
 
                       {isExpanded && !email && p.status === "discovered" && (
-                        <div style={{ marginTop: 16, textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
-                          <button className="or-btn" onClick={() => generateEmails([p.id])} disabled={generating} style={{
+                        <div style={{ marginTop: 16, textAlign: "center", display: "flex", gap: 8, justifyContent: "center" }} onClick={(e) => e.stopPropagation()}>
+                          <button className="or-btn" onClick={() => generateEmails([p.id])} disabled={generating || abTesting} style={{
                             padding: "9px 22px", border: "none",
                             background: `linear-gradient(135deg, ${G.accent}20, ${G.accent}06)`,
                             color: G.accentSoft, fontSize: 12, fontWeight: 700,
                             boxShadow: `0 0 12px ${G.accent}08`,
                           }}><span>{generating ? "Writing..." : "Write Email"}</span></button>
+                          <button className="or-btn" onClick={() => generateABTest(p.id)} disabled={generating || abTesting} style={{
+                            padding: "9px 22px", border: `0.5px solid ${G.glassBorder}`,
+                            background: `linear-gradient(135deg, ${G.amber}15, ${G.amber}04)`,
+                            color: G.amber, fontSize: 12, fontWeight: 700,
+                            boxShadow: `0 0 12px ${G.amber}06`,
+                            opacity: abTesting ? 0.5 : 1,
+                          }}><span>{abTesting ? "Testing..." : "A/B Test"}</span></button>
                         </div>
                       )}
                     </div>
