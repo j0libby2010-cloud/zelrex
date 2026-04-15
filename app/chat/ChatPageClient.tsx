@@ -1173,6 +1173,32 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [renameValue, setRenameValue] = useState("");
   const [openMsgMenuId, setOpenMsgMenuId] = useState<string | null>(null);
   const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
+  const [feedbackMap, setFeedbackMap] = useState<Record<string, "good" | "bad">>({});
+
+  const sendFeedback = async (messageId: string, chatId: string, type: "good" | "bad") => {
+    // Toggle: if already set to same type, remove it
+    if (feedbackMap[messageId] === type) {
+      setFeedbackMap(prev => { const n = { ...prev }; delete n[messageId]; return n; });
+      return;
+    }
+    setFeedbackMap(prev => ({ ...prev, [messageId]: type }));
+    // Save to Supabase
+    try {
+      await fetch("/api/z/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: clerkUser?.fullName || "User",
+          email: clerkUser?.primaryEmailAddress?.emailAddress || "unknown",
+          category: "feedback",
+          message: `${type === "good" ? "👍" : "👎"} feedback on message ${messageId} in chat ${chatId}`,
+          feedbackType: type,
+          messageId,
+          chatId,
+        }),
+      });
+    } catch {}
+  };
   const [listening, setListening] = useState(false);
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [draftAttachments, setDraftAttachments] = useState<DraftAttachment[]>([]);
@@ -2728,11 +2754,11 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                                   <button className="msg-act" title="Copy" onClick={() => { navigator.clipboard.writeText(m.content); setCopiedMsgId(m.id); setTimeout(() => setCopiedMsgId(null), 1200); }}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                                   </button>
-                                  <button className="msg-act" title="Good response" onClick={() => {}}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v12"/><path d="M15 5.88L14 10h5.83a2 2 0 011.92 2.56l-2.33 8A2 2 0 0117.5 22H4a2 2 0 01-2-2v-8a2 2 0 012-2h2.76a2 2 0 001.79-1.11L12 2a3.13 3.13 0 013 3.88z"/></svg>
+                                  <button className="msg-act" title="Good response" onClick={() => sendFeedback(m.id, activeChat?.id || "", "good")} style={feedbackMap[m.id] === "good" ? { color: "#34D399" } : undefined}>
+                                    <svg viewBox="0 0 24 24" fill={feedbackMap[m.id] === "good" ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v12"/><path d="M15 5.88L14 10h5.83a2 2 0 011.92 2.56l-2.33 8A2 2 0 0117.5 22H4a2 2 0 01-2-2v-8a2 2 0 012-2h2.76a2 2 0 001.79-1.11L12 2a3.13 3.13 0 013 3.88z"/></svg>
                                   </button>
-                                  <button className="msg-act" title="Bad response" onClick={() => {}}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 14V2"/><path d="M9 18.12L10 14H4.17a2 2 0 01-1.92-2.56l2.33-8A2 2 0 016.5 2H20a2 2 0 012 2v8a2 2 0 01-2 2h-2.76a2 2 0 00-1.79 1.11L12 22a3.13 3.13 0 01-3-3.88z"/></svg>
+                                  <button className="msg-act" title="Bad response" onClick={() => sendFeedback(m.id, activeChat?.id || "", "bad")} style={feedbackMap[m.id] === "bad" ? { color: "#F87171" } : undefined}>
+                                    <svg viewBox="0 0 24 24" fill={feedbackMap[m.id] === "bad" ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 14V2"/><path d="M9 18.12L10 14H4.17a2 2 0 01-1.92-2.56l2.33-8A2 2 0 016.5 2H20a2 2 0 012 2v8a2 2 0 01-2 2h-2.76a2 2 0 00-1.79 1.11L12 22a3.13 3.13 0 01-3-3.88z"/></svg>
                                   </button>
                                   <button className="msg-act" title="Retry" onClick={() => retryLast()}>
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>

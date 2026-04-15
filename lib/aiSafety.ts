@@ -36,12 +36,12 @@ export const COMPETITOR_DISCLAIMER = `\n\n*Competitor references are based on AI
 export const RELIABILITY_PROMPT = `
 RELIABILITY RULES (NON-NEGOTIABLE):
 1. NEVER fabricate data, names, companies, statistics, or sources.
-2. Tag all data claims: [SEARCHED] (from web search), [ESTIMATED] (your inference), or [PATTERN] (common freelancer patterns).
-3. When you don't know something, say "I don't have verified data on this" — never fill gaps with plausible-sounding fabrications.
+2. Embed your certainty level naturally into your wording — say "I'd estimate," "from what I've seen," or "I found that" instead of using bracketed tags.
+3. When you don't know something, say "I don't have solid data on this" — never fill gaps with plausible-sounding fabrications.
 4. Revenue projections are SCENARIOS, not predictions. Always frame as ranges, never guarantees.
 5. Contracts and proposals MUST include a disclaimer that they are AI-generated and not reviewed by a lawyer.
 6. When referencing a prospect's business, only state things you found via search. Do not invent details about their company, revenue, or situation.
-7. If you're estimating, say so explicitly. If you're guessing, say so explicitly. Never present uncertain info as confident fact.
+7. For major decisions, present 2-3 options with tradeoffs. Never give a single directive. The user decides.
 `;
 
 // ─── Contract-specific prompt ────────────────────────────────────
@@ -110,13 +110,13 @@ export function validateOutput(
     }
   }
 
-  // Check for business-relevant financial claims without provenance
+  // Check for business-relevant financial claims without uncertainty language
   if (checkFinancial) {
     const hasBusinessFinancialClaim = /\$\d{2,}(?:,\d{3})*(?:\.\d{2})?\s*(?:\/|per|a)\s*(?:month|year|hour|project|client|week)|(?:earn|make|charge|revenue|income|profit)\s+(?:of\s+)?\$\d+|(?:pricing|price|rate|fee)\s+(?:of|at|is)\s+\$\d+/i.test(result);
-    const hasProvenanceTag = /\[SEARCHED\]|\[ESTIMATED\]|\[PATTERN\]|I'm estimating|my best estimate|based on patterns|scenario estimate|I estimate|my estimate/i.test(result);
+    const hasNaturalUncertainty = /I(?:'d| would) estimate|from what I've seen|in my experience|I'm estimating|my best estimate|based on what I know|typically report|tends? to be around|rough(?:ly| number)|ballpark|I'm not certain|I haven't verified|based on patterns|scenario|realistic range|could vary|depends (?:on|heavily)|not a (?:promise|guarantee)/i.test(result);
     const hasFinancialDisclaimer = /not financial advice|strategic guidance|verify.*independently|scenario estimate|not a financial advisor/i.test(result);
 
-    if (hasBusinessFinancialClaim && !hasProvenanceTag && !hasFinancialDisclaimer) {
+    if (hasBusinessFinancialClaim && !hasNaturalUncertainty && !hasFinancialDisclaimer) {
       result += FINANCIAL_DISCLAIMER;
     }
   }
@@ -141,8 +141,8 @@ export function validateOutput(
   // Check for unsourced competitor claims
   if (checkCompetitor) {
     const hasSpecificCompetitorClaim = /(?:companies? (?:like|such as)|competitors? (?:like|include|such as))\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?(?:\s+(?:charges?|offers?|earns?|makes?))/i.test(result);
-    const hasSearchedTag = /\[SEARCHED\]/i.test(result);
-    if (hasSpecificCompetitorClaim && !hasSearchedTag) {
+    const hasNaturalSourceRef = /I found|according to|from (?:their|the) (?:website|site)|based on (?:my|a) search|I searched|I checked/i.test(result);
+    if (hasSpecificCompetitorClaim && !hasNaturalSourceRef) {
       result += COMPETITOR_DISCLAIMER;
     }
   }
@@ -355,8 +355,34 @@ export function enforceRules(reply: string): EnforcementResult {
   for (const pattern of dataLeakPatterns) {
     if (pattern.test(result)) {
       violations.push("DATA_LEAK: Response may contain user-identifying information");
-      // Redact the specific match
       result = result.replace(pattern, "[redacted for privacy]");
+    }
+  }
+
+  // ─── 6. TAG STRIPPING ──────────────────────────────
+  // Remove any bracketed tags that Claude might still use out of habit.
+  // These should be expressed naturally, not as labels.
+  const tagPatterns = /\s*\[(?:SEARCHED|ESTIMATED|PATTERN|VERIFIED|UNVERIFIED)\]\s*/gi;
+  if (tagPatterns.test(result)) {
+    violations.push("TAG_USAGE: Claude used bracketed tags instead of natural language");
+    result = result.replace(tagPatterns, " ");
+  }
+
+  // ─── 7. DIRECTIVE LANGUAGE SOFTENING ───────────────
+  // Catch cases where Claude gives directives instead of suggestions
+  // on major decisions. Only applies to longer responses (real advice,
+  // not casual chat).
+  if (result.length > 300) {
+    const directivePatterns = [
+      { pattern: /\bYou need to\b/gi, replacement: "I'd strongly suggest" },
+      { pattern: /\bYou must\b/gi, replacement: "I'd recommend" },
+      { pattern: /\bYou have to\b/gi, replacement: "The strongest move here is to" },
+    ];
+    for (const d of directivePatterns) {
+      if (d.pattern.test(result)) {
+        violations.push("DIRECTIVE_LANGUAGE: Claude used directive instead of advisory language");
+        result = result.replace(d.pattern, d.replacement);
+      }
     }
   }
 

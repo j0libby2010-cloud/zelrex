@@ -260,26 +260,40 @@ async function handleGenerate(supabase: SupabaseClient, userId: string, prospect
 
   if (!prospects?.length) return NextResponse.json({ emails: [], message: 'No prospects to write for' });
 
-  // Get business context from chat
-  const { data: chats } = await supabase.from('chats').select('messages').eq('user_id', userId).order('updated_at', { ascending: false }).limit(1);
-  const chatContext = (chats?.[0]?.messages || [])
+  // Get business context from Zelrex's advice AND the user's writing voice from their messages
+  const { data: chats } = await supabase.from('chats').select('messages').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3);
+  const allMessages = (chats || []).flatMap((c: any) => c.messages || []);
+  
+  // Business context from what Zelrex has told the user
+  const businessContext = allMessages
     .filter((m: any) => m.role === 'assistant')
     .map((m: any) => m.content)
     .join('\n')
-    .slice(0, 2000);
+    .slice(0, 1500);
+
+  // User's writing voice from their own messages
+  const userMessages = allMessages
+    .filter((m: any) => m.role === 'user' && m.content.length > 20)
+    .map((m: any) => m.content)
+    .slice(0, 15)
+    .join('\n')
+    .slice(0, 1500);
 
   const emails: any[] = [];
 
   for (const prospect of prospects) {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 600,
+      max_tokens: 800,
       messages: [{
         role: 'user',
-        content: `You are writing a cold outreach email for a freelancer. Write ONE personalized cold email.
+        content: `You are writing a cold outreach email for a freelancer. Write ONE personalized cold email that sounds like THIS SPECIFIC PERSON wrote it — not like an AI.
 
-FREELANCER'S BUSINESS:
-${chatContext}
+FREELANCER'S BUSINESS (what they do):
+${businessContext}
+
+HOW THIS FREELANCER ACTUALLY WRITES (study their voice, vocabulary, sentence length, and personality — the email should match this):
+${userMessages || "No writing samples available — use a natural, conversational human voice."}
 
 PROSPECT:
 - Name: ${prospect.name}
@@ -288,15 +302,22 @@ PROSPECT:
 - URL: ${prospect.platform_url}
 - Why they're a fit: ${prospect.relevance_reason}
 
-TONE: ${settings?.tone || 'professional'}
+TONE PREFERENCE: ${settings?.tone || 'professional'}
 
-RULES:
+VOICE MATCHING RULES (critical):
+- Study the freelancer's messages above. Notice: Do they use short punchy sentences or long explanations? Casual or formal? Do they use slang, humor, or stay buttoned-up? Do they say "hey" or "hello"? "awesome" or "excellent"?
+- Match their natural cadence. If they write casually, the email should be casual. If they're formal, be formal.
+- The email should read like the freelancer sat down and wrote it themselves — not like software generated it.
+- If there aren't enough writing samples, default to warm and conversational — like texting a professional acquaintance.
+
+CONTENT RULES:
 - Keep it under 120 words
-- Reference something specific about their business
-- One clear CTA (reply to book a call, see portfolio, etc.)
-- No fake urgency or manipulation
-- Sound human, not like a template
-- Include a simple opt-out line at the bottom: "Not interested? Just reply 'pass' and I won't reach out again."
+- Reference something specific about the prospect's business (from the URL/company info above)
+- One clear, low-pressure CTA (ask a question they can easily answer)
+- No fake urgency, no hype words, no manipulation
+- No "I noticed you might need" or "I came across your company" — these are dead giveaways of AI cold email
+- Open with something that shows you actually looked at their business
+- Include opt-out: "Not interested? Just reply 'pass' and I won't reach out again."
 
 Respond in JSON only, no markdown:
 {"subject":"...","body":"..."}`
@@ -495,22 +516,23 @@ async function handleLinkedInDM(supabase: SupabaseClient, userId: string, prospe
   if (!prospect) return NextResponse.json({ error: 'Prospect not found' }, { status: 404 });
 
   const { data: settings } = await supabase.from('outreach_settings').select('tone').eq('user_id', userId).single();
-  const { data: chats } = await supabase.from('chats').select('messages').eq('user_id', userId).order('updated_at', { ascending: false }).limit(1);
-  const chatContext = (chats?.[0]?.messages || [])
-    .filter((m: any) => m.role === 'assistant')
-    .map((m: any) => m.content)
-    .join('\n')
-    .slice(0, 2000);
+  const { data: chats } = await supabase.from('chats').select('messages').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3);
+  const allMsgs = (chats || []).flatMap((c: any) => c.messages || []);
+  const businessContext = allMsgs.filter((m: any) => m.role === 'assistant').map((m: any) => m.content).join('\n').slice(0, 1500);
+  const userVoice = allMsgs.filter((m: any) => m.role === 'user' && m.content.length > 20).map((m: any) => m.content).slice(0, 10).join('\n').slice(0, 1000);
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 600,
     messages: [{
       role: 'user',
-      content: `Write a LinkedIn direct message script for a freelancer reaching out to a prospect. This is NOT an email — it's a DM, so it should feel conversational and brief.
+      content: `Write a LinkedIn direct message script for a freelancer reaching out to a prospect. This is NOT an email — it's a DM, so it should feel conversational and brief. It should sound exactly like the freelancer would naturally write.
 
 FREELANCER'S BUSINESS:
-${chatContext}
+${businessContext}
+
+HOW THIS FREELANCER WRITES (match their voice):
+${userVoice || "No samples — use casual, conversational tone."}
 
 PROSPECT:
 - Name: ${prospect.name}
@@ -522,6 +544,7 @@ TONE: ${settings?.tone || 'professional'}
 
 LINKEDIN DM RULES:
 - Keep it under 80 words (LinkedIn DMs should be SHORT)
+- Match the freelancer's natural writing voice from the samples above
 - Open with something specific about their company or recent activity
 - One clear value proposition — what you can do for them
 - Soft CTA — ask a question, don't push a call
@@ -650,18 +673,23 @@ async function handleABGenerate(supabase: SupabaseClient, userId: string, prospe
   if (!prospect) return NextResponse.json({ error: 'Prospect not found' }, { status: 404 });
 
   const { data: settings } = await supabase.from('outreach_settings').select('tone').eq('user_id', userId).single();
-  const { data: chats } = await supabase.from('chats').select('messages').eq('user_id', userId).order('updated_at', { ascending: false }).limit(1);
-  const chatContext = (chats?.[0]?.messages || []).filter((m: any) => m.role === 'assistant').map((m: any) => m.content).join('\n').slice(0, 2000);
+  const { data: chats } = await supabase.from('chats').select('messages').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3);
+  const allMsgs = (chats || []).flatMap((c: any) => c.messages || []);
+  const businessContext = allMsgs.filter((m: any) => m.role === 'assistant').map((m: any) => m.content).join('\n').slice(0, 1500);
+  const userVoice = allMsgs.filter((m: any) => m.role === 'user' && m.content.length > 20).map((m: any) => m.content).slice(0, 15).join('\n').slice(0, 1500);
 
   const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-20250514',
     max_tokens: 1200,
     messages: [{
       role: 'user',
-      content: `Write TWO completely different cold email variants for A/B testing. Each should take a different angle to reach the same prospect.
+      content: `Write TWO completely different cold email variants for A/B testing. Each should take a different angle to reach the same prospect. Both should sound like the freelancer wrote them personally.
 
 FREELANCER'S BUSINESS:
-${chatContext}
+${businessContext}
+
+HOW THIS FREELANCER WRITES (match their voice):
+${userVoice || "No samples — use warm, conversational tone."}
 
 PROSPECT:
 - Name: ${prospect.name}
@@ -674,9 +702,11 @@ VARIANT B: "curiosity" approach — lead with a question or observation about th
 Both must:
 - Be under 120 words each
 - Have different subject lines
+- Match the freelancer's natural writing voice from the samples above
 - Reference something specific about the prospect
 - Include opt-out line
-- Sound human, not templated
+- No "I noticed" or "I came across" openers
+- Sound like a real person, not software
 
 Respond JSON only, no markdown:
 {
