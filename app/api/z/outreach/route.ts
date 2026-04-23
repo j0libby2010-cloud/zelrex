@@ -121,7 +121,12 @@ async function handleSetup(supabase: SupabaseClient, userId: string, body: any) 
 }
 
 async function handleGetSettings(supabase: SupabaseClient, userId: string) {
-  const { data } = await supabase.from('outreach_settings').select('*').eq('user_id', userId).single();
+  const { data, error } = await supabase.from('outreach_settings').select('*').eq('user_id', userId).single();
+  // PGRST116 means no rows found — that's expected for new users, not an error
+  if (error && error.code !== 'PGRST116') {
+    console.error('[Outreach getSettings] Query error:', error.message);
+    return NextResponse.json({ settings: null, error: 'Failed to load settings' }, { status: 500 });
+  }
   return NextResponse.json({ settings: data || null });
 }
 
@@ -149,7 +154,7 @@ async function handleFind(supabase: SupabaseClient, userId: string) {
 
   // Use Claude with web search to find REAL businesses
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514',
     max_tokens: 3000,
     tools: [{ type: "web_search_20250305" as any, name: "web_search" }],
     messages: [{
@@ -163,16 +168,27 @@ TARGET AUDIENCE: ${targetDesc || 'Infer from the business context above'}
 
 EXISTING PROSPECTS (avoid these): ${existingNames || 'none'}
 
-INSTRUCTIONS:
-1. Search the web for real businesses matching the target audience
-2. Find 5 REAL businesses with verifiable online presence
-3. For each prospect, include the actual source URL where you found them
-4. Every name, company, and URL must be real and verifiable
+MANDATORY PROCESS (do not skip steps):
+1. Use the web_search tool to actively search for real businesses. Try specific queries like "[niche] small business [location/type]" or "top [industry] companies hiring [service]".
+2. For each result, click through to verify the business exists, has a real website, and matches the target audience.
+3. Only include businesses where you can confirm all of these from your search:
+   - The business is currently operating (not closed, not inactive)
+   - They have a working website you navigated to
+   - They plausibly need this specific service
+4. If you can only verify 2 real prospects, return 2. Never pad to 5 with guesses.
+
+STRICT RULES (violating these makes Zelrex untrustworthy):
+- DO NOT invent company names. Every company name must come from a real search result you clicked through.
+- DO NOT invent URLs. Every platform_url must be a URL you actually visited in search results.
+- DO NOT use placeholder domains (example.com, yourcompany.com, etc.).
+- DO NOT infer business details you didn't actually see. Only state what's observable from their website.
+- DO NOT use the "relevance_reason" field to inject fake specifics like "they recently raised $2M" unless you actually saw that.
+- If you're unsure whether a business exists, DON'T include it. Err toward returning fewer verified prospects.
 
 After searching, respond with ONLY this JSON (no markdown, no backticks, no other text):
-[{"name":"Owner/Contact Name","company":"Real Business Name","platform":"website","platform_url":"https://their-actual-website.com","source_url":"https://where-you-found-them.com","relevance_reason":"Why they need this service - be specific about what you observed","relevance_score":85}]
+[{"name":"Owner/Contact Name or leave empty if unknown","company":"Real Business Name (exactly as it appears on their site)","platform":"website","platform_url":"https://their-actual-website.com","source_url":"https://where-you-found-them.com","relevance_reason":"What you actually observed on their site that makes them a fit — be specific but only about things you saw","relevance_score":85}]
 
-CRITICAL: Only include businesses you actually found via web search. Every source_url must be a real page. If you can't find enough real prospects, return fewer than 5 rather than inventing any.`
+CRITICAL: The URL verifier runs after you. If you invent URLs, they'll be rejected and the user will see an error. Save the user's time — only return verified prospects.`
     }],
   });
 
@@ -198,8 +214,102 @@ CRITICAL: Only include businesses you actually found via web search. Every sourc
     return NextResponse.json({ error: 'No matching prospects found. Try broadening your target audience.' }, { status: 404 });
   }
 
+  // ── Verify prospect URLs exist (filter out fabricated prospects) ──
+  const verifiedProspects: any[] = [];
+  const failedUrls: string[] = [];
+  
+  for (const p of prospects) {
+    const url = p.platform_url || p.source_url || '';
+    if (!url || url === 'manual') {
+      // No URL to verify — reject this prospect (we require verifiable prospects)
+      failedUrls.push('no-url-provided');
+      continue;
+    }
+    
+    // Basic URL sanity check — reject obvious fake domains
+    const suspiciousPatterns = [
+      /example\.(com|org|net)/i,
+      /yourcompany/i,
+      /placeholder/i,
+      /test\.(com|org)/i,
+      /lorem/i,
+      /fakecompany/i,
+    ];
+    if (suspiciousPatterns.some(p => p.test(url))) {
+      failedUrls.push(url);
+      continue;
+    }
+    
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(url, {
+        method: 'HEAD',
+        signal: controller.signal,
+        headers: { 'User-Agent': 'Zelrex-Prospect-Verify/1.0' },
+        redirect: 'follow',
+      }).catch(() => null);
+      clearTimeout(timeout);
+      
+      if (res && res.status < 400) {
+        verifiedProspects.push({ ...p, url_verified: true });
+      } else {
+        // Try GET as fallback — some servers reject HEAD
+        try {
+          const controller2 = new AbortController();
+          const timeout2 = setTimeout(() => controller2.abort(), 5000);
+          const res2 = await fetch(url, {
+            method: 'GET',
+            signal: controller2.signal,
+            headers: { 'User-Agent': 'Zelrex-Prospect-Verify/1.0' },
+            redirect: 'follow',
+          }).catch(() => null);
+          clearTimeout(timeout2);
+          
+          if (res2 && res2.status < 400) {
+            // Additional check: does the response body actually contain the company name?
+            // This catches cases where the URL exists but is a squatted/parked domain
+            try {
+              const bodyText = await res2.text();
+              const companyNameClean = (p.company || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+              const bodyClean = bodyText.toLowerCase().replace(/[^a-z0-9]/g, '');
+              if (companyNameClean.length >= 4 && !bodyClean.includes(companyNameClean.slice(0, Math.min(companyNameClean.length, 10)))) {
+                // Company name doesn't appear on their own website — suspicious
+                failedUrls.push(url + ' (company name not found on page)');
+              } else {
+                verifiedProspects.push({ ...p, url_verified: true });
+              }
+            } catch {
+              verifiedProspects.push({ ...p, url_verified: true });
+            }
+          } else {
+            failedUrls.push(url);
+          }
+        } catch {
+          failedUrls.push(url);
+        }
+      }
+    } catch {
+      failedUrls.push(url);
+    }
+  }
+
+  if (failedUrls.length > 0) {
+    if(process.env.NODE_ENV==='development') console.log(`[Outreach] Filtered ${failedUrls.length} unverified URLs:`, failedUrls);
+  }
+
+  // STRICT MODE: Only return verified prospects. If none verified, tell the user clearly.
+  if (verifiedProspects.length === 0) {
+    return NextResponse.json({ 
+      error: 'I found some potential prospects but couldn\'t verify any of their websites are real. Try being more specific about your target audience — the more specific the niche, the better I can find verified businesses.',
+      failed_count: failedUrls.length 
+    }, { status: 404 });
+  }
+
+  const finalProspects = verifiedProspects;
+
   // Insert prospects with source URLs
-  const rows = prospects.map((p: any) => ({
+  const rows = finalProspects.map((p: any) => ({
     user_id: userId,
     name: p.name || 'Unknown',
     company: p.company || '',
@@ -283,7 +393,7 @@ async function handleGenerate(supabase: SupabaseClient, userId: string, prospect
 
   for (const prospect of prospects) {
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514',
       max_tokens: 800,
       messages: [{
         role: 'user',
@@ -522,7 +632,7 @@ async function handleLinkedInDM(supabase: SupabaseClient, userId: string, prospe
   const userVoice = allMsgs.filter((m: any) => m.role === 'user' && m.content.length > 20).map((m: any) => m.content).slice(0, 10).join('\n').slice(0, 1000);
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514',
     max_tokens: 600,
     messages: [{
       role: 'user',
@@ -607,6 +717,11 @@ async function handleFollowUp(supabase: SupabaseClient, userId: string, prospect
 
   if (!needsFollowUp.length) return NextResponse.json({ emails: [], message: 'No prospects need follow-up yet (wait 5 days after last email)' });
 
+  // Get user's writing voice from chat history for voice matching
+  const { data: chats } = await supabase.from('chats').select('messages').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3);
+  const allMsgs = (chats || []).flatMap((c: any) => c.messages || []);
+  const userVoice = allMsgs.filter((m: any) => m.role === 'user' && m.content.length > 20).map((m: any) => m.content).slice(0, 10).join('\n').slice(0, 1000);
+
   const emails: any[] = [];
 
   for (const prospect of needsFollowUp.slice(0, 5)) {
@@ -615,22 +730,30 @@ async function handleFollowUp(supabase: SupabaseClient, userId: string, prospect
     const followUpNumber = (lastEmail?.follow_up_number || 1) + 1;
 
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 400,
+      model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514',
+      max_tokens: 500,
       messages: [{
         role: 'user',
-        content: `Write a follow-up email (follow-up #${followUpNumber}) for a prospect who didn't reply to the original email.
+        content: `Write a follow-up email (follow-up #${followUpNumber}) for a prospect who didn't reply. This must sound exactly like the freelancer wrote it themselves.
+
+HOW THIS FREELANCER WRITES (match their voice — sentence length, vocabulary, personality):
+${userVoice || "No samples — use warm, brief, conversational tone."}
 
 PROSPECT:
 - Name: ${prospect.name}
 - Company: ${prospect.company}
 - Original email subject: "${originalEmail?.subject || 'N/A'}"
+- Original email body: ${(originalEmail?.body || '').slice(0, 400)}
 - Days since last email: ${Math.floor((Date.now() - new Date(lastEmail.created_at).getTime()) / (1000 * 60 * 60 * 24))}
 
+VOICE MATCHING RULES:
+- Study the freelancer's writing above. Match their casual vs formal level, their vocabulary, their cadence.
+- The follow-up should feel continuous with the original email's voice
+- Do NOT sound like AI ("I wanted to follow up", "I hope this finds you well", "circling back")
+
 FOLLOW-UP RULES:
-- ${followUpNumber === 2 ? "This is the first follow-up. Keep it SHORT (under 60 words). Reference the original email briefly. Add one new value point or question." : "This is the final follow-up. Make it very brief (under 40 words). Give them an easy out: 'If this isn't relevant, no worries — just let me know and I won't follow up again.'"}
+- ${followUpNumber === 2 ? "This is the first follow-up. Keep it SHORT (under 60 words). Briefly reference the original. Add one specific new angle or question." : "This is the final follow-up. Very brief (under 40 words). Give them an easy out: 'If this isn't a fit, just let me know — I won't follow up again.'"}
 - DO NOT be pushy, guilt-trippy, or fake-urgent
-- Sound human and respectful of their time
 - Include opt-out: "Not interested? Just reply 'pass'."
 
 JSON only, no markdown:
@@ -679,7 +802,7 @@ async function handleABGenerate(supabase: SupabaseClient, userId: string, prospe
   const userVoice = allMsgs.filter((m: any) => m.role === 'user' && m.content.length > 20).map((m: any) => m.content).slice(0, 15).join('\n').slice(0, 1500);
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514',
     max_tokens: 1200,
     messages: [{
       role: 'user',
@@ -795,7 +918,7 @@ async function handleFindEmail(supabase: SupabaseClient, userId: string, prospec
 
   // Use Claude with web search to find contact info
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514',
     max_tokens: 800,
     tools: [{ type: "web_search_20250305" as any, name: "web_search" }],
     messages: [{

@@ -494,9 +494,11 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
   useEffect(() => {
-    if (dataLoaded && !localStorage.getItem("zelrex_tutorial_done")) {
-      setTimeout(() => setShowTutorial(true), 1500);
-    }
+    try {
+      if (dataLoaded && !localStorage.getItem("zelrex_tutorial_done")) {
+        setTimeout(() => setShowTutorial(true), 1500);
+      }
+    } catch { /* localStorage disabled — no tutorial */ }
   }, [dataLoaded]);
   const [expandedBizId, setExpandedBizId] = useState<string | null>(null);
   const [showSurvey, setShowSurvey] = useState(false);
@@ -648,7 +650,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   // Persist animated IDs across reloads so typewriter never replays (local-only, cosmetic)
   const [animatedIds, setAnimatedIds] = useState<string[]>([]);
   useEffect(() => { const s = localStorage.getItem("zelrex_animated_ids"); if (s) try { setAnimatedIds(JSON.parse(s)); } catch {} }, []);
-  useEffect(() => { localStorage.setItem("zelrex_animated_ids", JSON.stringify(animatedIds)); }, [animatedIds]);
+  useEffect(() => { try { localStorage.setItem("zelrex_animated_ids", JSON.stringify(animatedIds)); } catch {} }, [animatedIds]);
 
   // ─── Load user data from Supabase ────────────────────────────────
   useEffect(() => {
@@ -1156,11 +1158,31 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       } catch (notifError) {
         console.error("[Zelrex Notifications] Check failed:", notifError);
       }
+      // Heartbeat — records when the last successful check ran
+      try { localStorage.setItem('zelrex_last_notif_check', String(Date.now())); } catch {}
     };
 
     const initialCheck = setTimeout(runChecks, 5000);
     const checkInterval = setInterval(runChecks, 120000);
-    return () => { clearInterval(checkInterval); clearTimeout(initialCheck); };
+    
+    // Also run immediately when tab becomes visible (catches missed checks after sleep/suspend)
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        try {
+          const lastCheck = parseInt(localStorage.getItem('zelrex_last_notif_check') || '0');
+          const timeSince = Date.now() - lastCheck;
+          // If more than 3 minutes since last check, run now
+          if (timeSince > 180000) runChecks();
+        } catch {}
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    
+    return () => { 
+      clearInterval(checkInterval); 
+      clearTimeout(initialCheck); 
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [dataLoaded, clerkUser?.id, addNotification, zelrexSettings.notifOverdueInvoices, zelrexSettings.notifContractReminders, zelrexSettings.notifGoalProgress, zelrexSettings.notifPositiveEncouragement, zelrexSettings.inAppSuggestions, zelrexSettings.notifTrafficDrops, zelrexSettings.notifRevenueChanges, userGoal, chats]);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -3697,7 +3719,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         {/* ─── ONBOARDING TUTORIAL ─── */}
         {showTutorial && (
           <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", alignItems: "center", justifyContent: "center", animation: "vacuumIn 300ms cubic-bezier(0.22,1,0.36,1) forwards" }}>
-            <div onClick={() => { setShowTutorial(false); localStorage.setItem("zelrex_tutorial_done", "1"); }} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }} />
+            <div onClick={() => { setShowTutorial(false); try { localStorage.setItem("zelrex_tutorial_done", "1"); } catch {} }} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }} />
             <div style={{ position: "relative", width: 440, maxWidth: "92vw", borderRadius: 22, border: `0.5px solid ${C.border}`, background: "rgba(12,16,24,0.95)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", boxShadow: "0 32px 80px rgba(0,0,0,0.6)", overflow: "hidden" }}>
               <div style={{ padding: "32px 28px 20px", textAlign: "center" }}>
                 <div style={{ width: 56, height: 56, borderRadius: 16, background: `${C.accent}15`, border: `1px solid ${C.accent}20`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: `0 0 30px ${C.accent}15` }}>
@@ -3720,10 +3742,10 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 </div>
               </div>
               <div style={{ padding: "0 28px 24px", display: "flex", gap: 10 }}>
-                <button onClick={() => { setShowTutorial(false); localStorage.setItem("zelrex_tutorial_done", "1"); }} style={{ flex: 1, padding: "11px", borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t("skip")}</button>
+                <button onClick={() => { setShowTutorial(false); try { localStorage.setItem("zelrex_tutorial_done", "1"); } catch {} }} style={{ flex: 1, padding: "11px", borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t("skip")}</button>
                 <button onClick={() => {
                   if (tutorialStep < 3) { setTutorialStep(s => s + 1); }
-                  else { setShowTutorial(false); localStorage.setItem("zelrex_tutorial_done", "1"); }
+                  else { setShowTutorial(false); try { localStorage.setItem("zelrex_tutorial_done", "1"); } catch {} }
                 }} style={{ flex: 1.5, padding: "11px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 16px ${C.accent}40` }}>
                   {tutorialStep < 3 ? t("next") : t("gotIt")}
                 </button>

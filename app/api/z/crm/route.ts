@@ -171,7 +171,19 @@ async function clientsDelete(supabase: SupabaseClient, body: any) {
 
 async function clientsGet(supabase: SupabaseClient, body: any) {
   if (!body.clientId) return NextResponse.json({ error: 'Missing clientId' }, { status: 400 });
-  const { data } = await supabase.from('crm_clients').select(`*, crm_invoices(*), crm_contracts(*), crm_followups(*)`).eq('id', body.clientId).single();
+  
+  // Validate clientId format (prevent injection)
+  if (typeof body.clientId !== 'string' || !/^[a-f0-9-]{36}$/i.test(body.clientId)) {
+    return NextResponse.json({ error: 'Invalid clientId format' }, { status: 400 });
+  }
+  
+  const { data, error } = await supabase.from('crm_clients').select(`*, crm_invoices(*), crm_contracts(*), crm_followups(*)`).eq('id', body.clientId).single();
+  
+  if (error) {
+    console.error('[CRM clientsGet] Query error:', error.message);
+    return NextResponse.json({ error: 'Client not found or query failed' }, { status: 404 });
+  }
+  
   return NextResponse.json({ client: data });
 }
 
@@ -181,9 +193,17 @@ async function clientsGet(supabase: SupabaseClient, body: any) {
 
 async function invoicesList(supabase: SupabaseClient, userId: string, body: any) {
   let q = supabase.from('crm_invoices').select(`*, crm_clients(name, email, company)`).eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
-  if (body.status && body.status !== 'all') q = q.eq('status', body.status);
-  if (body.clientId) q = q.eq('client_id', body.clientId);
-  const { data } = await q;
+  if (body.status && body.status !== 'all') {
+    // Whitelist status values
+    const validStatuses = ['draft', 'sent', 'paid', 'overdue', 'cancelled'];
+    if (validStatuses.includes(body.status)) q = q.eq('status', body.status);
+  }
+  if (body.clientId && /^[a-f0-9-]{36}$/i.test(body.clientId)) q = q.eq('client_id', body.clientId);
+  const { data, error } = await q;
+  if (error) {
+    console.error('[CRM invoicesList] Query error:', error.message);
+    return NextResponse.json({ invoices: [], error: 'Failed to load invoices' }, { status: 500 });
+  }
   return NextResponse.json({ invoices: data || [] });
 }
 
@@ -204,8 +224,13 @@ async function invoicesCreate(supabase: SupabaseClient, userId: string, body: an
   }).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  // Update client lifetime value
-  try { await supabase.rpc('increment_client_value', { cid: clientId, amount: totalCents }); } catch {}
+  // Update client lifetime value (non-blocking but log failures for investigation)
+  try { 
+    await supabase.rpc('increment_client_value', { cid: clientId, amount: totalCents }); 
+  } catch (e: any) {
+    console.warn('[CRM invoicesCreate] increment_client_value RPC failed:', e?.message || 'unknown');
+    // Don't fail the whole invoice creation — the invoice is saved, LTV update is secondary
+  }
 
   return NextResponse.json({ invoice: data });
 }
@@ -249,16 +274,38 @@ async function invoicesGenerate(supabase: SupabaseClient, userId: string, body: 
   const { clientId, description } = body;
 
   const { data: client } = await supabase.from('crm_clients').select('*').eq('id', clientId).single();
-  const { data: chats } = await supabase.from('chats').select('messages').eq('user_id', userId).order('updated_at', { ascending: false }).limit(1);
-  const ctx = (chats?.[0]?.messages || []).filter((m: any) => m.role === 'assistant').map((m: any) => m.content).join('\n').slice(0, 2000);
+  
+  // Pull full context: recent chats + past invoices to learn real pricing patterns
+  const { data: chats } = await supabase.from('chats').select('messages').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3);
+  const allMsgs = (chats || []).flatMap((c: any) => c.messages || []);
+  const ctx = allMsgs.filter((m: any) => m.role === 'assistant').map((m: any) => m.content).join('\n').slice(0, 2000);
+  
+  // Pull past invoice amounts to anchor pricing in reality
+  const { data: pastInvoices } = await supabase
+    .from('crm_invoices')
+    .select('total_cents, items')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(10);
+  
+  const pastPricingContext = pastInvoices && pastInvoices.length > 0
+    ? `\nUSER'S ACTUAL PAST PRICING (anchor new estimates to these real rates):\n${pastInvoices.map((inv: any) => `- $${(inv.total_cents / 100).toFixed(2)} total`).join('\n')}`
+    : '\nNo past invoices on file. Do NOT invent rates — leave rate_cents at 0 and write "Confirm rate with client" in the description so the user fills it in.';
 
   const res = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514', max_tokens: 800,
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514', max_tokens: 800,
     messages: [{ role: 'user', content: `Generate invoice line items for a freelancer.
 
 CLIENT: ${client?.name} (${client?.company || 'Individual'})
 FREELANCER BUSINESS CONTEXT: ${ctx}
 WORK DESCRIPTION: ${description || 'General freelance work'}
+${pastPricingContext}
+
+CRITICAL RULES:
+- If you have past invoice data above, anchor new line items to those real rates. Do not invent rates that don't match the user's actual pricing pattern.
+- If you have no pricing data, set rate_cents to 0 and include "Confirm rate" in the description — do NOT guess rates.
+- Keep descriptions specific to what was actually described, not generic.
+- Only generate line items that match the described work.
 
 Generate 1-4 invoice line items. Respond JSON only:
 [{"description":"...","qty":1,"rate_cents":5000,"amount_cents":5000}]
@@ -270,7 +317,7 @@ No markdown, no backticks.` }],
     const items = JSON.parse(text.replace(/```json|```/g, '').trim());
     return NextResponse.json({ items });
   } catch {
-    return NextResponse.json({ items: [{ description: description || 'Freelance work', qty: 1, rate_cents: 0, amount_cents: 0 }] });
+    return NextResponse.json({ items: [{ description: description || 'Confirm rate with client', qty: 1, rate_cents: 0, amount_cents: 0 }] });
   }
 }
 
@@ -280,8 +327,12 @@ No markdown, no backticks.` }],
 
 async function contractsList(supabase: SupabaseClient, userId: string, body: any) {
   let q = supabase.from('crm_contracts').select(`*, crm_clients(name, email)`).eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
-  if (body.clientId) q = q.eq('client_id', body.clientId);
-  const { data } = await q;
+  if (body.clientId && /^[a-f0-9-]{36}$/i.test(body.clientId)) q = q.eq('client_id', body.clientId);
+  const { data, error } = await q;
+  if (error) {
+    console.error('[CRM contractsList] Query error:', error.message);
+    return NextResponse.json({ contracts: [], error: 'Failed to load contracts' }, { status: 500 });
+  }
   return NextResponse.json({ contracts: data || [] });
 }
 
@@ -302,13 +353,26 @@ async function contractsGenerate(supabase: SupabaseClient, userId: string, body:
   const { clientId, type, description } = body;
 
   const { data: client } = await supabase.from('crm_clients').select('*').eq('id', clientId).single();
-  const { data: chats } = await supabase.from('chats').select('messages').eq('user_id', userId).order('updated_at', { ascending: false }).limit(1);
-  const ctx = (chats?.[0]?.messages || []).filter((m: any) => m.role === 'assistant').map((m: any) => m.content).join('\n').slice(0, 2000);
+  const { data: chats } = await supabase.from('chats').select('messages').eq('user_id', userId).order('updated_at', { ascending: false }).limit(3);
+  const allMsgs = (chats || []).flatMap((c: any) => c.messages || []);
+  const ctx = allMsgs.filter((m: any) => m.role === 'assistant').map((m: any) => m.content).join('\n').slice(0, 2000);
+
+  // Pull past contracts/invoices to anchor pricing to the user's reality
+  const [pastContracts, pastInvoices] = await Promise.all([
+    supabase.from('crm_contracts').select('amount_cents, title').eq('user_id', userId).order('created_at', { ascending: false }).limit(5),
+    supabase.from('crm_invoices').select('total_cents').eq('user_id', userId).order('created_at', { ascending: false }).limit(10),
+  ]);
+  
+  const pricingAnchor = (pastContracts.data && pastContracts.data.length > 0) || (pastInvoices.data && pastInvoices.data.length > 0)
+    ? `\nUSER'S ACTUAL PAST PRICING (use these as anchor — don't invent numbers outside this range):
+${(pastContracts.data || []).map((c: any) => `- Contract: "${c.title}" — $${(c.amount_cents / 100).toFixed(2)}`).join('\n')}
+${(pastInvoices.data || []).map((inv: any) => `- Invoice: $${(inv.total_cents / 100).toFixed(2)}`).join('\n')}`
+    : '\nNo past pricing data. Do NOT invent specific dollar amounts. Use "[Amount to be confirmed]" placeholders instead.';
 
   const isProposal = type === 'proposal';
 
   const res = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514', max_tokens: 2000,
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514', max_tokens: 2000,
     messages: [{ role: 'user', content: `${RELIABILITY_PROMPT}
 ${CONTRACT_PROMPT}
 
@@ -317,18 +381,24 @@ Generate a professional freelance ${isProposal ? 'proposal' : 'contract'} in mar
 CLIENT: ${client?.name} (${client?.company || 'Individual'}, ${client?.email || 'no email'})
 FREELANCER BUSINESS: ${ctx}
 DESCRIPTION: ${description || 'General freelance services'}
+${pricingAnchor}
+
+CRITICAL PRICING RULE:
+- If past pricing data is provided above, stay within that range. Do NOT invent dollar amounts wildly outside the user's actual pricing history.
+- If no past data, use "[Amount to be confirmed]" as a placeholder rather than inventing specific numbers.
+- Specific dollar amounts in contracts are legally binding — err on the side of placeholders over invented numbers.
 
 ${isProposal ? `PROPOSAL should include:
 - Executive summary (what you'll do and why)
 - Scope of work (specific deliverables)
 - Timeline with milestones
-- Investment (pricing with clear breakdown)
+- Investment (pricing with clear breakdown — use real or placeholder amounts per rule above)
 - Terms (payment schedule, revision policy)
 - Next steps (how to accept)` : `CONTRACT should include:
 - Parties (freelancer and client — use placeholder names)
 - Scope of work (specific deliverables)
 - Timeline and milestones
-- Payment terms (amount, schedule, late fees)
+- Payment terms (amount, schedule, late fees — use real or placeholder amounts per rule above)
 - Revision policy (number of included revisions)
 - Intellectual property (client owns final deliverables)
 - Confidentiality clause
@@ -369,9 +439,16 @@ async function contractsUpdate(supabase: SupabaseClient, body: any) {
 
 async function followupsList(supabase: SupabaseClient, userId: string, body: any) {
   let q = supabase.from('crm_followups').select(`*, crm_clients(name, email), crm_invoices(invoice_number, amount_cents)`).eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
-  if (body.status && body.status !== 'all') q = q.eq('status', body.status);
-  if (body.clientId) q = q.eq('client_id', body.clientId);
-  const { data } = await q;
+  if (body.status && body.status !== 'all') {
+    const validStatuses = ['pending', 'sent', 'completed', 'cancelled'];
+    if (validStatuses.includes(body.status)) q = q.eq('status', body.status);
+  }
+  if (body.clientId && /^[a-f0-9-]{36}$/i.test(body.clientId)) q = q.eq('client_id', body.clientId);
+  const { data, error } = await q;
+  if (error) {
+    console.error('[CRM followupsList] Query error:', error.message);
+    return NextResponse.json({ followups: [], error: 'Failed to load followups' }, { status: 500 });
+  }
   return NextResponse.json({ followups: data || [] });
 }
 
@@ -406,7 +483,7 @@ async function followupsGenerate(supabase: SupabaseClient, userId: string, body:
     : 'Write a friendly check-in message. Ask if they need anything or have upcoming projects.';
 
   const res = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514', max_tokens: 400,
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514', max_tokens: 400,
     messages: [{ role: 'user', content: `Write a follow-up email for a freelancer.
 
 CLIENT: ${client?.name} (${client?.email || ''})
@@ -540,7 +617,7 @@ async function screenClient(supabase: SupabaseClient, userId: string, body: any)
   if (!description) return NextResponse.json({ error: 'Missing description' }, { status: 400 });
 
   const res = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5-20250929', max_tokens: 2000,
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-5-20250929', max_tokens: 2000,
     tools: [{ type: 'web_search_20250305' as any, name: 'web_search' }],
     messages: [{ role: 'user', content: `You are an expert freelancer protection system. A freelancer${userNiche ? ` in ${userNiche}` : ""} is considering working with a potential client. Analyze the client's message/project description for risks.
 
@@ -1012,7 +1089,7 @@ async function outcomeCheck(supabase: SupabaseClient, userId: string, body: any)
 
   // AI analysis of progress
   const res = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514', max_tokens: 500,
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514', max_tokens: 500,
     messages: [{ role: 'user', content: `You are analyzing a freelancer's progress at their ${checkpointDay}-day check-in.
 
 GOAL: ${outcome.goal_description}

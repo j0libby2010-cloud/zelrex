@@ -155,16 +155,36 @@ export function validateOutput(
 
 export function validateOutreachEmail(email: { subject: string; body: string }): { subject: string; body: string } {
   let body = email.body;
+  let subject = email.subject;
 
-  // Check for suspiciously specific unsourced claims about the prospect
+  // 1. Remove suspiciously specific unsourced claims about the prospect
   const suspiciousClaims = /(?:your revenue|you(?:'re| are) (?:earning|making)|your (?:\d+ )?(?:employees?|team members?|staff)|you(?:'ve| have) been (?:in business|operating) for \d+)/i.test(body);
   if (suspiciousClaims) {
-    // Remove or soften fabricated specifics
     body = body.replace(/(?:your revenue (?:of|is) \$[\d,]+)/gi, "your business");
     body = body.replace(/(?:your \d+ (?:employees?|team members?|staff))/gi, "your team");
+    body = body.replace(/you(?:'ve| have) been (?:in business|operating) for \d+ years?/gi, "your business");
+    body = body.replace(/you(?:'re| are) (?:earning|making) \$[\d,]+/gi, "your work");
   }
 
-  return { subject: email.subject, body };
+  // 2. Remove AI cold-email giveaway phrases
+  const aiGiveaways = [
+    { pattern: /\bI noticed (?:that )?you(?:'re| are) (?:looking|searching|in need|in the market)\b/gi, replacement: "I think" },
+    { pattern: /\bI came across your (?:company|business|website)\b/gi, replacement: "I was looking at your business" },
+    { pattern: /\bI hope this (?:email )?finds you well\b/gi, replacement: "" },
+    { pattern: /\b(?:My name is|I'm) \w+ and I(?:'m| am) reaching out\b/gi, replacement: "Reaching out" },
+  ];
+  for (const g of aiGiveaways) {
+    body = body.replace(g.pattern, g.replacement);
+    subject = subject.replace(g.pattern, g.replacement);
+  }
+
+  // 3. Remove fake awards/recognition claims about the prospect
+  body = body.replace(/(?:your|you(?:r)?) (?:recent |)(?:award|recognition|mention|feature) (?:in|on|by) [A-Z][a-z]+/gi, "your work");
+
+  // 4. Clean up any double spaces or orphan punctuation from removals
+  body = body.replace(/\s{2,}/g, ' ').replace(/\n\s*\n\s*\n+/g, '\n\n').trim();
+
+  return { subject, body };
 }
 
 
@@ -184,7 +204,7 @@ export async function factCheck(
 
   try {
     const response = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
+      model: process.env.ANTHROPIC_MODEL_HAIKU || "claude-haiku-4-5-20251001",
       max_tokens: 500,
       messages: [{
         role: "user",
@@ -196,17 +216,19 @@ AI RESPONDED:
 ${reply.slice(0, 3000)}
 
 CHECK FOR THESE SPECIFIC ISSUES:
-1. FABRICATED NUMBERS: Specific dollar amounts, percentages, or statistics stated as fact without [SEARCHED], [ESTIMATED], or [PATTERN] tags
-2. INVENTED NAMES: Company names, person names, or tool names that might be fabricated
-3. GUARANTEE LANGUAGE: Phrases like "you will earn", "guaranteed", "definitely will" 
-4. FALSE MEMORY: Claims like "as we discussed" or "you mentioned" that could be fabricated recall
-5. OVERCONFIDENT CLAIMS: Statements presented as certain fact that should have uncertainty disclosure
+1. FABRICATED NUMBERS: Specific dollar amounts, percentages, or statistics stated as confident fact WITHOUT natural uncertainty language. Natural uncertainty looks like: "I'd estimate," "from what I've seen," "roughly," "typically," "in my experience," "based on what I know," "around," or referencing a specific source like "According to [X]." A number without any of these signals is a potential fabrication.
+2. INVENTED NAMES: Specific company names, person names, or tool names presented as real. Watch for patterns like "companies like [Name]" or "tools such as [Name]" without the AI having actually searched for them.
+3. FAKE SOURCES: Citations like "According to [Source]" or "A 2024 study by [Source]" where the source name could be made up.
+4. GUARANTEE LANGUAGE: Phrases like "you will earn," "guaranteed," "definitely will," "is going to work."
+5. FALSE MEMORY: Claims like "as we discussed" or "you mentioned" that could be fabricated recall of prior conversation.
+6. OVERCONFIDENT MARKET CLAIMS: Statements about market size, growth rates, or industry trends presented as certain fact without uncertainty disclosure.
+7. MADE-UP COMPETITORS: Listing specific competitors with pricing ("X charges $Y") without natural sourcing language.
 
 RESPOND WITH EXACTLY ONE OF:
 - "CLEAN" — if no issues found
 - "FLAG: [one sentence describing the issue]" — if you found a specific problem
 
-Be conservative. Only flag clear problems, not minor phrasing issues. If the response uses provenance tags or uncertainty language properly, say CLEAN.`
+Be conservative. Only flag clear problems. If the response uses natural uncertainty language ("I'd estimate," "from what I've seen," etc.) or clearly cites a real source, mark it CLEAN. Do NOT look for bracketed tags like [SEARCHED] — those are deliberately not used anymore.`
       }],
     });
 
@@ -218,13 +240,18 @@ Be conservative. Only flag clear problems, not minor phrasing issues. If the res
 
     if (check.startsWith("FLAG:")) {
       const issue = check.replace("FLAG:", "").trim();
-      // Don't append a visible disclaimer — instead, add a subtle inline note
-      // Only flag genuinely problematic content
-      if (/fabricat|invent|made.?up|hallucin|fake|doesn.t exist/i.test(issue)) {
-        return reply + `\n\n*⚠️ Note: ${issue} Verify this information independently.*`;
+      // Append a subtle verification prompt for genuinely problematic content
+      if (/fabricat|invent|made.?up|hallucin|fake|doesn.t exist|made up/i.test(issue)) {
+        return reply + `\n\n*⚠️ I want to flag something in my response — ${issue.toLowerCase()} Worth double-checking before acting on it.*`;
       }
       if (/guarantee|promise|certain/i.test(issue)) {
-        return reply + `\n\n*Note: No outcome is guaranteed. These are estimates based on available data.*`;
+        return reply + `\n\n*Worth noting: no outcome is guaranteed. Treat these as estimates based on patterns, not promises.*`;
+      }
+      if (/false.*memory|didn.t discuss|didn.t mention/i.test(issue)) {
+        return reply + `\n\n*Note: I may have misremembered something from our earlier conversation. If anything above doesn't match what we actually discussed, let me know and I'll correct.*`;
+      }
+      if (/overconfident|certain.*fact|without uncertainty/i.test(issue)) {
+        return reply + `\n\n*One caveat on the above: some of these numbers are my best estimate, not verified data. Worth validating independently if you're making a decision based on them.*`;
       }
       // For less severe flags, just log them
       console.log(`[ZELREX FACT-CHECK] Flag: ${issue}`);
@@ -267,6 +294,8 @@ export function enforceRules(reply: string): EnforcementResult {
     /\b(?:I'm Claude|I am Claude|my name is Claude|I'm made by Anthropic|I was (?:created|made|built) by Anthropic)\b/gi,
     /\b(?:as an assistant|I'm just an? (?:AI|assistant|chatbot|bot))\b/gi,
     /\b(?:I don't have (?:feelings|emotions|consciousness|personal experience))\b/gi,
+    /\b(?:I'm a (?:chatbot|virtual assistant|digital assistant))\b/gi,
+    /\b(?:powered by (?:Claude|GPT|OpenAI|Anthropic's technology))\b/gi,
   ];
 
   for (const pattern of identityBreaks) {
@@ -283,6 +312,14 @@ export function enforceRules(reply: string): EnforcementResult {
       result = result.replace(/\bI'm just an? AI\b/gi, "I'm Zelrex");
       result = result.replace(/\bI'm just an? assistant\b/gi, "I'm Zelrex");
       result = result.replace(/\bI'm just an? chatbot\b/gi, "I'm Zelrex");
+      result = result.replace(/\bmy name is Claude\b/gi, "I'm Zelrex");
+      result = result.replace(/\bI'm made by Anthropic\b/gi, "I'm Zelrex");
+      result = result.replace(/\bI'm a chatbot\b/gi, "I'm Zelrex");
+      result = result.replace(/\bI'm a virtual assistant\b/gi, "I'm Zelrex");
+      result = result.replace(/\bI'm a digital assistant\b/gi, "I'm Zelrex");
+      result = result.replace(/\bpowered by Claude\b/gi, "built by Anthropic");
+      result = result.replace(/\bpowered by OpenAI\b/gi, "");
+      result = result.replace(/\bpowered by GPT\b/gi, "");
       // If the identity break is severe (multiple occurrences), flag for retry
       const breakCount = (reply.match(/\b(?:AI assistant|language model|Claude|chatbot)\b/gi) || []).length;
       if (breakCount >= 3) shouldRetry = true;
@@ -384,6 +421,78 @@ export function enforceRules(reply: string): EnforcementResult {
         result = result.replace(d.pattern, d.replacement);
       }
     }
+  }
+
+  // ─── 8. FAKE SOURCE DETECTION ───────────────────────
+  // Catch patterns like "According to Mordor Intelligence" or "A 2024 study by..."
+  // when no web search was performed. These are classic hallucination patterns.
+  // We can't verify if a source is real, but we can soften overconfident attribution.
+  const fakeSourcePatterns = [
+    // "According to [Proper Noun Source]" without quotes or linking
+    /\bAccording to ([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})\s*,/g,
+    // "A [year] study by [Source]"
+    /\bA (?:20\d{2}|recent) (?:study|report|analysis|survey) (?:by|from) ([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/g,
+    // "[Source] reports/found that"
+    /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}) (?:reports?|found|indicates?) that/g,
+  ];
+  
+  // Only flag — don't auto-fix, since real sources also match these patterns.
+  // Instead, check if ANY natural uncertainty language exists in the response.
+  const hasNaturalUncertainty = /I(?:'d| would) estimate|from what I've seen|in my experience|I'm estimating|my best estimate|based on what I know|typically report|tends? to be|roughly|I'm not certain|I haven't verified|I don't have (?:solid|verified|specific) data|rough (?:number|estimate)|ballpark|worth verifying|worth checking|could vary/i.test(result);
+  
+  let hasSourceCitation = false;
+  for (const pattern of fakeSourcePatterns) {
+    if (pattern.test(result)) {
+      hasSourceCitation = true;
+      break;
+    }
+  }
+  
+  // If Claude cites a source but shows NO uncertainty anywhere, append a soft verification prompt.
+  // Real web-searched content will still pass because it will include natural source references 
+  // with quotes, URLs, or obvious sourcing context that comes from the search tool.
+  if (hasSourceCitation && !hasNaturalUncertainty && result.length > 400) {
+    const hasSearchEvidence = /\bsearched?\b|\bweb search\b|I found\b|I looked up\b|from (?:their|the) (?:website|site)|at https?:\/\//i.test(result);
+    if (!hasSearchEvidence) {
+      violations.push("UNVERIFIED_SOURCE: Response cites sources but shows no uncertainty or search evidence");
+      result += "\n\n*One thing to flag: I referenced some sources above. If I didn't search the web in this conversation, take those citations as my best recollection — worth verifying before you rely on the specific numbers.*";
+    }
+  }
+
+  // ─── 9. UNVERIFIED COMPETITOR PRICING ──────────────
+  // Claude sometimes invents competitor pricing with specific dollar amounts.
+  // Pattern: "[Company] charges/offers $X"
+  const competitorPricingPattern = /\b([A-Z][a-z]+(?:\s*[A-Z][a-z]*)?)\s+(?:charges?|offers?|prices? (?:at|around))\s+\$[\d,]+/g;
+  const competitorMatches = result.match(competitorPricingPattern);
+  if (competitorMatches && competitorMatches.length > 0 && !hasNaturalUncertainty) {
+    const hasSearchEvidence = /\bsearched?\b|I found\b|their (?:website|pricing page)|at https?:\/\//i.test(result);
+    if (!hasSearchEvidence) {
+      violations.push("UNVERIFIED_COMPETITOR_PRICE: Specific competitor pricing without search evidence");
+      result += "\n\n*Note: the specific competitor pricing I mentioned is from my general knowledge, not a live check. Pricing changes — if you're making decisions based on it, worth a quick verification on their site.*";
+    }
+  }
+
+  // ─── 10. FALSE MEMORY PROTECTION ───────────────────
+  // Catch "as we discussed" / "you mentioned" in contexts where there's no proof
+  // the user actually said that. We can't fully verify, but we can soften.
+  const falseMemoryPatterns = [
+    /\bas (?:we|you) (?:discussed|mentioned|talked about) earlier\b/i,
+    /\bfrom what you (?:told|said|mentioned to) me (?:earlier|before)\b/i,
+    /\bif I recall correctly from our (?:previous|past|earlier) (?:conversation|chat)\b/i,
+  ];
+  let memoryClaimFound = false;
+  for (const pattern of falseMemoryPatterns) {
+    if (pattern.test(result)) {
+      memoryClaimFound = true;
+      break;
+    }
+  }
+  // Only flag memory claims if the response is from a fresh context (short input)
+  // The chat route can set a flag to enable strict memory checking when userContext is empty
+  // For now, if a memory claim is made, add a subtle hedge
+  if (memoryClaimFound && result.length > 300) {
+    // Log for awareness — don't auto-modify since memory claims can be legitimate
+    violations.push("MEMORY_CLAIM: Response references prior conversation — verify memory context exists");
   }
 
   return {

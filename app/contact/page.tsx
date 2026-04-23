@@ -39,6 +39,8 @@ export default function ContactPage() {
   const [form, setForm] = useState<FormData>({
     name: "", email: "", subject: "", category: "general", message: "",
   });
+  const [honeypot, setHoneypot] = useState(""); // Hidden field — bots fill this, real users don't
+  const [formStartTime] = useState(() => Date.now()); // Track how long form takes to fill (bots submit instantly)
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -61,22 +63,41 @@ export default function ContactPage() {
       return;
     }
 
+    // Client-side anti-bot: form submitted too quickly (bots submit instantly)
+    const timeElapsed = Date.now() - formStartTime;
+    if (timeElapsed < 3000) {
+      // Real humans take at least a few seconds. Silently fake success to not tip off bot.
+      setStatus("sent");
+      setForm({ name: "", email: "", subject: "", category: "general", message: "" });
+      return;
+    }
+
     setStatus("sending");
     setErrorMsg("");
 
     try {
+      // AbortController with timeout — fetch shouldn't hang forever
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
       const res = await fetch("/api/z/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, honeypot }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
 
       if (!res.ok) throw new Error("Failed to send");
       setStatus("sent");
       setForm({ name: "", email: "", subject: "", category: "general", message: "" });
-    } catch {
+    } catch (err: any) {
       setStatus("error");
-      setErrorMsg("Failed to send message. Please try again or email support@zelrex.ai directly.");
+      if (err?.name === 'AbortError') {
+        setErrorMsg("Request timed out. Please try again or email support@zelrex.ai directly.");
+      } else {
+        setErrorMsg("Failed to send message. Please try again or email support@zelrex.ai directly.");
+      }
     }
   };
 
@@ -162,6 +183,24 @@ export default function ContactPage() {
           </div>
         ) : (
           <div style={{ padding: "24px 32px 32px" }}>
+            {/* HONEYPOT: Hidden from real users, bots often fill all inputs */}
+            <input
+              type="text"
+              name="company_url"
+              value={honeypot}
+              onChange={e => setHoneypot(e.target.value)}
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                left: "-9999px",
+                width: 1,
+                height: 1,
+                opacity: 0,
+                pointerEvents: "none",
+              }}
+            />
             {/* Name + Email row */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }} className="contact-name-email">
               <div>
@@ -284,4 +323,4 @@ export default function ContactPage() {
       `}</style>
     </div>
   );
-} 
+}

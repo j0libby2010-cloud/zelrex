@@ -83,6 +83,16 @@ try {
   console.warn('[ZELREX BOOT] StripeService not available:', (e as Error).message);
 }
 
+// ─── Data collector (niche intelligence) ──────────────────────
+let getInsightsForPromptFn: ((niche: string) => Promise<string | null>) | null = null;
+try {
+  const { getInsightsForPrompt } = require('@/lib/dataCollector');
+  getInsightsForPromptFn = getInsightsForPrompt;
+  if(process.env.NODE_ENV==='development') console.log('[ZELREX BOOT] DataCollector loaded');
+} catch (e) {
+  console.warn('[ZELREX BOOT] DataCollector not available:', (e as Error).message);
+}
+
 // ─── Progress helpers (safe with KV fallback) ────────────────────
 async function getProgress(userId: string): Promise<BusinessProgress | null> {
   if (!kv) return null;
@@ -221,7 +231,7 @@ Return ONLY the JSON object. No markdown, no explanation.`;
 
   try {
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-5-20250929",
+      model: process.env.ANTHROPIC_MODEL_SONNET || "claude-sonnet-4-5-20250929",
       max_tokens: 500,
       messages: [{ role: "user", content: extractionPrompt }],
     });
@@ -295,7 +305,7 @@ RULES:
 - Be specific to THIS user, not generic`;
 
   const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-5-20250929",
+    model: process.env.ANTHROPIC_MODEL_SONNET || "claude-sonnet-4-5-20250929",
     max_tokens: 6000,
     temperature: 0.2,
     messages: [{ role: "user", content: fallbackPrompt }],
@@ -332,8 +342,19 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // Rate limit check
+    // Input validation — prevent malformed requests from crashing the server
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+
+    // Validate userId format (Clerk IDs)
     let userId = body.userId || body.messages?.[0]?.userId;
+    if (userId && typeof userId === 'string' && !/^user_[a-zA-Z0-9]{10,50}$/.test(userId)) {
+      console.warn('[Chat] Invalid userId format:', userId.slice(0, 30));
+      return NextResponse.json({ error: 'Invalid userId format' }, { status: 400 });
+    }
+
+    // Rate limit check
     if (userId) {
       const rl = checkChatRateLimit(userId);
       if (!rl.allowed) {
@@ -345,15 +366,40 @@ export async function POST(req: Request) {
     }
 
     const messages = body.messages ?? [];
+    
+    // Validate messages array
+    if (!Array.isArray(messages)) {
+      return NextResponse.json({ error: 'Messages must be an array' }, { status: 400 });
+    }
+    
+    // Reasonable limits on message count and length
+    if (messages.length > 200) {
+      return NextResponse.json({ error: 'Conversation too long. Please start a new chat.' }, { status: 400 });
+    }
+    
+    // Validate each message structure + size
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i];
+      if (!m || typeof m !== 'object') {
+        return NextResponse.json({ error: `Invalid message at index ${i}` }, { status: 400 });
+      }
+      if (!['user', 'assistant', 'system'].includes(m.role)) {
+        return NextResponse.json({ error: `Invalid message role at index ${i}` }, { status: 400 });
+      }
+      if (typeof m.content === 'string' && m.content.length > 50000) {
+        return NextResponse.json({ error: `Message at index ${i} exceeds 50,000 character limit` }, { status: 400 });
+      }
+    }
+
     const surveyData = body.surveyData;
-    const responseStyle: string = body.responseStyle || "direct";
-    const attachments: any[] = body.attachments || [];
+    const responseStyle: string = ['direct', 'detailed', 'coaching'].includes(body.responseStyle) ? body.responseStyle : 'direct';
+    const attachments: any[] = Array.isArray(body.attachments) ? body.attachments.slice(0, 10) : [];
     const currentTime: string = body.currentTime || new Date().toISOString();
     const userGoal: { text: string; target: string; deadline: string } | undefined = body.userGoal;
     const businessProfile: { niche?: string; experience?: string; timezone?: string } | undefined = body.businessProfile;
     const permissions: { autoExtractClients?: boolean; autoSuggestInvoices?: boolean } | undefined = body.permissions;
-    const language: string = body.language || "en";
-    const recentNotifications: any[] = body.recentNotifications || [];
+    const language: string = typeof body.language === 'string' && /^[a-z]{2}$/.test(body.language) ? body.language : 'en';
+    const recentNotifications: any[] = Array.isArray(body.recentNotifications) ? body.recentNotifications.slice(0, 20) : [];
 
     // Communication style modifier
     const responseStyles: Record<string, string> = {
@@ -754,7 +800,7 @@ export async function POST(req: Request) {
     // --- ATTEMPT 1 & 2: v5 with memory + tools (with retry) ---
     if (memoryService && buildSystemPromptFn && ZELREX_TOOLS_IMPORTED) {
       let v5Attempts = 0;
-      const maxV5Attempts = 2;
+      const maxV5Attempts = 3;
       
       while (v5Attempts < maxV5Attempts) {
         v5Attempts++;
@@ -789,7 +835,16 @@ MEMORY RULES:
 - Do NOT guess or infer unstated facts
 - If a fact conflicts with what the user says NOW, trust what they say now and update via save_memory`;
         } else {
-          memoryTransparency = `\n\nTODAY'S DATE: ${today}\n\nMEMORY STATUS: No stored facts for this user yet. You are starting fresh. Do NOT pretend to know things about the user that they haven't told you in THIS conversation. If they reference a previous conversation, say "I don't have context from our previous conversations yet. Can you catch me up?"`;
+          memoryTransparency = `\n\nTODAY'S DATE: ${today}
+
+MEMORY STATUS: No stored facts for this user yet. You are starting fresh.
+
+CRITICAL MEMORY RULES FOR FRESH USERS:
+- Do NOT say "as we discussed" or "you mentioned" — there IS no previous conversation
+- Do NOT infer anything about the user's situation, niche, goals, or business beyond what they tell you in THIS exact conversation
+- Do NOT assume their skill level, experience, or background
+- If they reference a previous conversation, respond: "This looks like our first conversation on my end — I don't have context from before. Can you catch me up on what you're working on?"
+- Ask for the basics: what they do, what they're trying to achieve, where they are now`;
         }
         if (userContext.milestones?.length > 0) {
           memoryTransparency += `\n\nMILESTONES REACHED: ${userContext.milestones.map((m: any) => typeof m === "string" ? m : m.stage || m.name || JSON.stringify(m)).join(", ")}`;
@@ -801,6 +856,19 @@ MEMORY RULES:
           }
         }
         const dynamicSystemPrompt = buildSystemPromptFn(userContext) + styleInstruction + memoryTransparency;
+
+        // Inject niche intelligence if available
+        let nicheInsights = "";
+        if (getInsightsForPromptFn) {
+          try {
+            const nicheFact = userContext.memory?.find((f: any) => f.fact_key === 'niche' || f.fact_key === 'skill' || f.category === 'skill');
+            const niche = nicheFact?.fact_value || userContext.lastEvaluation?.skill_evaluated || '';
+            if (niche) {
+              const insights = await getInsightsForPromptFn(niche);
+              if (insights) nicheInsights = "\n\n" + insights;
+            }
+          } catch {}
+        }
 
         // Long conversation rule reminder — re-inject critical rules when conversation gets long
         const conversationLength = messages.length;
@@ -835,7 +903,32 @@ Do NOT use bracketed tags like [SEARCHED], [ESTIMATED], [PATTERN], or confidence
 - News, recent events, or anything that could have changed recently
 Do NOT rely on training data for market-specific information. Search first, then advise. If you're unsure whether data is current, search.`;
 
-        const fullSystemPrompt = dynamicSystemPrompt + ruleReminder + confidenceInstruction + webSearchInstruction;
+        // ALWAYS-ON RELIABILITY GUARDRAILS — injected in every single message
+        // These are the non-negotiable rules that matter most for user trust.
+        const reliabilityGuardrails = `\n\n🎯 RELIABILITY GUARDRAILS (apply to EVERY response — no exceptions):
+
+1. SPECIFIC NUMBERS NEED SOURCES OR HEDGES
+   Any dollar amount, percentage, or statistic in your response MUST be either:
+   (a) Something you just searched for and found — cite the source naturally ("According to X...")
+   (b) Explicitly flagged as an estimate ("I'd estimate around...", "roughly...", "in my experience")
+   NEVER state a specific number as fact without one of these two treatments.
+
+2. COMPETITOR / COMPANY NAMES NEED VERIFICATION
+   If you mention a specific company by name (e.g., "Squarespace charges $X"), either:
+   (a) You just searched for it — say "I found that X charges $Y"
+   (b) Hedge it — "Last I checked, X charged around $Y, but pricing may have changed"
+   NEVER invent company names. NEVER state competitor pricing as current fact without search or hedge.
+
+3. MEMORY CLAIMS MUST BE REAL
+   Before saying "as we discussed" or "you mentioned," verify it appears in the conversation history or USER FACTS above. If you're not 100% sure, say "I believe you mentioned X — is that right?" instead.
+
+4. UNCERTAINTY IS A STRENGTH, NOT A WEAKNESS
+   Saying "I don't have solid data on that" builds more trust than inventing a plausible-sounding answer. When you're not sure, SAY so.
+
+5. WHEN WRONG, OWN IT
+   If the user corrects you or you realize you gave bad info earlier, acknowledge it directly: "You're right, I was off on that. Here's the correction..."`;
+
+        const fullSystemPrompt = dynamicSystemPrompt + nicheInsights + ruleReminder + confidenceInstruction + webSearchInstruction + reliabilityGuardrails;
 
         // 3. Call Claude with tools in a loop
         let currentMessages: any[] = messages.map((m: any, idx: number) => {
@@ -874,7 +967,7 @@ Do NOT rely on training data for market-specific information. Search first, then
           const thinkingBudget = isComplexQuery ? 12000 : 6000;
 
           const response = await anthropic.messages.create({
-            model: 'claude-opus-4-6',
+            model: process.env.ANTHROPIC_MODEL_OPUS || 'claude-opus-4-6',
             max_tokens: 16000,
             temperature: 1,
             thinking: {
@@ -996,8 +1089,10 @@ Do NOT rely on training data for market-specific information. Search first, then
         if ((v5Error as any).status) console.error('[ZELREX] v5 API status:', (v5Error as any).status);
         
         if (v5Attempts < maxV5Attempts) {
-          if(process.env.NODE_ENV==='development') console.log('[ZELREX] Retrying v5 path...');
-          await new Promise(r => setTimeout(r, 1000)); // 1s backoff before retry
+          // Exponential backoff: 1s, 2s, 4s
+          const backoffMs = Math.pow(2, v5Attempts - 1) * 1000;
+          if(process.env.NODE_ENV==='development') console.log(`[ZELREX] Retrying v5 path in ${backoffMs}ms...`);
+          await new Promise(r => setTimeout(r, backoffMs));
           continue;
         }
         
@@ -1046,10 +1141,18 @@ Do NOT rely on training data for market-specific information. Search first, then
       }
       const v3ConfidenceInstruction = `\n\nHONESTY: Embed your certainty level naturally into your wording. Don't use bracketed tags or confidence ratings. Just be natural — say "I'd estimate" when estimating, mention sources when you searched, and say "I'm not sure" when you're not.`;
 
-      const v3FullPrompt = SYSTEM_PROMPT + styleInstruction + v3MemoryWarning + v3RuleReminder + v3ConfidenceInstruction + `\n\nWEB SEARCH: You have web_search available. Use it proactively for any market data, pricing, current info, or factual claims. Do not rely on training data for market-specific information.`;
+      // ALWAYS-ON RELIABILITY GUARDRAILS for v3 path too
+      const v3ReliabilityGuardrails = `\n\n🎯 RELIABILITY GUARDRAILS (apply to EVERY response):
+1. Specific numbers need sources or hedges. Either cite a source you just searched, or explicitly flag as an estimate ("I'd estimate...", "roughly..."). Never state numbers as confident fact otherwise.
+2. Competitor/company names: either search for current info or hedge ("last I checked..."). Never invent company names.
+3. Memory claims: only say "as we discussed" if you can actually see it in the conversation. Otherwise say "I believe you mentioned X — is that right?"
+4. Uncertainty is a strength. "I don't have solid data on that" beats inventing an answer.
+5. If wrong, own it directly without excessive apology.`;
+
+      const v3FullPrompt = SYSTEM_PROMPT + styleInstruction + v3MemoryWarning + v3RuleReminder + v3ConfidenceInstruction + v3ReliabilityGuardrails + `\n\nWEB SEARCH: You have web_search available. Use it proactively for any market data, pricing, current info, or factual claims. Do not rely on training data for market-specific information.`;
 
       const response = await anthropic.messages.create({
-        model: 'claude-opus-4-6',
+        model: process.env.ANTHROPIC_MODEL_OPUS || 'claude-opus-4-6',
         max_tokens: 16000,
         temperature: 1,
         thinking: {

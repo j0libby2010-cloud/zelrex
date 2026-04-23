@@ -189,5 +189,38 @@ export async function buildWebsite(input: {
     console.warn("ZELREX BUILD: validation warning (non-blocking):", e);
   }
 
+  // ── RELIABILITY: Consistency check — make sure generated copy matches business type ──
+  // Catches cases where Claude drifts and writes copy for the wrong business
+  try {
+    const businessType = (businessContext.businessType || '').toLowerCase();
+    const expectedKeywords: Record<string, string[]> = {
+      'video': ['video', 'edit', 'cut', 'footage', 'reel', 'youtube', 'content'],
+      'design': ['design', 'brand', 'logo', 'visual', 'identity', 'graphic'],
+      'writing': ['writ', 'copy', 'content', 'word', 'article', 'blog'],
+      'social': ['social', 'content', 'post', 'engage', 'audience', 'instagram', 'linkedin'],
+      'virtual': ['assist', 'support', 'admin', 'task', 'inbox', 'calendar'],
+      'coach': ['coach', 'transform', 'goal', 'client', 'growth', 'change'],
+      'consult': ['consult', 'strategy', 'advis', 'expert', 'analy', 'solution'],
+      'agency': ['team', 'agency', 'scale', 'deliver', 'manage', 'service'],
+    };
+    
+    // Find the matching category
+    const matchingCategory = Object.keys(expectedKeywords).find(cat => businessType.includes(cat));
+    if (matchingCategory) {
+      const keywords = expectedKeywords[matchingCategory];
+      const heroText = JSON.stringify(website.copy?.home || {}).toLowerCase();
+      const aboutText = JSON.stringify(website.copy?.about || {}).toLowerCase();
+      const fullText = heroText + ' ' + aboutText;
+      
+      const matchCount = keywords.filter(kw => fullText.includes(kw)).length;
+      // If fewer than 2 expected keywords appear, copy may have drifted
+      if (matchCount < 2 && fullText.length > 100) {
+        console.warn(`ZELREX BUILD: Copy consistency warning — business type "${businessType}" but only ${matchCount}/${keywords.length} expected keywords found in copy. Possible drift.`);
+      }
+    }
+  } catch (e) {
+    console.warn("ZELREX BUILD: consistency check warning:", e);
+  }
+
   return website;
 }
