@@ -2315,7 +2315,38 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       const newTitle = shouldAutoTitle ? autoTitleFromReply(text, reply) : undefined;
       setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, ...(newTitle ? { title: newTitle } : {}), messages: [...c.messages, { id: uid("m"), role: "assistant" as const, content: reply, createdAt: Date.now(), previewUrl: data.previewUrl || undefined }], updatedAt: Date.now() } : c));
       if (data.previewUrl) { setTimeout(() => fireConfetti(), 300); addNotification("✨ Your website has been built! Preview it and deploy when ready."); }
-    } catch { setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, messages: [...c.messages, { id: uid("m"), role: "assistant" as const, content: "Something went wrong. Please try again.", createdAt: Date.now() }], updatedAt: Date.now() } : c)); }
+    } catch (err: any) {
+      // FIXED: Distinguish user abort from real errors. AbortError happens when
+      // the user clicks stop - that should not show "Something went wrong".
+      const wasAborted = err?.name === 'AbortError' || err?.message?.includes('aborted');
+
+      if (wasAborted) {
+        // User stopped the request - add a clean "stopped" indicator, not an error
+        setChats((p) => p.map((c) => c.id === activeChat.id ? {
+          ...c,
+          messages: [...c.messages, {
+            id: uid("m"),
+            role: "assistant" as const,
+            content: "_Response stopped._",
+            createdAt: Date.now()
+          }],
+          updatedAt: Date.now()
+        } : c));
+      } else {
+        // Real error - log it and show user-friendly message
+        console.error('[Chat] Send failed:', err?.message);
+        setChats((p) => p.map((c) => c.id === activeChat.id ? {
+          ...c,
+          messages: [...c.messages, {
+            id: uid("m"),
+            role: "assistant" as const,
+            content: "Something went wrong. Try again or refresh if it keeps happening.",
+            createdAt: Date.now()
+          }],
+          updatedAt: Date.now()
+        } : c));
+      }
+    }
     finally { setIsSending(false); setBuildStage(""); }
   }
 
@@ -2422,6 +2453,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         @keyframes backdropFadeOut{from{opacity:1}to{opacity:0}}
         @keyframes dropdownVacuumIn{0%{opacity:0;transform:scale(0.06,0.03) translateY(-2px);filter:blur(12px);border-radius:50%}100%{opacity:1;transform:scale(1,1) translateY(0);filter:blur(0);border-radius:inherit}}
         @keyframes dropdownVacuumOut{0%{opacity:1;transform:scale(1,1) translateY(0);filter:blur(0);border-radius:inherit}100%{opacity:0;transform:scale(0.06,0.03) translateY(-2px);filter:blur(12px);border-radius:50%}}
+        @keyframes loaderDot {
+          0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+          40% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes stickyLoaderIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
         @media(max-width:768px){
           .hide-mobile{display:none!important}
           .welcome-h1{font-size:28px!important}
@@ -2838,6 +2877,43 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               </div>
             )}
             <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 24, background: "linear-gradient(to bottom, rgba(6,9,15,0), rgba(6,9,15,0.9))", pointerEvents: "none" }} />
+            {/* FIXED: Sticky loading indicator - visible regardless of scroll position */}
+            {isSending && buildStage && (
+              <div style={{
+                position: "sticky",
+                bottom: 80,
+                margin: "0 auto 12px",
+                maxWidth: 480,
+                padding: "10px 14px",
+                borderRadius: 999,
+                background: "rgba(74,144,255,0.08)",
+                border: `1px solid rgba(74,144,255,0.24)`,
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+                zIndex: 50,
+                animation: "stickyLoaderIn 300ms cubic-bezier(0.22,1,0.36,1)",
+              }}>
+                {/* Animated dots */}
+                <div style={{ display: "flex", gap: 4 }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: "50%",
+                      background: C.accent,
+                      animation: `loaderDot 1.4s ease-in-out ${i * 0.16}s infinite`,
+                    }} />
+                  ))}
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: C.text, letterSpacing: "-0.01em" }}>
+                  {buildStage}
+                </div>
+              </div>
+            )}
             <div className={inputFocused ? "input-box input-focus-glow" : "input-box"} style={{ position: "relative", zIndex: 1, maxWidth: showPreview ? "100%" : 820, margin: "0 auto", borderRadius: 24, border: `1px solid ${inputFocused ? C.borderHover : C.border}`, background: C.bgInput, boxShadow: `0 4px 24px rgba(0,0,0,0.3)`, transition: "border-color 500ms cubic-bezier(0.32,0.72,0,1), box-shadow 500ms cubic-bezier(0.32,0.72,0,1)" }}>
               <style>{`
                 .input-focus-glow {
@@ -2879,8 +2955,23 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   style={{ flex: 1, maxHeight: 200, minHeight: isMobile ? 44 : 42, height: isMobile ? 44 : 42, resize: "none", background: "none", border: "none", outline: "none", padding: isMobile ? "11px 8px" : "10px 8px", fontSize: isMobile ? 16 : 14, lineHeight: 1.5, color: C.text, boxSizing: "border-box" }} />
                 <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 2 }}>
                   <HBtn onClick={startSpeech} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: listening ? C.accent : C.textMuted }}><Ic n="mic" style={{ width: 20, height: 20 }} /></HBtn>
-                  <HBtn onClick={isSending ? stopResponse : () => sendMessage()}
-                    style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, background: (isSending || input.trim() || draftAttachments.length) ? C.accent : "rgba(255,255,255,0.06)", color: (isSending || input.trim() || draftAttachments.length) ? "#fff" : C.textMuted, boxShadow: (input.trim() || draftAttachments.length) ? `0 2px 10px ${C.accentGlow}` : "none" }}>
+                  <HBtn
+                    onClick={isSending ? stopResponse : () => sendMessage()}
+                    title={isSending ? "Stop generation" : "Send message"}
+                    style={{
+                      width: isMobile ? 42 : 38,
+                      height: isMobile ? 42 : 38,
+                      background: isSending
+                        ? "#EF4444"
+                        : (input.trim() || draftAttachments.length)
+                          ? C.accent
+                          : "rgba(255,255,255,0.06)",
+                      color: isSending || input.trim() || draftAttachments.length ? "#fff" : C.textMuted,
+                      boxShadow: isSending
+                        ? "0 2px 10px rgba(239,68,68,0.4)"
+                        : (input.trim() || draftAttachments.length) ? `0 2px 10px ${C.accentGlow}` : "none",
+                      transition: "all 200ms ease",
+                    }}>
                     {isSending ? <Ic n="stop" style={{ width: 18, height: 18 }} /> : <Ic n="send" style={{ width: 20, height: 20 }} />}
                   </HBtn>
                 </div>
@@ -2933,11 +3024,42 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         {showSurvey && (
           <WebsiteSurvey
             onComplete={handleSurveyComplete}
-            onClose={() => { setShowSurvey(false); setSurveyDismissed(true); if (activeChat?.id) { setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, pendingSurvey: true } : c)); } }}
+            onClose={() => {
+              setShowSurvey(false);
+              setSurveyDismissed(true);
+              if (activeChat?.id) {
+                setChats((p) => p.map((c) => c.id === activeChat.id ? { ...c, pendingSurvey: true } : c));
+              }
+            }}
             onAskZelrex={(question: string) => {
               setShowSurvey(false);
               setInput(question);
             }}
+            // FIXED: Pre-fill from settings + previous survey + saved draft
+            initialData={(() => {
+              // Priority order: existing chat surveyData > settings > localStorage draft
+              if (surveyData) return surveyData;
+
+              // Try restoring an unfinished draft
+              try {
+                const draftKey = `zelrex_survey_draft_${activeChat?.id || 'new'}`;
+                const draft = localStorage.getItem(draftKey);
+                if (draft) {
+                  const parsed = JSON.parse(draft);
+                  // Discard drafts older than 7 days
+                  if (parsed.savedAt && Date.now() - parsed.savedAt < 7 * 24 * 60 * 60 * 1000) {
+                    return parsed.data;
+                  }
+                }
+              } catch {}
+
+              // Fall back to user settings as starting hints
+              return {
+                businessName: clerkUser?.firstName ? `${clerkUser.firstName}'s Business` : '',
+                businessType: zelrexSettings.freelanceNiche || '',
+                email: clerkUser?.primaryEmailAddress?.emailAddress || '',
+              };
+            })()}
           />
         )}
 

@@ -1,7 +1,11 @@
 // website/core/buildWebsite.ts
 //
-// REWRITE: Properly accepts SurveyData and passes it through the full pipeline.
-// Maps survey preferences to theme, layout, and copy generation.
+// FIXED VERSION
+//
+// Critical fixes from previous version:
+// 1. Theme colors are now actually resolved from theme name (was using fallbacks)
+// 2. stylePreference is preserved through the pipeline (was being lost in tone mapping)
+// 3. Copy consistency check now triggers regeneration on failure (was just logging)
 
 import { ZelrexWebsite, BrandTone } from "./websiteTypes";
 import { generateWebsiteCopy, SurveyData } from "./generateCopy";
@@ -12,7 +16,6 @@ import { deriveAssumptions } from "./deriveAssumptions";
 import { injectSEO, generateSitemap, generateRobotsTxt } from "@/lib/seo";
 import { generateContactFormHtml } from "@/lib/websiteContactForm";
 
-// Re-export SurveyData so route.ts can import from here
 export type { SurveyData } from "./generateCopy";
 
 export interface BusinessContext {
@@ -20,6 +23,9 @@ export interface BusinessContext {
   audience: string;
   offer: string;
   pricing: string;
+  // FIXED: stylePreference preserved through the pipeline
+  stylePreference?: string;
+  fontPreference?: string;
 }
 
 function mapStyleToTone(style: string): BrandTone {
@@ -42,6 +48,88 @@ function mapFontToTemplate(font: string): string {
     case "luxury": return "luxury";
     default: return "minimal";
   }
+}
+
+// ─── THEME COLOR DEFINITIONS ────────────────────────────────────
+// FIXED: Each theme name now has actual colors. Previously selectTheme returned
+// a string but the code tried to read theme.background / theme.textPrimary etc.
+// which were undefined, so every theme got the same fallback colors.
+const THEME_PALETTES: Record<string, {
+  bg: string;
+  textPrimary: string;
+  textSecondary: string;
+  surface: string;
+  border: string;
+  isLight: boolean;
+}> = {
+  carbon: {
+    // Technical, monospace, deep dark
+    bg: "#0A0A0A",
+    textPrimary: "#FFFFFF",
+    textSecondary: "rgba(255,255,255,0.55)",
+    surface: "#141414",
+    border: "rgba(255,255,255,0.08)",
+    isLight: false,
+  },
+  aura: {
+    // Premium, dark with purple undertones, luxury
+    bg: "#0F0A1E",
+    textPrimary: "#F5F3FF",
+    textSecondary: "rgba(245,243,255,0.55)",
+    surface: "#1A1130",
+    border: "rgba(167,139,250,0.12)",
+    isLight: false,
+  },
+  obsidian: {
+    // Bold, dark, Stripe-like
+    bg: "#0E1117",
+    textPrimary: "#FFFFFF",
+    textSecondary: "rgba(255,255,255,0.6)",
+    surface: "#161B22",
+    border: "rgba(255,255,255,0.1)",
+    isLight: false,
+  },
+  slate: {
+    // Warm, approachable, light
+    bg: "#FAF8F5",
+    textPrimary: "#2C2A28",
+    textSecondary: "#71706B",
+    surface: "#FFFFFF",
+    border: "rgba(44,42,40,0.08)",
+    isLight: true,
+  },
+  ivory: {
+    // Clean, Apple-like, professional
+    bg: "#FFFFFF",
+    textPrimary: "#1D1D1F",
+    textSecondary: "#6E6E73",
+    surface: "#F5F5F7",
+    border: "rgba(0,0,0,0.06)",
+    isLight: true,
+  },
+};
+
+function resolveThemePalette(themeName: string, primaryColor: string): {
+  name: string;
+  bg: string;
+  textPrimary: string;
+  textSecondary: string;
+  accent: string;
+  surface: string;
+  border: string;
+  isLight: boolean;
+} {
+  const palette = THEME_PALETTES[themeName] || THEME_PALETTES.ivory;
+  return {
+    name: themeName,
+    bg: palette.bg,
+    textPrimary: palette.textPrimary,
+    textSecondary: palette.textSecondary,
+    accent: primaryColor || "#4A90FF",
+    surface: palette.surface,
+    border: palette.border,
+    isLight: palette.isLight,
+  };
 }
 
 export async function buildWebsite(input: {
@@ -72,7 +160,7 @@ export async function buildWebsite(input: {
     };
   }
 
-  // ── Derive context ────────────────────────────────────────────
+  // ── Derive context (FIXED: now includes stylePreference + fontPreference) ──
   const businessContext: BusinessContext = input.surveyData
     ? {
         businessType: input.surveyData.businessType,
@@ -81,6 +169,9 @@ export async function buildWebsite(input: {
         pricing: input.surveyData.hasMultipleTiers
           ? `${input.surveyData.tiers.length} tiers`
           : input.surveyData.price,
+        // Pass survey style + font through so selectTheme/brandIntelligence can use them
+        stylePreference: input.surveyData.stylePreference,
+        fontPreference: input.surveyData.fontPreference,
       }
     : input.businessContext ?? {
         businessType: "service",
@@ -90,8 +181,15 @@ export async function buildWebsite(input: {
       };
 
   const assumptions = deriveAssumptions({ branding, businessContext });
-  const profile = inferBrandProfile(branding);
-  const theme = selectTheme(branding, profile, businessContext);
+  
+  // Pass extras to brandIntelligence for richer profile
+  const profile = inferBrandProfile(branding, {
+    businessType: businessContext.businessType,
+    stylePreference: businessContext.stylePreference,
+    fontPreference: businessContext.fontPreference,
+  });
+  
+  const themeName = selectTheme(branding, profile, businessContext);
 
   // ── Resolve template from survey preferences ──────────────────
   const template = input.surveyData
@@ -100,9 +198,9 @@ export async function buildWebsite(input: {
 
   const id = input.id ?? "demo";
 
-  // ── Generate copy via Claude (the big change) ─────────────────
-  console.log("ZELREX BUILD: generating copy...");
-  const copy = await generateWebsiteCopy({
+  // ── Generate copy via Claude ──────────────────────────────────
+  console.log(`ZELREX BUILD: theme=${themeName}, generating copy...`);
+  let copy = await generateWebsiteCopy({
     branding,
     assumptions,
     businessContext,
@@ -110,26 +208,8 @@ export async function buildWebsite(input: {
   });
   console.log("ZELREX BUILD: copy generated");
 
-  // ── Build theme object for frontend ───────────────────────────
-  // The frontend buildPreviewHtml uses these flat theme properties
-  const isLight = input.surveyData?.stylePreference === "light-clean" || input.surveyData?.stylePreference === "minimal-elegant";
-  const themeObj = isLight ? {
-    name: "light",
-    bg: "#FAFBFC",
-    textPrimary: "#0F172A",
-    textSecondary: "#64748B",
-    accent: branding.primaryColor || "#4A90FF",
-    surface: "#FFFFFF",
-    border: "#E2E8F0",
-  } : {
-    name: typeof theme === "string" ? theme : (theme as any)?.name || "custom",
-    bg: (theme as any)?.background || "#0a0a0a",
-    textPrimary: (theme as any)?.textPrimary || "#ffffff",
-    textSecondary: (theme as any)?.textSecondary || "rgba(255,255,255,0.6)",
-    accent: branding.primaryColor || "#4A90FF",
-    surface: (theme as any)?.surface || "#111111",
-    border: (theme as any)?.border || "rgba(255,255,255,0.08)",
-  };
+  // ── FIXED: Theme palette is now properly resolved from theme name ──
+  const themeObj = resolveThemePalette(themeName, branding.primaryColor || "#4A90FF");
 
   const website: ZelrexWebsite = {
     id,
@@ -145,7 +225,6 @@ export async function buildWebsite(input: {
     copy,
     assumptions,
     status: "preview",
-    // Pass template choice through to frontend
     ...(template ? { template } : {}),
   } as any;
 
@@ -155,7 +234,7 @@ export async function buildWebsite(input: {
       businessName: branding.name,
       tagline: branding.tagline || "",
       description: input.surveyData?.aboutBusiness || input.surveyData?.tagline || `${branding.name} — professional ${businessContext.businessType} services`,
-      url: "", // Will be set after deploy — for now it's empty and gets filled by the frontend
+      url: "",
       niche: input.surveyData?.businessType || businessContext.businessType || "",
       services: input.surveyData?.mainService ? [input.surveyData.mainService] : [],
       location: input.surveyData?.location || undefined,
@@ -189,8 +268,7 @@ export async function buildWebsite(input: {
     console.warn("ZELREX BUILD: validation warning (non-blocking):", e);
   }
 
-  // ── RELIABILITY: Consistency check — make sure generated copy matches business type ──
-  // Catches cases where Claude drifts and writes copy for the wrong business
+  // ── FIXED: Consistency check now triggers regeneration on severe drift ──
   try {
     const businessType = (businessContext.businessType || '').toLowerCase();
     const expectedKeywords: Record<string, string[]> = {
@@ -204,7 +282,6 @@ export async function buildWebsite(input: {
       'agency': ['team', 'agency', 'scale', 'deliver', 'manage', 'service'],
     };
     
-    // Find the matching category
     const matchingCategory = Object.keys(expectedKeywords).find(cat => businessType.includes(cat));
     if (matchingCategory) {
       const keywords = expectedKeywords[matchingCategory];
@@ -213,9 +290,30 @@ export async function buildWebsite(input: {
       const fullText = heroText + ' ' + aboutText;
       
       const matchCount = keywords.filter(kw => fullText.includes(kw)).length;
-      // If fewer than 2 expected keywords appear, copy may have drifted
-      if (matchCount < 2 && fullText.length > 100) {
-        console.warn(`ZELREX BUILD: Copy consistency warning — business type "${businessType}" but only ${matchCount}/${keywords.length} expected keywords found in copy. Possible drift.`);
+      
+      // SEVERE DRIFT (0-1 keyword matches in 100+ chars): regenerate
+      if (matchCount <= 1 && fullText.length > 100) {
+        console.warn(`ZELREX BUILD: Severe copy drift — only ${matchCount}/${keywords.length} keywords. Regenerating with explicit constraint...`);
+        try {
+          const retryCopy = await generateWebsiteCopy({
+            branding,
+            assumptions: {
+              ...assumptions,
+              rationale: assumptions.rationale + ` IMPORTANT: This is a "${businessContext.businessType}" business. The copy MUST reference this category specifically — words like ${keywords.slice(0, 4).join(", ")} should appear naturally throughout.`,
+            },
+            businessContext,
+            surveyData: input.surveyData,
+          });
+          if (retryCopy && retryCopy.home) {
+            website.copy = retryCopy;
+            console.log("ZELREX BUILD: Regeneration successful — drift fixed");
+          }
+        } catch (regenErr) {
+          console.warn("ZELREX BUILD: Regeneration failed, using original copy:", regenErr);
+        }
+      } else if (matchCount < 2) {
+        // MILD DRIFT (just below threshold): warn only
+        console.warn(`ZELREX BUILD: Mild copy drift — ${matchCount}/${keywords.length} keywords. Acceptable but not ideal.`);
       }
     }
   } catch (e) {

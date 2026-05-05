@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from '@supabase/supabase-js';
+import { auth } from "@clerk/nextjs/server";
 import { buildWebsite } from "@/website/core/buildWebsite";
 import { saveWebsite } from "@/website/core/saveWebsite";
 import { randomUUID } from "crypto";
@@ -340,6 +341,18 @@ function checkChatRateLimit(userId: string): { allowed: boolean; retryAfter?: nu
 // ─── Main API handler ───────────────────────────────────────────
 export async function POST(req: Request) {
   try {
+    // FIXED: Get userId from Clerk session — NEVER trust request body for auth
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
+      return NextResponse.json(
+        { error: 'Authentication required. Please sign in.' },
+        { status: 401 }
+      );
+    }
+
+    // userId is now ALWAYS the authenticated Clerk user
+    const userId = clerkUserId;
+
     const body = await req.json();
 
     // Input validation — prevent malformed requests from crashing the server
@@ -347,11 +360,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
 
-    // Validate userId format (Clerk IDs)
-    let userId = body.userId || body.messages?.[0]?.userId;
-    if (userId && typeof userId === 'string' && !/^user_[a-zA-Z0-9]{10,50}$/.test(userId)) {
-      console.warn('[Chat] Invalid userId format:', userId.slice(0, 30));
-      return NextResponse.json({ error: 'Invalid userId format' }, { status: 400 });
+    // Security check for backward compatibility: if body includes user id, it must match session
+    const bodyUserId = typeof body['userId'] === 'string' ? body['userId'] : undefined;
+    if (bodyUserId && bodyUserId !== userId) {
+      console.warn(
+        `[Chat] request body user id (${String(bodyUserId).slice(0, 12)}...) does not match Clerk session. Using session.`
+      );
     }
 
     // Rate limit check
@@ -479,7 +493,7 @@ export async function POST(req: Request) {
     }
 
     // Get or create user progress
-    userId = userId || "anonymous";
+    // userId is guaranteed authenticated above
     let progress = await getProgress(userId);
 
     // ─── Stripe Connect ──────────────────────────────────────
@@ -617,7 +631,7 @@ export async function POST(req: Request) {
 
       // ─── STRIPE CHECK: If user wants checkout, verify Stripe is connected BEFORE building ───
       if(process.env.NODE_ENV==='development') console.log(`[ZELREX] Stripe check: preference=${stripePreference}, stripeService=${!!stripeService}, userId=${userId}`);
-      if (stripePreference !== "none" && stripeService && userId !== "anonymous") {
+      if (stripePreference !== "none" && stripeService) {
         try {
           const stripeStatus = await stripeService.getAccountStatus(userId);
 
@@ -705,7 +719,7 @@ export async function POST(req: Request) {
       let stripeCheckoutUrls: Record<string, string> = {};
       let stripeMessage = "";
 
-      if (stripePreference !== "none" && stripeService && userId !== "anonymous") {
+      if (stripePreference !== "none" && stripeService) {
         try {
           const stripeStatus = await stripeService.getAccountStatus(userId);
 
@@ -807,10 +821,20 @@ export async function POST(req: Request) {
         try {
           if(process.env.NODE_ENV==='development') console.log(`[ZELREX] Using v5 path (attempt ${v5Attempts}/${maxV5Attempts})`);
 
-          // 1. Load user memory (with timeout)
-          const memoryPromise = memoryService.loadFullContext(userId);
+          // 1. Load user memory (with timeout) — semantic retrieval + full context
+          const lastUserText = lastUserMessage && typeof lastUserMessage.content === 'string'
+            ? lastUserMessage.content
+            : '';
+          const memoryPromise = Promise.all([
+            memoryService.getRelevantMemory(userId, lastUserText, 30),
+            memoryService.loadFullContext(userId),
+          ]);
           const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Memory load timeout (8s)')), 8000));
-          const userContext = await Promise.race([memoryPromise, timeoutPromise]) as any;
+          const [relevantFacts, fullCtx] = await Promise.race([memoryPromise, timeoutPromise]) as any;
+          const userContext = {
+            ...fullCtx,
+            memory: relevantFacts,
+          } as any;
           if(process.env.NODE_ENV==='development') console.log(`[ZELREX] Memory loaded: ${userContext.memory?.length || 0} facts, stage ${userContext.progressStage}`);
 
         // 2. Build dynamic prompt with explicit memory transparency
@@ -928,7 +952,24 @@ Do NOT rely on training data for market-specific information. Search first, then
 5. WHEN WRONG, OWN IT
    If the user corrects you or you realize you gave bad info earlier, acknowledge it directly: "You're right, I was off on that. Here's the correction..."`;
 
-        const fullSystemPrompt = dynamicSystemPrompt + nicheInsights + ruleReminder + confidenceInstruction + webSearchInstruction + reliabilityGuardrails;
+        // FIXED: Detect if a website build was recently requested but not yet completed
+        // so Zelrex can answer "are you still building?" coherently.
+        let buildStatusContext = "";
+        try {
+          const recentMessages = messages.slice(-10);
+          const userAskedToBuild = recentMessages.some((m: any) =>
+            m.role === "user" && /\b(build|make|create|generate|launch)\b.*\b(website|site|page)\b/i.test(m.content || "")
+          );
+          const buildAlreadyDone = recentMessages.some((m: any) =>
+            m.role === "assistant" && /your website is ready|preview is up|i.ve built|i built/i.test(m.content || "")
+          );
+
+          if (userAskedToBuild && !buildAlreadyDone) {
+            buildStatusContext = `\n\nBUILD STATUS CONTEXT: The user previously asked to build a website, but no completed build exists yet in this conversation. If the user asks "are you still building?" or "where's my site?", respond honestly: "The build kicks off when you complete the survey and I have all the details. If you closed the survey, just say 'make me a website' again to reopen it. If you completed it and don't see a preview, that's a bug - let me know and we'll troubleshoot."`;
+          }
+        } catch {}
+
+        const fullSystemPrompt = dynamicSystemPrompt + nicheInsights + ruleReminder + confidenceInstruction + webSearchInstruction + reliabilityGuardrails + buildStatusContext;
 
         // 3. Call Claude with tools in a loop
         let currentMessages: any[] = messages.map((m: any, idx: number) => {
@@ -963,8 +1004,16 @@ Do NOT rely on training data for market-specific information. Search first, then
           // Dynamically adjust thinking budget based on message complexity
           const lastMsg = currentMessages[currentMessages.length - 1];
           const msgText = typeof lastMsg?.content === "string" ? lastMsg.content : (lastMsg?.content?.find?.((b: any) => b.type === "text")?.text || "");
+          // FIXED: Tiered thinking budget based on query complexity.
+          // Casual messages get fast responses; complex strategy gets full thinking.
           const isComplexQuery = /pric|revenue|market|evaluat|compet|strateg|contract|proposal|offer|should i|how much|how viable/i.test(msgText);
-          const thinkingBudget = isComplexQuery ? 12000 : 6000;
+          const isCasualQuery = msgText.length < 80 && /^(hi|hello|hey|thanks|thank you|ok|okay|got it|sure|yes|no|cool|nice|sounds good)/i.test(msgText.trim());
+          const isModerateQuery = msgText.length < 200 && !isComplexQuery;
+
+          const thinkingBudget = isCasualQuery ? 2000
+                               : isComplexQuery ? 12000
+                               : isModerateQuery ? 4000
+                               : 8000;
 
           const response = await anthropic.messages.create({
             model: process.env.ANTHROPIC_MODEL_OPUS || 'claude-opus-4-6',

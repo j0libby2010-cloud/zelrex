@@ -320,6 +320,40 @@ export function WebsiteSurvey({
     setData((prev) => ({ ...prev, [key]: value }));
   }
 
+  // FIXED: Autosave draft to localStorage every 500ms.
+  React.useEffect(() => {
+    const draftKey = "zelrex_survey_draft_active";
+    const saveTimer = setTimeout(() => {
+      try {
+        // Only save if there's actual content (not just defaults)
+        const hasContent = data.businessName || data.tagline || data.mainService || data.email;
+        if (hasContent) {
+          localStorage.setItem(draftKey, JSON.stringify({
+            savedAt: Date.now(),
+            step,
+            data,
+          }));
+        }
+      } catch {}
+    }, 500);
+    return () => clearTimeout(saveTimer);
+  }, [data, step]);
+
+  React.useEffect(() => {
+    // Restore step from saved draft if matching content
+    try {
+      const draftKey = "zelrex_survey_draft_active";
+      const draft = localStorage.getItem(draftKey);
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        // Only restore step if data was also restored (passed via initialData)
+        if (parsed.step !== undefined && parsed.data?.businessName === data.businessName && parsed.data?.businessName) {
+          setStep(parsed.step);
+        }
+      }
+    } catch {}
+  }, []);
+
   const [errors, setErrors] = useState<string[]>([]);
 
   function validateStep(s: number): string[] {
@@ -345,8 +379,13 @@ export function WebsiteSurvey({
     const errs = validateStep(step);
     if (errs.length > 0) { setErrors(errs); return; }
     setErrors([]);
-    if (step < totalSteps - 1) setStep(step + 1);
-    else onComplete(data);
+    if (step < totalSteps - 1) {
+      setStep(step + 1);
+    } else {
+      // Clear draft on successful completion
+      try { localStorage.removeItem("zelrex_survey_draft_active"); } catch {}
+      onComplete(data);
+    }
   }
   function back() { setErrors([]); if (step > 0) setStep(step - 1); }
 
