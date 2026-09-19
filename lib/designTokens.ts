@@ -1,6 +1,6 @@
 export const colors = {
-  bg: { base: "#06090F", inset: "#080D17", elevated: "#0D1320", hover: "rgba(255,255,255,0.04)" },
-  border: { subtle: "rgba(255,255,255,0.07)", default: "rgba(255,255,255,0.12)", strong: "rgba(255,255,255,0.2)" },
+  bg: { base: "#0A0F1A", inset: "#06090F", elevated: "#111A2A", hover: "rgba(255,255,255,0.07)" },
+  border: { subtle: "rgba(255,255,255,0.1)", default: "rgba(255,255,255,0.18)", strong: "rgba(255,255,255,0.3)" },
   text: { primary: "rgba(255,255,255,0.88)", secondary: "rgba(255,255,255,0.5)", tertiary: "rgba(255,255,255,0.3)" },
   accent: { base: "#4A90FF", subtle: "rgba(74,144,255,0.1)" },
   success: { base: "#10B981" },
