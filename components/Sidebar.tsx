@@ -1,39 +1,59 @@
-export default function Sidebar() {
-  return (
-    <aside className="w-64 h-screen bg-zinc-900 text-white flex flex-col border-r border-zinc-800">
-      
-      {/* Logo */}
-      <div className="p-4 text-xl font-semibold tracking-tight">
-        Zelrex
-      </div>
+"use client";
 
-      {/* New Chat Button */}
-      <div className="px-4">
-        <button className="w-full py-2 rounded-md bg-zinc-800 hover:bg-zinc-700 transition text-sm">
-          New chat
-        </button>
-      </div>
+import React from "react";
+import { colors, spacing, radius, typography, motion, shadow, layout } from "@/lib/designTokens";
 
-      {/* Chat List */}
-      <div className="flex-1 mt-4 overflow-y-auto">
-        <div className="px-4 py-2 text-sm text-zinc-400">
-          Chats
-        </div>
-
-        {/* Fake chats for now */}
-        <div className="px-4 py-2 text-sm rounded-md hover:bg-zinc-800 cursor-pointer">
-          First business idea
-        </div>
-        <div className="px-4 py-2 text-sm rounded-md hover:bg-zinc-800 cursor-pointer">
-          Website launch
-        </div>
-      </div>
-
-      {/* Account Section */}
-      <div className="p-4 border-t border-zinc-800 text-sm text-zinc-400">
-        Account
-      </div>
-
-    </aside>
-  );
+type BusinessPhase = "ready" | "intake" | "evaluating" | "building" | "live";
+type SidebarMessage = { content?: string; createdAt?: number };
+export interface SidebarChat { id: string; title: string; messages: SidebarMessage[]; createdAt: number; updatedAt: number; websiteData?: unknown; surveyData?: { businessType?: string } | null; }
+export interface SidebarProps {
+  sidebarOpen: boolean; onToggle: () => void; isMobile: boolean;
+  chats: SidebarChat[]; activeChatId: string | null; searchQuery: string; onSearchChange: (q: string) => void;
+  expandedBizId: string | null; renamingChatId: string | null; renameValue: string;
+  onNewChat: () => void; onSelectChat: (id: string) => void; onExpandChat: (id: string | null) => void;
+  onStartRename: (id: string) => void; onRenameChange: (value: string) => void; onCommitRename: () => void; onCancelRename: () => void; onDeleteChat: (id: string) => void;
+  onOpenSummaries: (event: React.MouseEvent) => void; onOpenAnalytics: (event: React.MouseEvent) => void; onOpenOutreach: (event: React.MouseEvent) => void; onOpenCRM: (event: React.MouseEvent) => void; onOpenGoal: (event: React.MouseEvent) => void;
+  hasDeployedSite: boolean; analyticsTooltip: boolean; userGoal: { text: string; target: string; deadline: string } | null;
+  isSignedIn: boolean; clerkUser: { imageUrl: string; fullName?: string | null; firstName?: string | null } | null; onOpenSettings: (event: React.MouseEvent) => void;
+  detectPhase: (messages: SidebarMessage[], hasWebsite?: boolean) => BusinessPhase; getBusinessName: (messages: SidebarMessage[]) => string | null;
+  t: (key: string) => string; Ic: React.ComponentType<{ n: string; className?: string; style?: React.CSSProperties }>; HBtn: React.ComponentType<React.ButtonHTMLAttributes<HTMLButtonElement>>;
 }
+
+const ease = "cubic-bezier(0.32,0.72,0,1)";
+const phaseLabel: Record<BusinessPhase, string> = { ready: "Getting started", intake: "Discovery", evaluating: "Evaluating", building: "Building site", live: "Live" };
+const phaseColor: Record<BusinessPhase, string> = { ready: colors.text.secondary, intake: colors.text.secondary, evaluating: colors.warning.base, building: colors.info.base, live: colors.success.base };
+
+function SidebarItem({ icon, label, active, onClick, isMobile }: { icon: React.ReactNode; label: string; active?: boolean; onClick?: (event: React.MouseEvent) => void; isMobile: boolean }) {
+  const [hover, setHover] = React.useState(false);
+  return <button type="button" onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} style={{ display: "flex", alignItems: "center", gap: spacing[2], width: "100%", padding: isMobile ? `${spacing[3]} ${spacing[3]}` : `${spacing[2]} ${spacing[3]}`, borderRadius: radius.full, border: "none", background: active ? colors.accent.subtle : hover ? colors.bg.hover : "transparent", color: active || hover ? colors.text.primary : colors.text.secondary, fontSize: typography.size.sm, fontWeight: typography.weight.medium, cursor: "pointer", transition: motion.transition.interactive, textAlign: "left" }}>{icon}<span>{label}</span></button>;
+}
+
+export default function Sidebar(props: SidebarProps) {
+  const { sidebarOpen, onToggle, isMobile, chats, activeChatId, searchQuery, onSearchChange, expandedBizId, renamingChatId, renameValue, onNewChat, onSelectChat, onExpandChat, onStartRename, onRenameChange, onCommitRename, onCancelRename, onDeleteChat, onOpenSummaries, onOpenAnalytics, onOpenOutreach, onOpenCRM, onOpenGoal, hasDeployedSite, analyticsTooltip, userGoal, isSignedIn, clerkUser, onOpenSettings, detectPhase, getBusinessName, t, Ic, HBtn } = props;
+  const [searchFocused, setSearchFocused] = React.useState(false);
+  const filteredChats = React.useMemo(() => { const q = searchQuery.trim().toLowerCase(); const sorted = [...chats].sort((a, b) => b.updatedAt - a.updatedAt); return q ? sorted.filter((chat) => chat.title.toLowerCase().includes(q) || (getBusinessName(chat.messages) || "").toLowerCase().includes(q) || chat.messages.some((message) => message.content?.toLowerCase().includes(q))) : sorted; }, [chats, searchQuery, getBusinessName]);
+  return <>
+    {sidebarOpen && isMobile && <div onClick={onToggle} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 19 }} />}
+    <aside style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, borderRight: sidebarOpen ? `1px solid ${colors.border.subtle}` : "none", background: colors.bg.base, transition: `width 500ms ${ease}, min-width 500ms ${ease}`, overflow: "hidden", display: "flex", flexDirection: "column", position: isMobile ? "fixed" : "absolute", top: isMobile ? 0 : -parseInt(layout.navBarHeight, 10), bottom: 0, left: 0, paddingTop: isMobile ? spacing[16] : layout.navBarHeight, zIndex: 20 }}>
+      <div style={{ padding: spacing[3], opacity: sidebarOpen ? 1 : 0, transition: `opacity 400ms ${ease}` }}>
+        <button type="button" onClick={onNewChat} style={{ width: "100%", padding: `${spacing[2]} 0`, borderRadius: radius.full, border: `1px solid ${colors.border.subtle}`, background: "transparent", color: colors.text.secondary, cursor: "pointer" }}><Ic n="briefcase" className="h-4 w-4" /> {t("newBusiness")}</button>
+        <div style={{ marginTop: spacing[2], display: "flex", flexDirection: "column", gap: "2px" }}>
+          <SidebarItem icon={<Ic n="calendar" style={{ width: 15, height: 15, color: colors.success.base }} />} label={t("weeklySummaries")} onClick={onOpenSummaries} isMobile={isMobile} />
+          <div style={{ position: "relative" }}><SidebarItem icon={<Ic n="analytics" style={{ width: 15, height: 15, color: colors.info.base }} />} label={t("businessAnalytics")} onClick={onOpenAnalytics} isMobile={isMobile} />{analyticsTooltip && !hasDeployedSite && <div style={{ position: "absolute", left: `calc(100% + ${spacing[2]})`, top: "50%", transform: "translateY(-50%)", padding: `${spacing[2]} ${spacing[4]}`, borderRadius: radius.md, whiteSpace: "nowrap", background: colors.bg.elevated, border: `1px solid ${colors.border.subtle}`, boxShadow: shadow.md, color: colors.text.secondary, zIndex: 100 }}>Deploy your site first to see analytics.</div>}</div>
+          <SidebarItem icon={<Ic n="bolt" style={{ width: 15, height: 15, color: colors.amber.base }} />} label={t("outreach")} onClick={onOpenOutreach} isMobile={isMobile} />
+          <SidebarItem icon={<Ic n="user" style={{ width: 15, height: 15, color: colors.accent.base }} />} label={t("clients")} onClick={onOpenCRM} isMobile={isMobile} />
+          <SidebarItem icon={<Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? colors.accent.base : colors.warning.base }} />} label={userGoal ? t("myGoal") : t("setGoal")} active={!!userGoal} onClick={onOpenGoal} isMobile={isMobile} />
+        </div>
+        <div style={{ marginTop: spacing[2], display: "flex", alignItems: "center", gap: spacing[2], padding: `${spacing[2]} ${spacing[3]}`, borderRadius: radius.full, border: `1px solid ${searchFocused ? colors.border.strong : colors.border.subtle}`, background: colors.bg.inset }}><Ic n="search" className="h-3.5 w-3.5" style={{ color: colors.text.tertiary }} /><input value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} onFocus={() => setSearchFocused(true)} onBlur={() => setSearchFocused(false)} placeholder={t("searchBiz")} style={{ flex: 1, background: "none", border: "none", outline: "none", color: colors.text.primary }} />{searchQuery && <HBtn onClick={() => onSearchChange("")}><Ic n="close" className="h-3 w-3" /></HBtn>}</div>
+      </div>
+      <div style={{ height: 1, margin: `0 ${spacing[3]}`, background: colors.border.subtle }} />
+      <div className="z-scroll" style={{ flex: 1, overflowY: "auto", padding: `${spacing[1]} ${spacing[2]}` }}><div style={{ padding: `${spacing[1]} ${spacing[2]} ${spacing[2]}`, fontSize: typography.size.xs, color: colors.text.tertiary, textTransform: "uppercase" }}>Your Businesses</div>{filteredChats.map((chat) => <ChatListItem key={chat.id} chat={chat} active={chat.id === activeChatId} renaming={chat.id === renamingChatId} expanded={chat.id === expandedBizId} renameValue={renameValue} phase={detectPhase(chat.messages, !!chat.websiteData)} isMobile={isMobile} onSelect={() => onSelectChat(chat.id)} onExpand={() => onExpandChat(chat.id === expandedBizId ? null : chat.id)} onStartRename={() => onStartRename(chat.id)} onRenameChange={onRenameChange} onCommitRename={onCommitRename} onCancelRename={onCancelRename} onDelete={() => { onDeleteChat(chat.id); onExpandChat(null); }} Ic={Ic} HBtn={HBtn} />)}</div>
+      <div style={{ borderTop: `1px solid ${colors.border.subtle}`, padding: spacing[2] }}>{isSignedIn && clerkUser ? <div style={{ display: "flex", alignItems: "center", gap: spacing[3], padding: `${spacing[2]} ${spacing[3]}` }}><img src={clerkUser.imageUrl} alt="" style={{ width: 32, height: 32, borderRadius: radius.full }} /><div style={{ flex: 1, minWidth: 0, color: colors.text.primary }}>{clerkUser.fullName || clerkUser.firstName || "User"}<div style={{ color: colors.accent.base, fontSize: typography.size.xs }}>Free plan</div></div><button type="button" onClick={onOpenSettings} title="Settings" style={{ width: 32, height: 32, border: "none", background: "transparent", color: colors.text.tertiary }}><Ic n="settings" style={{ width: 20, height: 20 }} /></button></div> : <button type="button" onClick={() => { window.location.href = "/sign-in" }} style={{ width: "100%", padding: `${spacing[2]} ${spacing[3]}`, border: "none", borderRadius: radius.full, background: "transparent", color: colors.text.secondary, textAlign: "left" }}><Ic n="signin" className="h-4 w-4" /> Sign in</button>}</div>
+    </aside>
+  </>;
+}
+
+function ChatListItem({ chat, active, renaming, expanded, renameValue, phase, isMobile, onSelect, onExpand, onStartRename, onRenameChange, onCommitRename, onCancelRename, onDelete, Ic, HBtn }: { chat: SidebarChat; active: boolean; renaming: boolean; expanded: boolean; renameValue: string; phase: BusinessPhase; isMobile: boolean; onSelect: () => void; onExpand: () => void; onStartRename: () => void; onRenameChange: (value: string) => void; onCommitRename: () => void; onCancelRename: () => void; onDelete: () => void; Ic: SidebarProps["Ic"]; HBtn: SidebarProps["HBtn"] }) {
+  return <div style={{ marginBottom: "2px", borderRadius: radius.md, overflow: "hidden", border: active ? `1px solid ${colors.border.subtle}` : "1px solid transparent", background: active ? colors.bg.hover : "transparent" }}><div style={{ display: "flex", alignItems: "center", padding: isMobile ? `${spacing[3]} ${spacing[3]}` : `${spacing[2]} ${spacing[2]}` }}><button onClick={onSelect} type="button" style={{ flex: 1, textAlign: "left", background: "none", border: "none", color: colors.text.primary, padding: 0, overflow: "hidden" }}>{renaming ? <input value={renameValue} onChange={(event) => onRenameChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") onCommitRename(); if (event.key === "Escape") onCancelRename(); }} onBlur={onCommitRename} autoFocus style={{ width: "100%" }} /> : <span style={{ fontSize: typography.size.sm, color: active ? colors.text.primary : colors.text.secondary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{chat.title || "New business"}</span>}</button>{!renaming && <HBtn onClick={(event: React.MouseEvent) => { event.stopPropagation(); onExpand(); }} style={{ width: 26, height: 26, color: colors.text.tertiary }}><Ic n="chevdown" style={{ width: 14, height: 14, transform: expanded ? "rotate(180deg)" : "none" }} /></HBtn>}</div>{expanded && <div style={{ padding: `2px ${spacing[3]} ${spacing[3]}` }}><div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: spacing[1], marginBottom: spacing[2] }}><Detail label="Created" value={chat.createdAt ? new Date(chat.createdAt).toLocaleDateString("en-US") : "-"} /><Detail label="Type" value={chat.surveyData?.businessType || "-"} /><Detail label="Website" value={phase === "live" ? "Live" : phase === "building" ? "Building" : "Not started"} /><Detail label="Progress" value={phaseLabel[phase]} color={phaseColor[phase]} /></div><button type="button" onClick={onStartRename}>Rename</button><button type="button" onClick={onDelete} style={{ color: colors.danger.base }}>Delete</button></div>}</div>;
+}
+function Detail({ label, value, color }: { label: string; value: string; color?: string }) { return <div style={{ padding: spacing[2], borderRadius: radius.md, background: colors.bg.inset, border: `1px solid ${colors.border.subtle}`, fontSize: typography.size.xs }}><div style={{ color: colors.text.tertiary }}>{label}</div><div style={{ color: color || colors.text.secondary }}>{value}</div></div>; }

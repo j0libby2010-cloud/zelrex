@@ -26,6 +26,7 @@ const i18n: Record<string, Record<string, string>> = {
 import { CRMSystem } from "@/components/CRMSystem";
 import { DomainManager } from "@/components/DomainManager";
 import { WebsiteEditMode } from "@/components/WebsiteEditMode";
+import Sidebar from "@/components/Sidebar";
 import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
 
@@ -2610,6 +2611,44 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       {/* LAYOUT: sidebar + chat + preview */}
       <div style={{ display: "flex", height: `calc(100vh - ${isMobile ? 85 : 81}px)`, position: "relative" }}>
 
+        <Sidebar
+          sidebarOpen={sidebarOpen}
+          onToggle={() => setSidebarOpen(false)}
+          isMobile={isMobile}
+          chats={chats}
+          activeChatId={activeChatId}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          expandedBizId={expandedBizId}
+          renamingChatId={renamingChatId}
+          renameValue={renameValue}
+          onNewChat={createNewChat}
+          onSelectChat={(id) => { setActiveChatId(id); router.push(`/chat/${id}`, { scroll: false }); if (isMobile) setSidebarOpen(false); }}
+          onExpandChat={setExpandedBizId}
+          onStartRename={startRename}
+          onRenameChange={setRenameValue}
+          onCommitRename={commitRename}
+          onCancelRename={() => { setRenamingChatId(null); setRenameValue(""); }}
+          onDeleteChat={deleteChat}
+          onOpenSummaries={(e) => { summariesOriginRef.current = { x: e.clientX, y: e.clientY }; setSummariesOpen(true); if (isMobile) setSidebarOpen(false); }}
+          onOpenAnalytics={(e) => { if (deployData?.url) { analyticsOriginRef.current = { x: e.clientX, y: e.clientY }; setAnalyticsOpen(true); if (isMobile) setSidebarOpen(false); } else { setAnalyticsTooltip(true); setTimeout(() => setAnalyticsTooltip(false), 3000); } }}
+          onOpenOutreach={(e) => { outreachOriginRef.current = { x: e.clientX, y: e.clientY }; setOutreachOpen(true); if (isMobile) setSidebarOpen(false); }}
+          onOpenCRM={(e) => { crmOriginRef.current = { x: e.clientX, y: e.clientY }; setCrmOpen(true); if (isMobile) setSidebarOpen(false); }}
+          onOpenGoal={openGoalModal}
+          hasDeployedSite={!!deployData?.url}
+          analyticsTooltip={analyticsTooltip}
+          userGoal={userGoal}
+          isSignedIn={!!isSignedIn}
+          clerkUser={clerkUser ? { imageUrl: clerkUser.imageUrl, fullName: clerkUser.fullName, firstName: clerkUser.firstName } : null}
+          onOpenSettings={openSettings}
+          detectPhase={detectPhase}
+          getBusinessName={getBusinessName}
+          t={t}
+          Ic={Ic}
+          HBtn={HBtn}
+        />
+
+        {false && <>
         {/* SIDEBAR BACKDROP (mobile only) */}
         {sidebarOpen && isMobile && (
           <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 19 }} />
@@ -2769,6 +2808,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             )}
           </div>
         </aside>
+        </>}
 
         {/* Collapsed profile avatar (visible when sidebar is closed) */}
         {!sidebarOpen && !isMobile && isSignedIn && clerkUser && (
