@@ -289,7 +289,7 @@ function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal, onAdd
           <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 600, color: C.accent, letterSpacing: "0.04em", textTransform: "uppercase", maxWidth: 160, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userGoal.text}</span>
         </div>
       ) : (
-        <button type="button" onClick={onAddGoal} className="z-glass-accent" style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: isMobile ? 9 : 10, fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+        <button type="button" onClick={onAddGoal} style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: isMobile ? 9 : 10, fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", textTransform: "uppercase" }}>
           <span style={{ fontSize: 11, lineHeight: 1 }}>+</span> Goal
         </button>
       )}
@@ -343,7 +343,7 @@ function WelcomeScreen({ onAction }: { onAction: (t: string) => void }) {
       </p>
       <div className="welcome-grid" style={{ marginTop: 36, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, width: "100%", maxWidth: 540 }}>
         {cards.map((c) => (
-          <button key={c.title} type="button" onClick={() => onAction(c.action)} className="z-glass welcome-card"
+          <button key={c.title} type="button" onClick={() => onAction(c.action)} className="welcome-card"
             style={{ textAlign: "left", padding: "20px 16px", borderRadius: 16, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)", cursor: "pointer", color: C.text }}>
             <Ic n={c.icon} className="h-5 w-5" style={{ color: C.accent }} />
             <div className="welcome-card-title" style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>{c.title}</div>
@@ -357,7 +357,7 @@ function WelcomeScreen({ onAction }: { onAction: (t: string) => void }) {
 
 function ActionPill({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className="z-glass-accent"
+    <button type="button" onClick={onClick}
       style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, border: `1px solid ${C.accent}40`, background: `${C.accent}15`, color: C.accent, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
       {label} &rarr;
     </button>
@@ -367,7 +367,7 @@ function ActionPill({ label, onClick }: { label: string; onClick: () => void }) 
 // Button helper — Apple liquid glass
 function HBtn({ children, onClick, style, className, ...rest }: React.ButtonHTMLAttributes<HTMLButtonElement> & { style?: React.CSSProperties }) {
   return (
-    <button type="button" onClick={onClick} className={cx("z-glass", className)} {...rest}
+    <button type="button" onClick={onClick} className={className} {...rest}
       style={{ background: "none", border: "none", cursor: "pointer", borderRadius: 999, display: "inline-flex", alignItems: "center", justifyContent: "center", ...style }}>
       {children}
     </button>
@@ -2377,39 +2377,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.06);border-radius:3px}
         ::selection{background:${C.accent}40}
         textarea::placeholder{color:${C.textMuted}}
-        /* ── Apple Liquid Glass — hover-only (no bg/border at rest) ── */
-        .z-glass,.glass-btn{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.32,0.72,0,1);background:transparent;border-color:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
-        .z-glass::before,.glass-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(160deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.04) 15%,transparent 42%,transparent 58%,rgba(255,255,255,0.03) 80%,rgba(255,255,255,0.12) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -0.5px 0 rgba(255,255,255,0.04),inset 0.5px 0 0 rgba(255,255,255,0.04),inset -0.5px 0 0 rgba(255,255,255,0.04);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none;z-index:0}
-        .z-glass:hover::before,.glass-btn:hover::before{opacity:1}
-        .z-glass::after,.glass-btn::after{content:'';position:absolute;top:-50%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 40% 25%,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.02) 35%,transparent 70%);opacity:0;transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none;z-index:0}
-        .z-glass:hover::after,.glass-btn:hover::after{opacity:1}
-        .z-glass:hover,.glass-btn:hover{background:rgba(255,255,255,0.05)!important;border-color:rgba(255,255,255,0.12)!important;backdrop-filter:blur(20px) brightness(1.22) saturate(1.6);-webkit-backdrop-filter:blur(20px) brightness(1.22) saturate(1.6);box-shadow:0 0 0 0.5px rgba(255,255,255,0.18),0 2px 8px rgba(0,0,0,0.08),0 8px 32px rgba(0,0,0,0.04),inset 0 1px 0 rgba(255,255,255,0.45);transform:translateY(-0.5px)}
-        .z-glass:active,.glass-btn:active{transform:scale(0.97) translateY(0);transition-duration:120ms}
-        .z-glass>*,.glass-btn>*{position:relative;z-index:1}
-        /* Accent variant */
-        .z-glass-accent{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.32,0.72,0,1);background:transparent;border-color:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
-        .z-glass-accent::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(160deg,rgba(74,144,255,0.24) 0%,rgba(74,144,255,0.04) 18%,transparent 48%,transparent 58%,rgba(74,144,255,0.03) 82%,rgba(74,144,255,0.16) 100%);box-shadow:inset 0 1px 0 rgba(74,144,255,0.4),inset 0 -0.5px 0 rgba(74,144,255,0.05);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .z-glass-accent::after{content:'';position:absolute;top:-50%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 40% 25%,rgba(74,144,255,0.15) 0%,rgba(74,144,255,0.02) 35%,transparent 70%);opacity:0;transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .z-glass-accent:hover::before,.z-glass-accent:hover::after{opacity:1}
-        .z-glass-accent:hover{background:rgba(74,144,255,0.06)!important;border-color:rgba(74,144,255,0.18)!important;backdrop-filter:blur(20px) brightness(1.18) saturate(1.6);-webkit-backdrop-filter:blur(20px) brightness(1.18) saturate(1.6);box-shadow:0 0 0 0.5px rgba(74,144,255,0.25),0 2px 8px rgba(74,144,255,0.06),0 8px 32px rgba(0,0,0,0.04),0 0 24px rgba(74,144,255,0.04),inset 0 1px 0 rgba(74,144,255,0.4);transform:translateY(-0.5px)}
-        .z-glass-accent:active{transform:scale(0.97) translateY(0);transition-duration:120ms}
-        /* Danger variant */
-        .z-glass-danger{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.32,0.72,0,1);background:transparent;border-color:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
-        .z-glass-danger::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(160deg,rgba(239,68,68,0.22) 0%,rgba(239,68,68,0.04) 18%,transparent 48%,transparent 58%,rgba(239,68,68,0.02) 82%,rgba(239,68,68,0.14) 100%);box-shadow:inset 0 1px 0 rgba(239,68,68,0.3),inset 0 -0.5px 0 rgba(239,68,68,0.04);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .z-glass-danger::after{content:'';position:absolute;top:-50%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 40% 25%,rgba(239,68,68,0.10) 0%,rgba(239,68,68,0.015) 35%,transparent 70%);opacity:0;transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .z-glass-danger:hover::before,.z-glass-danger:hover::after{opacity:1}
-        .z-glass-danger:hover{background:rgba(239,68,68,0.06)!important;border-color:rgba(239,68,68,0.18)!important;backdrop-filter:blur(20px) brightness(1.12) saturate(1.5);-webkit-backdrop-filter:blur(20px) brightness(1.12) saturate(1.5);box-shadow:0 0 0 0.5px rgba(239,68,68,0.25),0 2px 8px rgba(239,68,68,0.06),0 8px 32px rgba(0,0,0,0.04),0 0 20px rgba(239,68,68,0.03),inset 0 1px 0 rgba(239,68,68,0.3);transform:translateY(-0.5px)}
-        .z-glass-danger:active{transform:scale(0.97) translateY(0);transition-duration:120ms}
-        /* Solid accent button liquid glass (Upgrade to Pro, Save goal) */
-        .z-glass-solid{position:relative;overflow:hidden;transition:all 500ms cubic-bezier(0.32,0.72,0,1);box-shadow:inset 0 1px 0 rgba(255,255,255,0.18),inset 0 -0.5px 0 rgba(255,255,255,0.04)}
-        .z-glass-solid::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0.4;background:linear-gradient(160deg,rgba(255,255,255,0.30) 0%,rgba(255,255,255,0.06) 18%,transparent 48%,transparent 58%,rgba(255,255,255,0.04) 82%,rgba(255,255,255,0.18) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -0.5px 0 rgba(255,255,255,0.05);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .z-glass-solid::after{content:'';position:absolute;top:-50%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 40% 25%,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.03) 35%,transparent 65%);opacity:0.35;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .z-glass-solid:hover::before,.z-glass-solid:hover::after{opacity:1}
-        .z-glass-solid:hover{transform:translateY(-1px);box-shadow:0 8px 36px rgba(74,144,255,0.38),inset 0 1px 0 rgba(255,255,255,0.30)}
-        .z-glass-solid:active{transform:scale(0.97) translateY(0);transition-duration:120ms}
         .chat-row{position:relative;overflow:visible}
-        .chat-row::before{content:'';position:absolute;inset:0;border-radius:8px;opacity:0;background:linear-gradient(168deg,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.015) 50%,rgba(255,255,255,0.03) 75%,rgba(255,255,255,0.06) 100%);backdrop-filter:brightness(1.1) saturate(1.3);-webkit-backdrop-filter:brightness(1.1) saturate(1.3);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.2),0 0 0 0.5px rgba(255,255,255,0.06);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .chat-row:hover::before{opacity:1}
+        .chat-row:hover{background:rgba(255,255,255,0.04)}
         .chat-row:hover .chat-dots{opacity:0.7!important}
         .chat-row:hover .chat-title{color:${C.text}!important}
         .msg-actions{display:flex;align-items:center;gap:2px;margin-top:6px;opacity:0.55;transition:opacity 400ms cubic-bezier(0.32,0.72,0,1)}
@@ -2417,18 +2386,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .user-row .msg-actions{opacity:0}
         .user-row:hover .msg-actions{opacity:1}
         .user-row .msg-act{color:rgba(255,255,255,0.55)}
-        .msg-act{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:999px;border:1px solid transparent;background:transparent;color:${C.textMuted};cursor:pointer;transition:all 500ms cubic-bezier(0.32,0.72,0,1);padding:0;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none}
-        .msg-act::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(160deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.03) 15%,transparent 45%,transparent 55%,rgba(255,255,255,0.02) 80%,rgba(255,255,255,0.10) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.35),inset 0 -0.5px 0 rgba(255,255,255,0.03);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .msg-act::after{content:'';position:absolute;top:-50%;left:5%;width:90%;height:80%;border-radius:50%;background:radial-gradient(ellipse at 40% 25%,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.02) 35%,transparent 70%);opacity:0;transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .msg-act:hover{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.12);backdrop-filter:blur(20px) brightness(1.22) saturate(1.6);-webkit-backdrop-filter:blur(20px) brightness(1.22) saturate(1.6);box-shadow:0 0 0 0.5px rgba(255,255,255,0.18),0 2px 8px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.35);color:${C.text};transform:translateY(-0.5px)}
-        .msg-act:hover::before,.msg-act:hover::after{opacity:1}
-        .msg-act:hover::before,.msg-act:hover::after{opacity:1}
+        .msg-act{display:flex;align-items:center;justify-content:center;width:30px;height:28px;border-radius:999px;border:1px solid transparent;background:transparent;color:${C.textMuted};cursor:pointer;transition:background 200ms ease,border-color 200ms ease,color 200ms ease;padding:0}
+        .msg-act:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.12);color:${C.text}}
         .msg-act:active{transform:scale(0.92) translateY(0);transition-duration:120ms}
         .msg-act svg{width:15px;height:15px}
         .user-time{font-size:11px;color:rgba(255,255,255,0.7);font-weight:500;letter-spacing:0.01em}
         .collapsed-avatar:hover .collapsed-reveal,.collapsed-reveal:hover{opacity:1!important;transform:translateX(0)!important;pointer-events:auto!important}
         .drag-handle{width:8px;cursor:col-resize;background:transparent;transition:all 500ms cubic-bezier(0.32,0.72,0,1);flex-shrink:0;position:relative;z-index:10;border-left:1px solid ${C.border}}
-        .drag-handle:hover{background:rgba(74,144,255,0.06);backdrop-filter:brightness(1.1) saturate(1.2);-webkit-backdrop-filter:brightness(1.1) saturate(1.2)}
+        .drag-handle:hover{background:rgba(74,144,255,0.06)}
         .drag-handle:active{background:rgba(74,144,255,0.1)}
         .drag-handle::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:3px;height:48px;border-radius:3px;background:rgba(255,255,255,0.08);transition:all 500ms cubic-bezier(0.32,0.72,0,1)}
         .drag-handle:hover::after{background:${C.accent};box-shadow:0 0 8px ${C.accent}40;height:64px}
@@ -2436,7 +2401,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .burger-btn{width:36px;height:36px;position:relative;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:10px;cursor:pointer;transition:all 500ms cubic-bezier(0.32,0.72,0,1);flex-shrink:0;overflow:hidden}
         .burger-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.06) 18%,rgba(255,255,255,0.015) 45%,transparent 60%,rgba(255,255,255,0.025) 78%,rgba(255,255,255,0.09) 100%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.35),inset 0 -0.5px 0 rgba(255,255,255,0.06);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
         .burger-btn::after{content:'';position:absolute;top:-35%;left:8%;width:84%;height:70%;border-radius:50%;background:radial-gradient(ellipse at 38% 35%,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.035) 32%,transparent 68%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .burger-btn:hover{background:rgba(255,255,255,0.065);border-color:rgba(255,255,255,0.14);backdrop-filter:brightness(1.15) saturate(1.4);-webkit-backdrop-filter:brightness(1.15) saturate(1.4);box-shadow:0 0 0 0.5px rgba(255,255,255,0.13),0 1px 2px rgba(0,0,0,0.08),0 4px 16px rgba(0,0,0,0.06),0 0 24px rgba(74,144,255,0.03)}
+        .burger-btn:hover{background:rgba(255,255,255,0.065);border-color:rgba(255,255,255,0.14)}
         .burger-btn:hover::before,.burger-btn:hover::after{opacity:1}
         .burger-btn:active{transform:scale(0.92) translateY(0);transition-duration:120ms}
         .burger-line{position:absolute;height:1.5px;border-radius:1px;background:${C.textSec};transition:transform 0.5s cubic-bezier(0.32,0.72,0,1),opacity 0.4s ease,width 0.5s cubic-bezier(0.32,0.72,0,1),background 0.4s ease}
@@ -2505,10 +2470,6 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         }
         /* Mobile touch improvements */
         @media(hover:none){
-          .z-glass:active{transform:scale(0.97)!important;transition-duration:100ms!important}
-          .z-glass-accent:active{transform:scale(0.97)!important;transition-duration:100ms!important}
-          .z-glass-danger:active{transform:scale(0.97)!important;transition-duration:100ms!important}
-          .z-glass-solid:active{transform:scale(0.97)!important;transition-duration:100ms!important}
           .msg-act:active{transform:scale(0.90)!important;transition-duration:80ms!important}
           .stg-tab:active{transform:scale(0.96)!important;transition-duration:80ms!important}
           .chat-row:active{background:rgba(255,255,255,0.04)!important;transition-duration:80ms!important}
@@ -2520,7 +2481,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       `}</style>
 
       {/* HEADER */}
-      <div className="z-header-safe" style={{ position: "sticky", top: 0, zIndex: 100, borderBottom: `1px solid ${C.border}`, background: "rgba(6,9,15,0.82)", backdropFilter: "blur(24px)" }}>
+      <div className="z-header-safe" style={{ position: "sticky", top: 0, zIndex: 100, borderBottom: `1px solid ${C.border}`, background: C.bg }}>
         <div style={{ maxWidth: 1800, margin: "0 auto", height: isMobile ? 56 : 52, display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "0 10px" : "0 14px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <button type="button" onClick={() => setSidebarOpen((v) => !v)} className="burger-btn" aria-label="Toggle sidebar">
@@ -2658,13 +2619,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         <aside style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, borderRight: sidebarOpen ? `1px solid ${C.border}` : "none", background: C.bg, transition: "all 500ms cubic-bezier(0.32,0.72,0,1)", overflow: "hidden", display: "flex", flexDirection: "column", position: isMobile ? "fixed" : "absolute", top: isMobile ? 0 : -81, bottom: 0, left: 0, paddingTop: isMobile ? 64 : 81, zIndex: 20 }}>
           <div style={{ padding: 10, opacity: sidebarOpen ? 1 : 0, transition: "opacity 400ms cubic-bezier(0.32,0.72,0,1)" }}>
             {/* New Business button */}
-            <button onClick={createNewChat} type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: isMobile ? "11px 0" : "9px 0", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+            <button onClick={createNewChat} type="button" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: isMobile ? "11px 0" : "9px 0", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
               <Ic n="briefcase" className="h-4 w-4" /> New Business
             </button>
 
             {/* Tool buttons */}
             <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: isMobile ? 1 : 2 }}>
-              <button type="button" className="z-glass" onClick={(e) => {
+              <button type="button" onClick={(e) => {
                 summariesOriginRef.current = { x: e.clientX, y: e.clientY };
                 setSummariesOpen(true);
                 if (isMobile) setSidebarOpen(false);
@@ -2672,7 +2633,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 <Ic n="calendar" style={{ width: 15, height: 15, color: "#10B981" }} /> Weekly Summaries
               </button>
               <div style={{ position: "relative" }}>
-                <button type="button" className="z-glass" onClick={(e) => {
+                <button type="button" onClick={(e) => {
                   if (deployData?.url) {
                     analyticsOriginRef.current = { x: e.clientX, y: e.clientY };
                     setAnalyticsOpen(true);
@@ -2688,7 +2649,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div style={{
                     position: "absolute", left: isMobile ? "50%" : "calc(100% + 8px)", top: isMobile ? "calc(100% + 6px)" : "50%", transform: isMobile ? "translateX(-50%)" : "translateY(-50%)",
                     padding: "8px 14px", borderRadius: 12, whiteSpace: "nowrap",
-                    background: "rgba(12,16,24,0.95)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+                    background: C.bg.elevated,
                     border: `1px solid ${C.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
                     fontSize: 12, color: C.textSec, zIndex: 100,
                     animation: "tooltipIn 200ms ease",
@@ -2698,21 +2659,21 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   </div>
                 )}
               </div>
-              <button type="button" className="z-glass" onClick={(e) => {
+              <button type="button" onClick={(e) => {
                 outreachOriginRef.current = { x: e.clientX, y: e.clientY };
                 setOutreachOpen(true);
                 if (isMobile) setSidebarOpen(false);
               }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ color: "#FBBF24" }}><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg> Outreach
               </button>
-              <button type="button" className="z-glass" onClick={(e) => {
+              <button type="button" onClick={(e) => {
                 crmOriginRef.current = { x: e.clientX, y: e.clientY };
                 setCrmOpen(true);
                 if (isMobile) setSidebarOpen(false);
               }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ color: "#3B82F6" }}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg> Clients
               </button>
-              <button type="button" className="z-glass" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+              <button type="button" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? C.accent : "#F59E0B" }} /> {userGoal ? t("myGoal") : t("setGoal")}
               </button>
             </div>
@@ -2775,10 +2736,10 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 4 }}>
-                        <button onClick={() => startRename(c.id)} type="button" className="z-glass" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 999, border: "none", background: "rgba(255,255,255,0.03)", color: C.textSec, fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
+                        <button onClick={() => startRename(c.id)} type="button" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 999, border: "none", background: "rgba(255,255,255,0.03)", color: C.textSec, fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
                           <Ic n="pencil" style={{ width: 11, height: 11 }} /> Rename
                         </button>
-                        <button onClick={() => { deleteChat(c.id); setExpandedBizId(null); }} type="button" className="z-glass-danger" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 999, border: "none", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
+                        <button onClick={() => { deleteChat(c.id); setExpandedBizId(null); }} type="button" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 999, border: "none", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
                           <Ic n="trash" style={{ width: 11, height: 11 }} /> Delete
                         </button>
                       </div>
@@ -2796,12 +2757,12 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, letterSpacing: "0.03em", marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" onClick={openSettings} title="Settings" className="z-glass" style={{ width: 32, height: 32, borderRadius: 999, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: sidebarOpen ? 1 : 0 }}>
+                <button type="button" onClick={openSettings} title="Settings" style={{ width: 32, height: 32, borderRadius: 999, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: sidebarOpen ? 1 : 0 }}>
                   <Ic n="settings" style={{ width: 20, height: 20 }} />
                 </button>
               </div>
             ) : (
-              <button type="button" className="z-glass" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 999, background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer" }}
+              <button type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 999, background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer" }}
                 onClick={() => { window.location.href = "/sign-in"; }}>
                 <Ic n="signin" className="h-4 w-4" /> Sign in
               </button>
@@ -2815,12 +2776,12 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           <div className="collapsed-avatar-wrap" style={{ position: "fixed", bottom: 20, left: 10, zIndex: 21 }}>
             <div className="collapsed-avatar" style={{ position: "relative", cursor: "pointer" }}>
               <img src={clerkUser.imageUrl} alt="" style={{ width: 32, height: 32, borderRadius: 999, border: `1.5px solid ${C.border}`, display: "block" }} />
-              <div className="collapsed-reveal" style={{ position: "absolute", left: 38, top: -4, display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: "rgba(10,15,26,0.92)", border: `1px solid ${C.border}`, backdropFilter: "blur(32px) saturate(1.6)", WebkitBackdropFilter: "blur(32px) saturate(1.6)", boxShadow: "0 8px 32px rgba(0,0,0,0.4)", whiteSpace: "nowrap", opacity: 0, transform: "translateX(-6px)", transition: "all 500ms cubic-bezier(0.32,0.72,0,1)", pointerEvents: "none" }}>
+              <div className="collapsed-reveal" style={{ position: "absolute", left: 38, top: -4, display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: C.bg.elevated, border: `1px solid ${C.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.4)", whiteSpace: "nowrap", opacity: 0, transform: "translateX(-6px)", transition: "all 500ms cubic-bezier(0.32,0.72,0,1)", pointerEvents: "none" }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" onClick={openSettings} title="Settings" className="z-glass" style={{ width: 30, height: 30, borderRadius: 999, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <button type="button" onClick={openSettings} title="Settings" style={{ width: 30, height: 30, borderRadius: 999, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Ic n="settings" style={{ width: 18, height: 18 }} />
                 </button>
               </div>
@@ -2913,7 +2874,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             {!surveyData && !showSurvey && activeChat?.pendingSurvey && (
               <div style={{ maxWidth: showPreview ? "100%" : 820, margin: "0 auto 10px", borderRadius: 999, border: `1px solid ${C.border}`, background: C.bg, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, position: "relative", zIndex: 2 }}>
                 <div style={{ fontSize: 12, color: C.textSec }}>Survey paused. Continue to finish your website build.</div>
-                <button type="button" onClick={() => { setSurveyDismissed(false); setShowSurvey(true); }} className="z-glass-accent" style={{ padding: "6px 12px", borderRadius: 999, border: `1px solid ${C.accent}55`, background: `${C.accent}18`, color: C.accent, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Continue survey</button>
+                <button type="button" onClick={() => { setSurveyDismissed(false); setShowSurvey(true); }} style={{ padding: "6px 12px", borderRadius: 999, border: `1px solid ${C.accent}55`, background: `${C.accent}18`, color: C.accent, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Continue survey</button>
               </div>
             )}
             <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 24, background: "linear-gradient(to bottom, rgba(6,9,15,0), rgba(6,9,15,0.9))", pointerEvents: "none" }} />
@@ -2928,8 +2889,6 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 borderRadius: 999,
                 background: "rgba(74,144,255,0.08)",
                 border: `1px solid rgba(74,144,255,0.24)`,
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
@@ -2986,8 +2945,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <HBtn onClick={() => setAttachMenuOpen((v) => !v)} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: C.textMuted }}><Ic n="plus" style={{ width: 20, height: 20 }} /></HBtn>
                   {attachMenuOpen && (
                     <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "absolute", left: 0, bottom: isMobile ? 48 : 42, zIndex: 50, width: isMobile ? 160 : 140, borderRadius: 12, border: `1px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 12px 36px rgba(0,0,0,0.5)", overflow: "hidden" }}>
-                      <button type="button" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} className="z-glass" style={{ width: "100%", padding: isMobile ? "12px 14px" : "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: isMobile ? 14 : 12, cursor: "pointer", textAlign: "left" }}>Add images</button>
-                      <button type="button" onClick={() => { setAttachMenuOpen(false); fileInputRef.current?.click(); }} className="z-glass" style={{ width: "100%", padding: isMobile ? "12px 14px" : "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: isMobile ? 14 : 12, cursor: "pointer", textAlign: "left" }}>Add files</button>
+                      <button type="button" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} style={{ width: "100%", padding: isMobile ? "12px 14px" : "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: isMobile ? 14 : 12, cursor: "pointer", textAlign: "left" }}>Add images</button>
+                      <button type="button" onClick={() => { setAttachMenuOpen(false); fileInputRef.current?.click(); }} style={{ width: "100%", padding: isMobile ? "12px 14px" : "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: isMobile ? 14 : 12, cursor: "pointer", textAlign: "left" }}>Add files</button>
                     </div>
                   )}
                 </div>
@@ -3223,12 +3182,12 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {(settingsOpen || settingsClosing) && (
-          <div className="stg-layout" style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.97)", backdropFilter: "blur(32px) saturate(1.6)", WebkitBackdropFilter: "blur(32px) saturate(1.6)", transformOrigin: settingsOriginRef.current ? `${settingsOriginRef.current.x}px ${settingsOriginRef.current.y}px` : "center center", animation: `${settingsClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: settingsClosing ? "none" : undefined }}>
+          <div className="stg-layout" style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.97)", transformOrigin: settingsOriginRef.current ? `${settingsOriginRef.current.x}px ${settingsOriginRef.current.y}px` : "center center", animation: `${settingsClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: settingsClosing ? "none" : undefined }}>
             <style>{`
               .stg-tab { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 11px 18px; border-radius: 12px; border: none; background: none; color: ${C.textSec}; font-size: 13.5px; font-weight: 500; cursor: pointer; width: 100%; text-align: left; transition: all 500ms cubic-bezier(0.32,0.72,0,1); letter-spacing: -0.005em; }
               .stg-tab::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0; background:linear-gradient(168deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.08) 15%,rgba(255,255,255,0.02) 42%,transparent 58%,rgba(255,255,255,0.03) 78%,rgba(255,255,255,0.12) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.4),inset 0 -0.5px 0 rgba(255,255,255,0.06),inset 0.5px 0 0 rgba(255,255,255,0.04),inset -0.5px 0 0 rgba(255,255,255,0.04); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
               .stg-tab::after { content:''; position:absolute; top:-50%; left:5%; width:90%; height:80%; border-radius:50%; background:radial-gradient(ellipse at 38% 25%,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.04) 30%,transparent 65%); opacity:0; transition:opacity 600ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
-              .stg-tab:hover { background:rgba(255,255,255,0.06); backdrop-filter:blur(20px) brightness(1.2) saturate(1.5); -webkit-backdrop-filter:blur(20px) brightness(1.2) saturate(1.5); box-shadow:0 0 0 0.5px rgba(255,255,255,0.15),0 2px 8px rgba(0,0,0,0.06),0 8px 28px rgba(0,0,0,0.04),inset 0 1px 0 rgba(255,255,255,0.35); }
+              .stg-tab:hover { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.15); }
               .stg-tab:hover::before, .stg-tab:hover::after { opacity: 1; }
               .stg-tab:active { transform: scale(0.97); transition-duration: 120ms; }
               .stg-tab-active { background: rgba(74,144,255,0.10) !important; color: ${C.accent} !important; font-weight: 600; box-shadow: 0 0 0 0.5px rgba(74,144,255,0.18), inset 0 1px 0 rgba(74,144,255,0.15) !important; }
@@ -3263,17 +3222,17 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               .stg-row:last-child { border-bottom: none; }
               .stg-section { margin-bottom: 40px; }
               .stg-section-title { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.28); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 20px; }
-              .stg-card { position: relative; overflow: hidden; padding: 22px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); backdrop-filter: blur(12px) brightness(1.05); -webkit-backdrop-filter: blur(12px) brightness(1.05); transition: all 400ms cubic-bezier(0.32,0.72,0,1); }
+              .stg-card { position: relative; overflow: hidden; padding: 22px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); transition: all 400ms cubic-bezier(0.32,0.72,0,1); }
               .stg-card::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0.3; background:linear-gradient(168deg,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.03) 20%,transparent 50%,transparent 65%,rgba(255,255,255,0.02) 82%,rgba(255,255,255,0.08) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.25),inset 0 -0.5px 0 rgba(255,255,255,0.03); pointer-events:none; }
               .stg-card:hover { border-color: rgba(255,255,255,0.09); box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
               .stg-select { position: relative; overflow: hidden; padding: 10px 38px 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03); backdrop-filter: blur(20px) brightness(1.08) saturate(1.3); -webkit-backdrop-filter: blur(20px) brightness(1.08) saturate(1.3); color: ${C.text}; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; transition: all 400ms cubic-bezier(0.32,0.72,0,1); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.35)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; letter-spacing: -0.01em; min-width: 130px; box-shadow: 0 0 0 0.5px rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.08); }
-              .stg-select:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.14); box-shadow: 0 0 0 0.5px rgba(255,255,255,0.15), 0 2px 12px rgba(0,0,0,0.1), 0 8px 28px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.25); backdrop-filter: blur(20px) brightness(1.18) saturate(1.5); -webkit-backdrop-filter: blur(20px) brightness(1.18) saturate(1.5); transform: translateY(-0.5px); }
+              .stg-select:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.14); box-shadow: 0 0 0 0.5px rgba(255,255,255,0.15), 0 2px 12px rgba(0,0,0,0.1); }
               .stg-select:focus { border-color: rgba(59,130,246,0.35); box-shadow: 0 0 0 3px rgba(59,130,246,0.08), 0 0 16px rgba(59,130,246,0.06), 0 2px 12px rgba(0,0,0,0.08), inset 0 1px 0 rgba(59,130,246,0.12); background: rgba(255,255,255,0.05); }
               .stg-select option { background: #0f1729; color: ${C.text}; padding: 8px 12px; font-size: 13px; }
               .stg-btn { position: relative; overflow: hidden; padding: 8px 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03); color: ${C.textSec}; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 500ms cubic-bezier(0.32,0.72,0,1); letter-spacing: -0.005em; }
               .stg-btn::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0; background:linear-gradient(160deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.04) 15%,transparent 42%,transparent 58%,rgba(255,255,255,0.03) 80%,rgba(255,255,255,0.12) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -0.5px 0 rgba(255,255,255,0.04); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
               .stg-btn::after { content:''; position:absolute; top:-50%; left:5%; width:90%; height:80%; border-radius:50%; background:radial-gradient(ellipse at 40% 25%,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.02) 35%,transparent 70%); opacity:0; transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
-              .stg-btn:hover { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.14); backdrop-filter:blur(20px) brightness(1.22) saturate(1.6); -webkit-backdrop-filter:blur(20px) brightness(1.22) saturate(1.6); box-shadow:0 0 0 0.5px rgba(255,255,255,0.18),0 2px 8px rgba(0,0,0,0.08),0 8px 32px rgba(0,0,0,0.04),inset 0 1px 0 rgba(255,255,255,0.45); transform:translateY(-0.5px); }
+              .stg-btn:hover { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.14); box-shadow:0 0 0 0.5px rgba(255,255,255,0.18),0 2px 8px rgba(0,0,0,0.08); }
               .stg-btn:hover::before, .stg-btn:hover::after { opacity: 1; }
               .stg-btn:active { transform: scale(0.97) translateY(0); transition-duration: 120ms; }
               .stg-btn>* { position: relative; z-index: 1; }
@@ -3881,8 +3840,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         {/* ─── ONBOARDING TUTORIAL ─── */}
         {showTutorial && (
           <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", alignItems: "center", justifyContent: "center", animation: "vacuumIn 300ms cubic-bezier(0.22,1,0.36,1) forwards" }}>
-            <div onClick={() => { setShowTutorial(false); try { localStorage.setItem("zelrex_tutorial_done", "1"); } catch {} }} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }} />
-            <div style={{ position: "relative", width: 440, maxWidth: "92vw", borderRadius: 22, border: `0.5px solid ${C.border}`, background: "rgba(12,16,24,0.95)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)", boxShadow: "0 32px 80px rgba(0,0,0,0.6)", overflow: "hidden" }}>
+            <div onClick={() => { setShowTutorial(false); try { localStorage.setItem("zelrex_tutorial_done", "1"); } catch {} }} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)" }} />
+            <div style={{ position: "relative", width: 440, maxWidth: "92vw", borderRadius: 22, border: `0.5px solid ${C.border}`, background: C.bg.elevated, boxShadow: "0 32px 80px rgba(0,0,0,0.6)", overflow: "hidden" }}>
               <div style={{ padding: "32px 28px 20px", textAlign: "center" }}>
                 <div style={{ width: 56, height: 56, borderRadius: 16, background: `${C.accent}15`, border: `1px solid ${C.accent}20`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: `0 0 30px ${C.accent}15` }}>
                   {tutorialStep === 0 && <Ic n="compose" style={{ width: 24, height: 24, color: C.accent }} />}
@@ -3919,7 +3878,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         {(goalModalOpen || goalClosing) && (
           <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", background: "rgb(3,5,8)", transformOrigin: goalOriginRef.current ? `${goalOriginRef.current.x}px ${goalOriginRef.current.y}px` : "center center", animation: `${goalClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: goalClosing ? "none" : undefined }}>
             <div onClick={closeGoalModal} style={{ position: "absolute", inset: 0 }} />
-            <div style={{ position: "relative", width: 420, maxWidth: "90vw", borderRadius: 22, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.012) 50%, rgba(255,255,255,0.02) 100%)", backdropFilter: "blur(64px) saturate(1.6) brightness(1.04)", WebkitBackdropFilter: "blur(64px) saturate(1.6) brightness(1.04)", boxShadow: "0 0.5px 0 0 rgba(255,255,255,0.06) inset, 0 -0.5px 0 0 rgba(255,255,255,0.02) inset, 0 1px 3px rgba(0,0,0,0.12), 0 8px 40px rgba(0,0,0,0.22)", padding: 0, overflow: "hidden" }}>
+            <div style={{ position: "relative", width: 420, maxWidth: "90vw", borderRadius: 22, border: `0.5px solid rgba(255,255,255,0.055)`, background: C.bg.elevated, boxShadow: "0 8px 40px rgba(0,0,0,0.22)", padding: 0, overflow: "hidden" }}>
               {/* Glass header */}
               <div style={{ padding: "20px 24px 16px", borderBottom: `0.5px solid rgba(255,255,255,0.055)` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
@@ -3936,23 +3895,23 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               <div style={{ padding: "20px 24px" }}>
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>What's your main goal?</label>
-                  <input value={goalDraft.text} onChange={(e) => setGoalDraft(d => ({ ...d, text: e.target.value }))} placeholder="e.g., Build a sustainable freelance business, Replace my 9-5 income" style={{ width: "100%", padding: "11px 16px", borderRadius: 14, border: `0.5px solid rgba(255,255,255,0.055)`, background: "rgba(255,255,255,0.025)", backdropFilter: "blur(20px) brightness(1.04)", WebkitBackdropFilter: "blur(20px) brightness(1.04)", color: C.text, fontSize: 13, fontWeight: 500, fontFamily: "inherit", outline: "none", letterSpacing: "-0.01em", transition: "all 400ms cubic-bezier(0.22,1,0.36,1)", boxShadow: "0 0.5px 0 rgba(255,255,255,0.04) inset" }} onFocus={e => { e.currentTarget.style.borderColor = "rgba(59,130,246,0.3)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.06), 0 0 16px rgba(59,130,246,0.04)"; }} onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.055)"; e.currentTarget.style.boxShadow = "0 0.5px 0 rgba(255,255,255,0.04) inset"; }} />
+                  <input value={goalDraft.text} onChange={(e) => setGoalDraft(d => ({ ...d, text: e.target.value }))} placeholder="e.g., Build a sustainable freelance business, Replace my 9-5 income" style={{ width: "100%", padding: "11px 16px", borderRadius: 14, border: `0.5px solid rgba(255,255,255,0.055)`, background: "rgba(255,255,255,0.025)", color: C.text, fontSize: 13, fontWeight: 500, fontFamily: "inherit", outline: "none", letterSpacing: "-0.01em", transition: "all 400ms cubic-bezier(0.22,1,0.36,1)", boxShadow: "0 0.5px 0 rgba(255,255,255,0.04) inset" }} onFocus={e => { e.currentTarget.style.borderColor = "rgba(59,130,246,0.3)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.06), 0 0 16px rgba(59,130,246,0.04)"; }} onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.055)"; e.currentTarget.style.boxShadow = "0 0.5px 0 rgba(255,255,255,0.04) inset"; }} />
                 </div>
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>Revenue target (optional)</label>
-                  <input value={goalDraft.target} onChange={(e) => setGoalDraft(d => ({ ...d, target: e.target.value }))} placeholder="e.g., $5,000/month, $100K/year" style={{ width: "100%", padding: "11px 16px", borderRadius: 14, border: `0.5px solid rgba(255,255,255,0.055)`, background: "rgba(255,255,255,0.025)", backdropFilter: "blur(20px) brightness(1.04)", WebkitBackdropFilter: "blur(20px) brightness(1.04)", color: C.text, fontSize: 13, fontWeight: 500, fontFamily: "inherit", outline: "none", letterSpacing: "-0.01em", transition: "all 400ms cubic-bezier(0.22,1,0.36,1)", boxShadow: "0 0.5px 0 rgba(255,255,255,0.04) inset" }} onFocus={e => { e.currentTarget.style.borderColor = "rgba(59,130,246,0.3)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.06), 0 0 16px rgba(59,130,246,0.04)"; }} onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.055)"; e.currentTarget.style.boxShadow = "0 0.5px 0 rgba(255,255,255,0.04) inset"; }} />
+                  <input value={goalDraft.target} onChange={(e) => setGoalDraft(d => ({ ...d, target: e.target.value }))} placeholder="e.g., $5,000/month, $100K/year" style={{ width: "100%", padding: "11px 16px", borderRadius: 14, border: `0.5px solid rgba(255,255,255,0.055)`, background: "rgba(255,255,255,0.025)", color: C.text, fontSize: 13, fontWeight: 500, fontFamily: "inherit", outline: "none", letterSpacing: "-0.01em", transition: "all 400ms cubic-bezier(0.22,1,0.36,1)", boxShadow: "0 0.5px 0 rgba(255,255,255,0.04) inset" }} onFocus={e => { e.currentTarget.style.borderColor = "rgba(59,130,246,0.3)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.06), 0 0 16px rgba(59,130,246,0.04)"; }} onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.055)"; e.currentTarget.style.boxShadow = "0 0.5px 0 rgba(255,255,255,0.04) inset"; }} />
                 </div>
                 <div style={{ marginBottom: 20 }}>
                   <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>Target date (optional)</label>
-                  <input value={goalDraft.deadline} onChange={(e) => setGoalDraft(d => ({ ...d, deadline: e.target.value }))} placeholder="e.g., June 2026, 6 months" style={{ width: "100%", padding: "11px 16px", borderRadius: 14, border: `0.5px solid rgba(255,255,255,0.055)`, background: "rgba(255,255,255,0.025)", backdropFilter: "blur(20px) brightness(1.04)", WebkitBackdropFilter: "blur(20px) brightness(1.04)", color: C.text, fontSize: 13, fontWeight: 500, fontFamily: "inherit", outline: "none", letterSpacing: "-0.01em", transition: "all 400ms cubic-bezier(0.22,1,0.36,1)", boxShadow: "0 0.5px 0 rgba(255,255,255,0.04) inset" }} onFocus={e => { e.currentTarget.style.borderColor = "rgba(59,130,246,0.3)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.06), 0 0 16px rgba(59,130,246,0.04)"; }} onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.055)"; e.currentTarget.style.boxShadow = "0 0.5px 0 rgba(255,255,255,0.04) inset"; }} />
+                  <input value={goalDraft.deadline} onChange={(e) => setGoalDraft(d => ({ ...d, deadline: e.target.value }))} placeholder="e.g., June 2026, 6 months" style={{ width: "100%", padding: "11px 16px", borderRadius: 14, border: `0.5px solid rgba(255,255,255,0.055)`, background: "rgba(255,255,255,0.025)", color: C.text, fontSize: 13, fontWeight: 500, fontFamily: "inherit", outline: "none", letterSpacing: "-0.01em", transition: "all 400ms cubic-bezier(0.22,1,0.36,1)", boxShadow: "0 0.5px 0 rgba(255,255,255,0.04) inset" }} onFocus={e => { e.currentTarget.style.borderColor = "rgba(59,130,246,0.3)"; e.currentTarget.style.boxShadow = "0 0 0 3px rgba(59,130,246,0.06), 0 0 16px rgba(59,130,246,0.04)"; }} onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.055)"; e.currentTarget.style.boxShadow = "0 0.5px 0 rgba(255,255,255,0.04) inset"; }} />
                 </div>
               </div>
               {/* Footer */}
               <div style={{ padding: "0 24px 20px", display: "flex", gap: 10 }}>
                 {userGoal && (
-                  <button onClick={async () => { setUserGoal(null); setGoalDraft({ text: "", target: "", deadline: "" }); await db.deleteGoal(); closeGoalModal(); }} className="z-glass" style={{ flex: 1, padding: "10px", borderRadius: 12, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "-0.01em" }}>Remove goal</button>
+                  <button onClick={async () => { setUserGoal(null); setGoalDraft({ text: "", target: "", deadline: "" }); await db.deleteGoal(); closeGoalModal(); }} style={{ flex: 1, padding: "10px", borderRadius: 12, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "-0.01em" }}>Remove goal</button>
                 )}
-                <button onClick={closeGoalModal} className="z-glass" style={{ flex: 1, padding: "10px", borderRadius: 12, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "-0.01em" }}>Cancel</button>
+                <button onClick={closeGoalModal} style={{ flex: 1, padding: "10px", borderRadius: 12, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "-0.01em" }}>Cancel</button>
                 <button onClick={async () => { if (goalDraft.text.trim()) { const g = { text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() }; setUserGoal(g); await db.saveGoal(g); setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]); } closeGoalModal(); }} style={{ flex: 1.5, padding: "10px", borderRadius: 12, border: "none", background: `linear-gradient(135deg, ${C.accent}, ${C.accent}cc)`, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em", boxShadow: `0 4px 16px ${C.accent}40, 0 0 0 0.5px ${C.accent}60 inset` }}>Save goal</button>
               </div>
             </div>
