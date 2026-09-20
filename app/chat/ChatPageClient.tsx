@@ -289,7 +289,7 @@ function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal, onAdd
           <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 600, color: C.accent, letterSpacing: "0.04em", textTransform: "uppercase", maxWidth: 160, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userGoal.text}</span>
         </div>
       ) : (
-        <button type="button" onClick={onAddGoal} style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: isMobile ? 9 : 10, fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+        <button type="button" onClick={onAddGoal} className="z-btn-outlined" style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: isMobile ? 9 : 10, fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", textTransform: "uppercase" }}>
           <span style={{ fontSize: 11, lineHeight: 1 }}>+</span> Goal
         </button>
       )}
@@ -357,7 +357,7 @@ function WelcomeScreen({ onAction }: { onAction: (t: string) => void }) {
 
 function ActionPill({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick}
+    <button type="button" onClick={onClick} className="z-btn-pill"
       style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 999, border: `1px solid ${C.accent}40`, background: `${C.accent}15`, color: C.accent, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
       {label} &rarr;
     </button>
@@ -2381,7 +2381,43 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .chat-row:hover{background:rgba(255,255,255,0.04)}
         .chat-row:hover .chat-dots{opacity:0.7!important}
         .chat-row:hover .chat-title{color:${C.text}!important}
-        /* ─── Consistent sidebar button hover ─── */
+        /* ═══ Universal button hover system ═══ */
+        /* Use these classes on every button for consistent behavior across the app */
+        /* .z-btn         = ghost/neutral (transparent bg, background darkens on hover) */
+        /* .z-btn-outlined = has a border (border + background both change on hover) */
+        /* .z-btn-accent  = primary accent color (accent bg, lightens on hover) */
+        /* .z-btn-danger  = destructive (red tinted hover) */
+        /* .z-btn-icon    = small icon-only round button */
+        /* All keep identical timing (150ms) and easing (out) */
+
+        .z-btn{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),border-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1)!important;cursor:pointer}
+        .z-btn:hover{background:rgba(255,255,255,0.04)!important;color:${C.text}!important}
+        .z-btn:active{background:rgba(255,255,255,0.06)!important;transition-duration:80ms!important}
+        .z-btn:disabled{opacity:0.5!important;cursor:not-allowed!important}
+        .z-btn:disabled:hover{background:transparent!important}
+
+        .z-btn-outlined{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),border-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1)!important;cursor:pointer}
+        .z-btn-outlined:hover{background:rgba(255,255,255,0.04)!important;border-color:${C.borderHover}!important;color:${C.text}!important}
+        .z-btn-outlined:active{background:rgba(255,255,255,0.06)!important;transition-duration:80ms!important}
+
+        .z-btn-accent{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),box-shadow 150ms cubic-bezier(0.22,1,0.36,1),transform 100ms cubic-bezier(0.22,1,0.36,1)!important;cursor:pointer}
+        .z-btn-accent:hover{background:${C.accent}!important;filter:brightness(1.08)!important;box-shadow:0 2px 12px ${C.accentGlow}!important}
+        .z-btn-accent:active{filter:brightness(0.95)!important;transform:scale(0.98)!important;transition-duration:80ms!important}
+        .z-btn-accent:disabled{opacity:0.5!important;cursor:not-allowed!important;filter:none!important;box-shadow:none!important;transform:none!important}
+
+        .z-btn-danger{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1)!important;cursor:pointer}
+        .z-btn-danger:hover{background:rgba(239,68,68,0.12)!important;color:#F87171!important}
+        .z-btn-danger:active{background:rgba(239,68,68,0.18)!important;transition-duration:80ms!important}
+
+        .z-btn-icon{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1)!important;cursor:pointer;border-radius:999px!important}
+        .z-btn-icon:hover{background:rgba(255,255,255,0.06)!important;color:${C.text}!important}
+        .z-btn-icon:active{background:rgba(255,255,255,0.10)!important;transition-duration:80ms!important}
+
+        .z-btn-pill{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),border-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1)!important;cursor:pointer}
+        .z-btn-pill:hover{background:${C.accent}22!important;border-color:${C.accent}!important;color:${C.accent}!important}
+        .z-btn-pill:active{background:${C.accent}33!important;transition-duration:80ms!important}
+
+        /* Backwards-compat aliases for buttons already using old class names */
         .z-side-btn{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),border-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1)!important}
         .z-side-btn:hover{background:rgba(255,255,255,0.04)!important;color:${C.text}!important}
         .z-side-btn:active{background:rgba(255,255,255,0.06)!important;transition-duration:80ms!important}
@@ -2400,6 +2436,9 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .msg-act:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.12);color:${C.text}}
         .msg-act:active{transform:scale(0.92) translateY(0);transition-duration:120ms}
         .msg-act svg{width:15px;height:15px}
+        .welcome-card{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),border-color 150ms cubic-bezier(0.22,1,0.36,1),transform 150ms cubic-bezier(0.22,1,0.36,1)}
+        .welcome-card:hover{background:rgba(255,255,255,0.045)!important;border-color:${C.borderHover}!important}
+        .welcome-card:active{transform:scale(0.98);transition-duration:80ms}
         .user-time{font-size:11px;color:rgba(255,255,255,0.7);font-weight:500;letter-spacing:0.01em}
         .collapsed-avatar:hover .collapsed-reveal,.collapsed-reveal:hover{opacity:1!important;transform:translateX(0)!important;pointer-events:auto!important}
         .drag-handle{width:8px;cursor:col-resize;background:transparent;transition:all 500ms cubic-bezier(0.32,0.72,0,1);flex-shrink:0;position:relative;z-index:10;border-left:1px solid ${C.border}}
@@ -2504,34 +2543,34 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 2 : 8 }}>
             {websiteData && (
-              <HBtn onClick={() => setPreviewOpen(!previewOpen)} style={{ padding: isMobile ? "5px 8px" : "5px 12px", borderRadius: 999, border: `1px solid ${previewOpen ? C.accent + "40" : C.border}`, background: previewOpen ? C.accentSoft : "transparent", color: previewOpen ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
+              <HBtn onClick={() => setPreviewOpen(!previewOpen)} className="z-btn-outlined" style={{ padding: isMobile ? "5px 8px" : "5px 12px", borderRadius: 999, border: `1px solid ${previewOpen ? C.accent + "40" : C.border}`, background: previewOpen ? C.accentSoft : "transparent", color: previewOpen ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
                 <Ic n="preview" className="h-3.5 w-3.5" />{!isMobile && " Preview"}
               </HBtn>
             )}
             {websiteData && (
-              <HBtn onClick={handleDeploy} style={{ padding: isMobile ? "5px 8px" : "5px 12px", borderRadius: 999, border: `1px solid ${deployData?.url ? "#10B98140" : C.border}`, background: deployData?.url ? "rgba(16,185,129,0.08)" : "transparent", color: deployData?.url ? "#10B981" : C.textSec, fontSize: 12, fontWeight: 500, gap: 5, opacity: isDeploying ? 0.5 : 1 }}>
+              <HBtn onClick={handleDeploy} className="z-btn-outlined" style={{ padding: isMobile ? "5px 8px" : "5px 12px", borderRadius: 999, border: `1px solid ${deployData?.url ? "#10B98140" : C.border}`, background: deployData?.url ? "rgba(16,185,129,0.08)" : "transparent", color: deployData?.url ? "#10B981" : C.textSec, fontSize: 12, fontWeight: 500, gap: 5, opacity: isDeploying ? 0.5 : 1 }}>
                 <Ic n="send" className="h-3.5 w-3.5" />{!isMobile && (isDeploying ? " Deploying..." : deployData?.url ? " Redeploy" : " Deploy")}
               </HBtn>
             )}
             {websiteData && !isMobile && (
-              <HBtn onClick={() => setEditModeOpen(true)} style={{ padding: "5px 12px", borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
+              <HBtn onClick={() => setEditModeOpen(true)} className="z-btn-outlined" style={{ padding: "5px 12px", borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
                 <Ic n="edit" className="h-3.5 w-3.5" /> Edit
               </HBtn>
             )}
             {deployData?.url && !isMobile && (
-              <HBtn onClick={() => setDomainManagerOpen(true)} style={{ padding: "5px 12px", borderRadius: 999, border: `1px solid ${deployData?.customDomain ? "#A78BFA40" : C.border}`, background: deployData?.customDomain ? "rgba(167,139,250,0.08)" : "transparent", color: deployData?.customDomain ? "#A78BFA" : C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
+              <HBtn onClick={() => setDomainManagerOpen(true)} className="z-btn-outlined" style={{ padding: "5px 12px", borderRadius: 999, border: `1px solid ${deployData?.customDomain ? "#A78BFA40" : C.border}`, background: deployData?.customDomain ? "rgba(167,139,250,0.08)" : "transparent", color: deployData?.customDomain ? "#A78BFA" : C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
                 <Ic n="globe" className="h-3.5 w-3.5" /> {deployData?.customDomain || "Domain"}
               </HBtn>
             )}
             {!isMobile && !isSignedIn && (
-              <HBtn onClick={() => { window.location.href = "/sign-in"; }} style={{ padding: "5px 12px", borderRadius: 999, border: `1px solid ${C.border}`, color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
+              <HBtn onClick={() => { window.location.href = "/sign-in"; }} className="z-btn-outlined" style={{ padding: "5px 12px", borderRadius: 999, border: `1px solid ${C.border}`, color: C.textSec, fontSize: 12, fontWeight: 500, gap: 5 }}>
                 <Ic n="signin" className="h-3.5 w-3.5" /> Sign in
               </HBtn>
             )}
 
             {/* Notifications bell */}
             <div style={{ position: "relative" }} onMouseDown={(e) => e.stopPropagation()}>
-              <HBtn onClick={openNotif} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: C.text, position: "relative" }}>
+              <HBtn onClick={openNotif} className="z-btn-icon" style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: C.text, position: "relative" }}>
                 <Ic n="bell" style={{ width: 18, height: 18 }} />
                 {notifications.filter(n => !n.read).length > 0 && (
                   <span style={{ position: "absolute", top: 6, right: 6, width: 8, height: 8, borderRadius: 999, background: "#EF4444", border: "2px solid #06090F" }} />
@@ -2542,8 +2581,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div style={{ padding: "14px 16px 10px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Notifications {notifications.filter(n => !n.read).length > 0 && <span style={{ fontSize: 10, fontWeight: 500, color: C.accent, marginLeft: 4 }}>({notifications.filter(n => !n.read).length})</span>}</span>
                     <div style={{ display: "flex", gap: 8 }}>
-                      {notifications.some(n => !n.read) && <button onClick={() => { setNotifications(ns => ns.map(n => ({ ...n, read: true }))); db.markNotificationsRead(); }} style={{ background: "none", border: "none", color: C.accent, fontSize: 10, cursor: "pointer", fontWeight: 600 }}>Read all</button>}
-                      {notifications.length > 0 && <button onClick={() => { setNotifications([]); }} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 10, cursor: "pointer", fontWeight: 600 }}>Clear all</button>}
+                      {notifications.some(n => !n.read) && <button onClick={() => { setNotifications(ns => ns.map(n => ({ ...n, read: true }))); db.markNotificationsRead(); }} className="z-btn" style={{ background: "none", border: "none", color: C.accent, fontSize: 10, cursor: "pointer", fontWeight: 600, padding: "4px 8px", borderRadius: 6 }}>Read all</button>}
+                      {notifications.length > 0 && <button onClick={() => { setNotifications([]); }} className="z-btn" style={{ background: "none", border: "none", color: C.textMuted, fontSize: 10, cursor: "pointer", fontWeight: 600, padding: "4px 8px", borderRadius: 6 }}>Clear all</button>}
                     </div>
                   </div>
                   <div style={{ maxHeight: 380, overflowY: "auto" }}>
@@ -2563,12 +2602,12 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                             </div>
                             <div className="notif-time" style={{ fontSize: isMobile ? 11 : 10, color: C.textMuted, marginTop: 4 }}>{(() => { const ago = Date.now() - n.time; if (ago < 60000) return "Just now"; if (ago < 3600000) return `${Math.floor(ago / 60000)}m ago`; if (ago < 86400000) return `${Math.floor(ago / 3600000)}h ago`; return new Date(n.time).toLocaleDateString("en-US", { month: "short", day: "numeric" }); })()}</div>
                           </div>
-                          <button onClick={() => setNotifications(ns => ns.filter(x => x.id !== n.id))} style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: isMobile ? 18 : 14, padding: isMobile ? "4px 6px" : "2px 4px", flexShrink: 0, opacity: 0.5 }}>×</button>
+                          <button onClick={() => setNotifications(ns => ns.filter(x => x.id !== n.id))} className="z-btn-icon" style={{ background: "none", border: "none", color: C.textMuted, cursor: "pointer", fontSize: isMobile ? 18 : 14, padding: isMobile ? "4px 6px" : "2px 4px", flexShrink: 0, opacity: 0.5, width: isMobile ? 28 : 22, height: isMobile ? 28 : 22, display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
                         </div>
                       ))
                     )}
                     {notifications.length > notifPage * 10 && (
-                      <button onClick={() => setNotifPage(p => p + 1)} style={{ width: "100%", padding: "10px", background: "none", border: "none", borderTop: `1px solid ${C.border}`, color: C.accent, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Show more ({notifications.length - notifPage * 10} remaining)</button>
+                      <button onClick={() => setNotifPage(p => p + 1)} className="z-btn" style={{ width: "100%", padding: "10px", background: "none", border: "none", borderTop: `1px solid ${C.border}`, color: C.accent, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Show more ({notifications.length - notifPage * 10} remaining)</button>
                     )}
                   </div>
                 </div>
@@ -2710,7 +2749,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div className="chat-row" style={{ display: "flex", alignItems: "center", padding: isMobile ? "10px 10px" : "7px 8px", cursor: "pointer", transition: "background 500ms cubic-bezier(0.32,0.72,0,1)" }}
                     onMouseEnter={(e) => { if (!isA) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
-                    <button onClick={() => { setActiveChatId(c.id); router.push(`/chat/${c.id}`, { scroll: false }); if (isMobile) setSidebarOpen(false); }} type="button" style={{ flex: 1, textAlign: "left", background: "none", border: "none", cursor: "pointer", color: C.text, padding: 0, overflow: "hidden" }}>
+                    <button onClick={() => { setActiveChatId(c.id); router.push(`/chat/${c.id}`, { scroll: false }); if (isMobile) setSidebarOpen(false); }} type="button" className="chat-title" style={{ flex: 1, textAlign: "left", background: "none", border: "none", cursor: "pointer", color: isA ? C.text : C.textSec, padding: 0, overflow: "hidden", transition: "color 150ms cubic-bezier(0.22,1,0.36,1)" }}>
                       {isR ? (
                         <input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") { setRenamingChatId(null); setRenameValue(""); } }} onBlur={commitRename} autoFocus style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: `1px solid ${C.border}`, borderRadius: 6, padding: "3px 8px", color: C.text, fontSize: 12, outline: "none" }} />
                       ) : (
@@ -2883,7 +2922,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             {!surveyData && !showSurvey && activeChat?.pendingSurvey && (
               <div style={{ maxWidth: showPreview ? "100%" : 820, margin: "0 auto 10px", borderRadius: 999, border: `1px solid ${C.border}`, background: C.bg, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, position: "relative", zIndex: 2 }}>
                 <div style={{ fontSize: 12, color: C.textSec }}>Survey paused. Continue to finish your website build.</div>
-                <button type="button" onClick={() => { setSurveyDismissed(false); setShowSurvey(true); }} style={{ padding: "6px 12px", borderRadius: 999, border: `1px solid ${C.accent}55`, background: `${C.accent}18`, color: C.accent, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Continue survey</button>
+                <button type="button" onClick={() => { setSurveyDismissed(false); setShowSurvey(true); }} className="z-btn-pill" style={{ padding: "6px 12px", borderRadius: 999, border: `1px solid ${C.accent}55`, background: `${C.accent}18`, color: C.accent, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Continue survey</button>
               </div>
             )}
             <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 24, background: "linear-gradient(to bottom, rgba(6,9,15,0), rgba(6,9,15,0.9))", pointerEvents: "none" }} />
@@ -2942,7 +2981,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   {draftAttachments.map((a) => (
                     <div key={a.id} className="att-thumb" style={{ width: isMobile ? 72 : 64, height: isMobile ? 72 : 64, borderRadius: 10, border: `1px solid ${C.border}`, overflow: "hidden", position: "relative", background: "rgba(0,0,0,0.2)" }}>
                       {a.kind === "image" ? <img src={a.previewUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ padding: 6, fontSize: 9, color: C.textSec }}>{a.file.name}</div>}
-                      <button type="button" onClick={() => removeAtt(a.id)} className="att-remove" style={{ position: "absolute", right: 2, top: 2, width: isMobile ? 22 : 18, height: isMobile ? 22 : 18, borderRadius: 999, background: "rgba(0,0,0,0.6)", border: "none", color: "#fff", fontSize: isMobile ? 14 : 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>&times;</button>
+                      <button type="button" onClick={() => removeAtt(a.id)} className="att-remove z-btn-icon" style={{ position: "absolute", right: 2, top: 2, width: isMobile ? 22 : 18, height: isMobile ? 22 : 18, borderRadius: 999, background: "rgba(0,0,0,0.6)", border: "none", color: "#fff", fontSize: isMobile ? 14 : 12, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>&times;</button>
                     </div>
                   ))}
                 </div>
@@ -2954,8 +2993,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <HBtn onClick={() => setAttachMenuOpen((v) => !v)} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: C.textMuted }}><Ic n="plus" style={{ width: 20, height: 20 }} /></HBtn>
                   {attachMenuOpen && (
                     <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "absolute", left: 0, bottom: isMobile ? 48 : 42, zIndex: 50, width: isMobile ? 160 : 140, borderRadius: 12, border: `1px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 12px 36px rgba(0,0,0,0.5)", overflow: "hidden" }}>
-                      <button type="button" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} style={{ width: "100%", padding: isMobile ? "12px 14px" : "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: isMobile ? 14 : 12, cursor: "pointer", textAlign: "left" }}>Add images</button>
-                      <button type="button" onClick={() => { setAttachMenuOpen(false); fileInputRef.current?.click(); }} style={{ width: "100%", padding: isMobile ? "12px 14px" : "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: isMobile ? 14 : 12, cursor: "pointer", textAlign: "left" }}>Add files</button>
+                      <button type="button" className="z-btn" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} style={{ width: "100%", padding: isMobile ? "12px 14px" : "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: isMobile ? 14 : 12, cursor: "pointer", textAlign: "left" }}>Add images</button>
+                      <button type="button" className="z-btn" onClick={() => { setAttachMenuOpen(false); fileInputRef.current?.click(); }} style={{ width: "100%", padding: isMobile ? "12px 14px" : "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: isMobile ? 14 : 12, cursor: "pointer", textAlign: "left" }}>Add files</button>
                     </div>
                   )}
                 </div>
@@ -3193,15 +3232,11 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         {(settingsOpen || settingsClosing) && (
           <div className="stg-layout" style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", background: "rgba(3,5,8,0.97)", transformOrigin: settingsOriginRef.current ? `${settingsOriginRef.current.x}px ${settingsOriginRef.current.y}px` : "center center", animation: `${settingsClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: settingsClosing ? "none" : undefined }}>
             <style>{`
-              .stg-tab { position: relative; overflow: hidden; display: flex; align-items: center; gap: 10px; padding: 11px 18px; border-radius: 12px; border: none; background: none; color: ${C.textSec}; font-size: 13.5px; font-weight: 500; cursor: pointer; width: 100%; text-align: left; transition: all 500ms cubic-bezier(0.32,0.72,0,1); letter-spacing: -0.005em; }
-              .stg-tab::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0; background:linear-gradient(168deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.08) 15%,rgba(255,255,255,0.02) 42%,transparent 58%,rgba(255,255,255,0.03) 78%,rgba(255,255,255,0.12) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.4),inset 0 -0.5px 0 rgba(255,255,255,0.06),inset 0.5px 0 0 rgba(255,255,255,0.04),inset -0.5px 0 0 rgba(255,255,255,0.04); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
-              .stg-tab::after { content:''; position:absolute; top:-50%; left:5%; width:90%; height:80%; border-radius:50%; background:radial-gradient(ellipse at 38% 25%,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.04) 30%,transparent 65%); opacity:0; transition:opacity 600ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
-              .stg-tab:hover { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.15); }
-              .stg-tab:hover::before, .stg-tab:hover::after { opacity: 1; }
-              .stg-tab:active { transform: scale(0.97); transition-duration: 120ms; }
-              .stg-tab-active { background: rgba(74,144,255,0.10) !important; color: ${C.accent} !important; font-weight: 600; box-shadow: 0 0 0 0.5px rgba(74,144,255,0.18), inset 0 1px 0 rgba(74,144,255,0.15) !important; }
-              .stg-tab-active::before { opacity: 0.6 !important; background: linear-gradient(168deg,rgba(74,144,255,0.20) 0%,rgba(74,144,255,0.06) 18%,transparent 45%,transparent 60%,rgba(74,144,255,0.03) 80%,rgba(74,144,255,0.14) 100%) !important; box-shadow:inset 0 1px 0 rgba(74,144,255,0.35),inset 0 -0.5px 0 rgba(74,144,255,0.06) !important; }
-              .stg-tab-active::after { opacity: 0.5 !important; background: radial-gradient(ellipse at 38% 25%,rgba(74,144,255,0.12) 0%,rgba(74,144,255,0.03) 32%,transparent 68%) !important; }
+              .stg-tab { display: flex; align-items: center; gap: 10px; padding: 11px 18px; border-radius: 12px; border: none; background: none; color: ${C.textSec}; font-size: 13.5px; font-weight: 500; cursor: pointer; width: 100%; text-align: left; transition: background-color 150ms cubic-bezier(0.22,1,0.36,1), color 150ms cubic-bezier(0.22,1,0.36,1); letter-spacing: -0.005em; }
+              .stg-tab:hover { background: rgba(255,255,255,0.04); color: ${C.text}; }
+              .stg-tab:active { background: rgba(255,255,255,0.06); transition-duration: 80ms; }
+              .stg-tab-active { background: rgba(74,144,255,0.10) !important; color: ${C.accent} !important; font-weight: 600; }
+              .stg-tab-active:hover { background: rgba(74,144,255,0.14) !important; color: ${C.accent} !important; }
               .stg-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.025); color: ${C.text}; font-size: 14px; font-family: inherit; outline: none; transition: all 300ms cubic-bezier(0.32,0.72,0,1); }
               .stg-input:focus { border-color: rgba(74,144,255,0.4); box-shadow: 0 0 0 3px rgba(74,144,255,0.08), 0 0 20px rgba(74,144,255,0.06); background: rgba(255,255,255,0.035); }
               @keyframes trailFadeOn {
@@ -3231,30 +3266,23 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               .stg-row:last-child { border-bottom: none; }
               .stg-section { margin-bottom: 40px; }
               .stg-section-title { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.28); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 20px; }
-              .stg-card { position: relative; overflow: hidden; padding: 22px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); transition: all 400ms cubic-bezier(0.32,0.72,0,1); }
-              .stg-card::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0.3; background:linear-gradient(168deg,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.03) 20%,transparent 50%,transparent 65%,rgba(255,255,255,0.02) 82%,rgba(255,255,255,0.08) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.25),inset 0 -0.5px 0 rgba(255,255,255,0.03); pointer-events:none; }
-              .stg-card:hover { border-color: rgba(255,255,255,0.09); box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+              .stg-card { padding: 22px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); transition: border-color 150ms cubic-bezier(0.22,1,0.36,1); }
+              .stg-card:hover { border-color: rgba(255,255,255,0.09); }
               .stg-select { position: relative; overflow: hidden; padding: 10px 38px 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03); color: ${C.text}; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; transition: all 400ms cubic-bezier(0.32,0.72,0,1); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.35)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; letter-spacing: -0.01em; min-width: 130px; box-shadow: 0 0 0 0.5px rgba(255,255,255,0.06), 0 1px 3px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.08); }
               .stg-select:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.14); box-shadow: 0 0 0 0.5px rgba(255,255,255,0.15), 0 2px 12px rgba(0,0,0,0.1); }
               .stg-select:focus { border-color: rgba(59,130,246,0.35); box-shadow: 0 0 0 3px rgba(59,130,246,0.08), 0 0 16px rgba(59,130,246,0.06), 0 2px 12px rgba(0,0,0,0.08), inset 0 1px 0 rgba(59,130,246,0.12); background: rgba(255,255,255,0.05); }
               .stg-select option { background: #0f1729; color: ${C.text}; padding: 8px 12px; font-size: 13px; }
-              .stg-btn { position: relative; overflow: hidden; padding: 8px 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03); color: ${C.textSec}; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 500ms cubic-bezier(0.32,0.72,0,1); letter-spacing: -0.005em; }
-              .stg-btn::before { content:''; position:absolute; inset:0; border-radius:inherit; opacity:0; background:linear-gradient(160deg,rgba(255,255,255,0.22) 0%,rgba(255,255,255,0.04) 15%,transparent 42%,transparent 58%,rgba(255,255,255,0.03) 80%,rgba(255,255,255,0.12) 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -0.5px 0 rgba(255,255,255,0.04); transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
-              .stg-btn::after { content:''; position:absolute; top:-50%; left:5%; width:90%; height:80%; border-radius:50%; background:radial-gradient(ellipse at 40% 25%,rgba(255,255,255,0.12) 0%,rgba(255,255,255,0.02) 35%,transparent 70%); opacity:0; transition:opacity 500ms cubic-bezier(0.32,0.72,0,1); pointer-events:none; }
-              .stg-btn:hover { background:rgba(255,255,255,0.06); border-color:rgba(255,255,255,0.14); box-shadow:0 0 0 0.5px rgba(255,255,255,0.18),0 2px 8px rgba(0,0,0,0.08); }
-              .stg-btn:hover::before, .stg-btn:hover::after { opacity: 1; }
-              .stg-btn:active { transform: scale(0.97) translateY(0); transition-duration: 120ms; }
-              .stg-btn>* { position: relative; z-index: 1; }
-              .stg-btn-danger { border-color: rgba(239,68,68,0.15); background: rgba(239,68,68,0.04); color: #EF4444; }
-              .stg-btn-danger::before { background: linear-gradient(160deg,rgba(239,68,68,0.22) 0%,rgba(239,68,68,0.04) 18%,transparent 48%,transparent 58%,rgba(239,68,68,0.02) 82%,rgba(239,68,68,0.14) 100%) !important; box-shadow:inset 0 1px 0 rgba(239,68,68,0.3),inset 0 -0.5px 0 rgba(239,68,68,0.04) !important; }
-              .stg-btn-danger::after { background: radial-gradient(ellipse at 40% 25%,rgba(239,68,68,0.10) 0%,rgba(239,68,68,0.015) 35%,transparent 70%) !important; }
-              .stg-btn-danger:hover { background:rgba(239,68,68,0.08) !important; border-color:rgba(239,68,68,0.22) !important; box-shadow:0 0 0 0.5px rgba(239,68,68,0.25),0 2px 8px rgba(239,68,68,0.06),0 0 20px rgba(239,68,68,0.03),inset 0 1px 0 rgba(239,68,68,0.3) !important; }
-              .stg-btn-accent { border: none; background: ${C.accent}; color: #fff; box-shadow: 0 6px 28px rgba(74,144,255,0.25), inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -0.5px 0 rgba(0,0,0,0.1); }
-              .stg-btn-accent::before { background:linear-gradient(160deg,rgba(255,255,255,0.30) 0%,rgba(255,255,255,0.06) 18%,transparent 48%,transparent 58%,rgba(255,255,255,0.04) 82%,rgba(255,255,255,0.18) 100%) !important; box-shadow:inset 0 1px 0 rgba(255,255,255,0.45),inset 0 -0.5px 0 rgba(255,255,255,0.05) !important; opacity: 0.4 !important; }
-              .stg-btn-accent::after { opacity: 0.35 !important; }
-              .stg-btn-accent:hover { transform:translateY(-1px) !important; box-shadow:0 8px 36px rgba(74,144,255,0.38),0 0 0 0.5px rgba(74,144,255,0.4),inset 0 1px 0 rgba(255,255,255,0.30) !important; }
-              .stg-btn-accent:hover::before,.stg-btn-accent:hover::after { opacity: 1 !important; }
-              .stg-btn-accent:active { transform:scale(0.97) translateY(0) !important; }
+              .stg-btn { position: relative; padding: 8px 18px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03); color: ${C.textSec}; font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color 150ms cubic-bezier(0.22,1,0.36,1), border-color 150ms cubic-bezier(0.22,1,0.36,1), color 150ms cubic-bezier(0.22,1,0.36,1); letter-spacing: -0.005em; }
+              .stg-btn:hover { background: rgba(255,255,255,0.06); border-color: ${C.borderHover}; color: ${C.text}; }
+              .stg-btn:active { background: rgba(255,255,255,0.08); transition-duration: 80ms; }
+              .stg-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+              .stg-btn:disabled:hover { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.07); color: ${C.textSec}; }
+              .stg-btn-danger { border-color: rgba(239,68,68,0.15); background: rgba(239,68,68,0.06); color: #EF4444; }
+              .stg-btn-danger:hover { background: rgba(239,68,68,0.12) !important; border-color: rgba(239,68,68,0.28) !important; color: #F87171 !important; }
+              .stg-btn-danger:active { background: rgba(239,68,68,0.18) !important; }
+              .stg-btn-accent { border: none; background: ${C.accent}; color: #fff; }
+              .stg-btn-accent:hover { background: ${C.accent} !important; border-color: transparent !important; color: #fff !important; filter: brightness(1.08); box-shadow: 0 2px 12px ${C.accentGlow}; }
+              .stg-btn-accent:active { filter: brightness(0.95); transform: scale(0.98); }
               .stg-kbd { padding: 3px 9px; border-radius: 7px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); box-shadow: 0 1px 2px rgba(0,0,0,0.1), inset 0 0.5px 0 rgba(255,255,255,0.06); font-size: 11px; font-weight: 600; color: ${C.textMuted}; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; letter-spacing: 0.02em; }
               @media(max-width:768px) {
                 .stg-layout { flex-direction: column !important; }
@@ -3872,11 +3900,11 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 </div>
               </div>
               <div style={{ padding: "0 28px 24px", display: "flex", gap: 10 }}>
-                <button onClick={() => { setShowTutorial(false); try { localStorage.setItem("zelrex_tutorial_done", "1"); } catch {} }} style={{ flex: 1, padding: "11px", borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t("skip")}</button>
+                <button onClick={() => { setShowTutorial(false); try { localStorage.setItem("zelrex_tutorial_done", "1"); } catch {} }} className="z-btn-outlined" style={{ flex: 1, padding: "11px", borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t("skip")}</button>
                 <button onClick={() => {
                   if (tutorialStep < 3) { setTutorialStep(s => s + 1); }
                   else { setShowTutorial(false); try { localStorage.setItem("zelrex_tutorial_done", "1"); } catch {} }
-                }} style={{ flex: 1.5, padding: "11px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 16px ${C.accent}40` }}>
+                }} className="z-btn-accent" style={{ flex: 1.5, padding: "11px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 16px ${C.accent}40` }}>
                   {tutorialStep < 3 ? t("next") : t("gotIt")}
                 </button>
               </div>
@@ -3918,10 +3946,10 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               {/* Footer */}
               <div style={{ padding: "0 24px 20px", display: "flex", gap: 10 }}>
                 {userGoal && (
-                  <button onClick={async () => { setUserGoal(null); setGoalDraft({ text: "", target: "", deadline: "" }); await db.deleteGoal(); closeGoalModal(); }} style={{ flex: 1, padding: "10px", borderRadius: 12, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "-0.01em" }}>Remove goal</button>
+                  <button onClick={async () => { setUserGoal(null); setGoalDraft({ text: "", target: "", deadline: "" }); await db.deleteGoal(); closeGoalModal(); }} className="z-btn-danger" style={{ flex: 1, padding: "10px", borderRadius: 12, border: `0.5px solid rgba(255,255,255,0.055)`, background: "rgba(255,255,255,0.04)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "-0.01em" }}>Remove goal</button>
                 )}
-                <button onClick={closeGoalModal} style={{ flex: 1, padding: "10px", borderRadius: 12, border: `0.5px solid rgba(255,255,255,0.055)`, background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "-0.01em" }}>Cancel</button>
-                <button onClick={async () => { if (goalDraft.text.trim()) { const g = { text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() }; setUserGoal(g); await db.saveGoal(g); setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]); } closeGoalModal(); }} style={{ flex: 1.5, padding: "10px", borderRadius: 12, border: "none", background: `linear-gradient(135deg, ${C.accent}, ${C.accent}cc)`, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em", boxShadow: `0 4px 16px ${C.accent}40, 0 0 0 0.5px ${C.accent}60 inset` }}>Save goal</button>
+                <button onClick={closeGoalModal} className="z-btn-outlined" style={{ flex: 1, padding: "10px", borderRadius: 12, border: `0.5px solid rgba(255,255,255,0.055)`, background: "rgba(255,255,255,0.04)", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer", letterSpacing: "-0.01em" }}>Cancel</button>
+                <button onClick={async () => { if (goalDraft.text.trim()) { const g = { text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() }; setUserGoal(g); await db.saveGoal(g); setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]); } closeGoalModal(); }} className="z-btn-accent" style={{ flex: 1.5, padding: "10px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", letterSpacing: "-0.01em", boxShadow: `0 4px 16px ${C.accent}40` }}>Save goal</button>
               </div>
             </div>
           </div>
