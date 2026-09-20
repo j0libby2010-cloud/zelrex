@@ -2414,7 +2414,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .burger-line{position:absolute;height:1.5px;border-radius:1px;background:${C.textSec};transition:transform 0.5s cubic-bezier(0.32,0.72,0,1),opacity 0.4s ease,width 0.5s cubic-bezier(0.32,0.72,0,1),background 0.4s ease}
         .burger-btn:hover .burger-line{background:${C.text}}
         /* Dropdown arrow on chat rows — matches sidebar button hover */
-        .chat-dots{border-radius:8px!important;transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1),opacity 400ms cubic-bezier(0.32,0.72,0,1)!important}
+        .chat-dots{border-radius:999px!important;transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1),opacity 400ms cubic-bezier(0.32,0.72,0,1)!important}
         .chat-dots:hover{background:rgba(255,255,255,0.06)!important;color:${C.text}!important}
         .chat-dots:active{background:rgba(255,255,255,0.10)!important;transition-duration:80ms!important}
         .burger-top{width:16px;transform:translateY(-5px)}
@@ -3221,9 +3221,9 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               .stg-toggle { position: relative; width: 52px; height: 28px; border-radius: 14px; border: none; cursor: pointer; transition: background 300ms ease, box-shadow 300ms ease; flex-shrink: 0; overflow: hidden; padding: 0; }
               .stg-knob { position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 12px; display: block; pointer-events: none; z-index: 2; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.25), 0 0 0 0.5px rgba(0,0,0,0.04); transition: transform 400ms cubic-bezier(0.4,0.0,0.2,1); }
               .stg-knob::before { content: ''; position: absolute; top: 0; left: 0; width: 24px; height: 24px; border-radius: 12px; pointer-events: none; z-index: -1; opacity: 0; }
-              .stg-toggle.stg-on { background: ${C.accent}; box-shadow: 0 0 12px rgba(59,130,246,0.2), inset 0 0 0 0.5px rgba(0,0,0,0.06); }
+              .stg-toggle.stg-on { background: ${C.accent}; box-shadow: 0 0 12px rgba(59,130,246,0.2); }
               .stg-toggle.stg-on .stg-knob { transform: translateX(24px); box-shadow: 0 1px 4px rgba(0,0,0,0.2), 0 0 8px rgba(59,130,246,0.15); }
-              .stg-toggle.stg-off { background: rgba(255,255,255,0.12); box-shadow: inset 0 1px 3px rgba(0,0,0,0.15), inset 0 0 0 0.5px rgba(255,255,255,0.05); }
+              .stg-toggle.stg-off { background: rgba(255,255,255,0.12); box-shadow: inset 0 1px 3px rgba(0,0,0,0.15); }
               .stg-toggle.stg-sliding-on .stg-knob::before { animation: trailFadeOn 500ms cubic-bezier(0.4,0,0.2,1) forwards; background: linear-gradient(90deg, rgba(59,130,246,0.5) 0%, rgba(96,165,250,0.4) 40%, rgba(147,197,253,0.2) 70%, transparent 100%); }
               .stg-toggle.stg-sliding-off .stg-knob::before { animation: trailFadeOff 500ms cubic-bezier(0.4,0,0.2,1) forwards; background: linear-gradient(270deg, rgba(255,255,255,0.4) 0%, rgba(200,210,230,0.25) 40%, rgba(180,190,210,0.1) 70%, transparent 100%); }
               .stg-toggle:active .stg-knob { width: 28px; border-radius: 14px; transition-duration: 100ms; }
