@@ -37,7 +37,7 @@ export async function GET(req: Request) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://zelrex.ai';
 
   // FIXED: Require authenticated user
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) {
     // User isn't logged in — redirect to sign-in. They can't access /chat anyway.
     return NextResponse.redirect(`${baseUrl}/sign-in?redirect_url=${encodeURIComponent('/chat')}`);
