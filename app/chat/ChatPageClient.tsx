@@ -2408,14 +2408,15 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .drag-handle::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:3px;height:48px;border-radius:3px;background:rgba(255,255,255,0.08);transition:all 500ms cubic-bezier(0.32,0.72,0,1)}
         .drag-handle:hover::after{background:${C.accent};box-shadow:0 0 8px ${C.accent}40;height:64px}
         /* Premium hamburger button */
-        .burger-btn{width:36px;height:36px;position:relative;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:10px;cursor:pointer;transition:all 500ms cubic-bezier(0.32,0.72,0,1);flex-shrink:0;overflow:hidden}
-        .burger-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;opacity:0;background:linear-gradient(168deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.06) 18%,rgba(255,255,255,0.015) 45%,transparent 60%,rgba(255,255,255,0.025) 78%,rgba(255,255,255,0.09) 100%);box-shadow:inset 0 0.5px 0 rgba(255,255,255,0.35),inset 0 -0.5px 0 rgba(255,255,255,0.06);transition:opacity 500ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .burger-btn::after{content:'';position:absolute;top:-35%;left:8%;width:84%;height:70%;border-radius:50%;background:radial-gradient(ellipse at 38% 35%,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.035) 32%,transparent 68%);opacity:0;transition:opacity 600ms cubic-bezier(0.32,0.72,0,1);pointer-events:none}
-        .burger-btn:hover{background:rgba(255,255,255,0.065);border-color:rgba(255,255,255,0.14)}
-        .burger-btn:hover::before,.burger-btn:hover::after{opacity:1}
-        .burger-btn:active{transform:scale(0.92) translateY(0);transition-duration:120ms}
+        .burger-btn{width:36px;height:36px;position:relative;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid transparent;border-radius:999px;cursor:pointer;transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),border-color 150ms cubic-bezier(0.22,1,0.36,1);flex-shrink:0}
+        .burger-btn:hover{background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.10)}
+        .burger-btn:active{background:rgba(255,255,255,0.06);transition-duration:80ms}
         .burger-line{position:absolute;height:1.5px;border-radius:1px;background:${C.textSec};transition:transform 0.5s cubic-bezier(0.32,0.72,0,1),opacity 0.4s ease,width 0.5s cubic-bezier(0.32,0.72,0,1),background 0.4s ease}
         .burger-btn:hover .burger-line{background:${C.text}}
+        /* Dropdown arrow on chat rows — matches sidebar button hover */
+        .chat-dots{border-radius:8px!important;transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1),opacity 400ms cubic-bezier(0.32,0.72,0,1)!important}
+        .chat-dots:hover{background:rgba(255,255,255,0.06)!important;color:${C.text}!important}
+        .chat-dots:active{background:rgba(255,255,255,0.10)!important;transition-duration:80ms!important}
         .burger-top{width:16px;transform:translateY(-5px)}
         .burger-mid{width:12px}
         .burger-bot{width:16px;transform:translateY(5px)}
