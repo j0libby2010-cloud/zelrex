@@ -85,7 +85,7 @@ function sanitizeError(message: string): string {
  */
 export async function POST(req: Request) {
   // FIXED: Authentication required
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) {
     return NextResponse.json(
       { error: 'Authentication required. Please sign in.' },
@@ -168,7 +168,7 @@ export async function POST(req: Request) {
  */
 export async function GET(req: Request) {
   // Even GET should require auth
-  const { userId } = auth();
+ const { userId } = await auth();
   if (!userId) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://zelrex.ai';
     return NextResponse.redirect(`${baseUrl}/sign-in`);
