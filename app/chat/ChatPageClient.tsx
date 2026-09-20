@@ -2381,6 +2381,16 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .chat-row:hover{background:rgba(255,255,255,0.04)}
         .chat-row:hover .chat-dots{opacity:0.7!important}
         .chat-row:hover .chat-title{color:${C.text}!important}
+        /* ─── Consistent sidebar button hover ─── */
+        .z-side-btn{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),border-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1)!important}
+        .z-side-btn:hover{background:rgba(255,255,255,0.04)!important;color:${C.text}!important}
+        .z-side-btn:active{background:rgba(255,255,255,0.06)!important;transition-duration:80ms!important}
+        .z-side-btn-outlined{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),border-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1)!important}
+        .z-side-btn-outlined:hover{background:rgba(255,255,255,0.04)!important;border-color:${C.borderHover}!important;color:${C.text}!important}
+        .z-side-btn-outlined:active{background:rgba(255,255,255,0.06)!important;transition-duration:80ms!important}
+        .z-side-btn-danger{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1)!important}
+        .z-side-btn-danger:hover{background:rgba(239,68,68,0.12)!important}
+        .z-side-btn-danger:active{background:rgba(239,68,68,0.18)!important;transition-duration:80ms!important}
         .msg-actions{display:flex;align-items:center;gap:2px;margin-top:6px;opacity:0.55;transition:opacity 400ms cubic-bezier(0.32,0.72,0,1)}
         .msg-row:hover .msg-actions{opacity:1}
         .user-row .msg-actions{opacity:0}
@@ -2412,13 +2422,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .burger-top.open{width:18px;transform:rotate(45deg)}
         .burger-mid.open{width:0;opacity:0}
         .burger-bot.open{width:18px;transform:rotate(-45deg)}
-        /* ── Tail-from-button overlay animations (0.3 s) ───── */
-        @keyframes vacuumIn{0%{opacity:0;transform:scale(0.04,0.02);filter:blur(16px);border-radius:50%}100%{opacity:1;transform:scale(1,1);filter:blur(0);border-radius:0%}}
-        @keyframes vacuumOut{0%{opacity:1;transform:scale(1,1);filter:blur(0);border-radius:0%}100%{opacity:0;transform:scale(0.04,0.02);filter:blur(16px);border-radius:50%}}
+        /* ── Overlay entrance/exit animations — clean fade + scale, no blur ── */
+        @keyframes vacuumIn{0%{opacity:0;transform:scale(0.96)}100%{opacity:1;transform:scale(1)}}
+        @keyframes vacuumOut{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(0.96)}}
         @keyframes backdropFadeIn{from{opacity:0}to{opacity:1}}
         @keyframes backdropFadeOut{from{opacity:1}to{opacity:0}}
-        @keyframes dropdownVacuumIn{0%{opacity:0;transform:scale(0.06,0.03) translateY(-2px);filter:blur(12px);border-radius:50%}100%{opacity:1;transform:scale(1,1) translateY(0);filter:blur(0);border-radius:inherit}}
-        @keyframes dropdownVacuumOut{0%{opacity:1;transform:scale(1,1) translateY(0);filter:blur(0);border-radius:inherit}100%{opacity:0;transform:scale(0.06,0.03) translateY(-2px);filter:blur(12px);border-radius:50%}}
+        @keyframes dropdownVacuumIn{0%{opacity:0;transform:translateY(-4px) scale(0.98)}100%{opacity:1;transform:translateY(0) scale(1)}}
+        @keyframes dropdownVacuumOut{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-4px) scale(0.98)}}
         @keyframes loaderDot {
           0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
           40% { opacity: 1; transform: scale(1); }
@@ -2609,7 +2619,6 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           HBtn={HBtn}
         />
 
-        {false && <>
         {/* SIDEBAR BACKDROP (mobile only) */}
         {sidebarOpen && isMobile && (
           <div onClick={() => setSidebarOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 19 }} />
@@ -2619,13 +2628,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         <aside style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, borderRight: sidebarOpen ? `1px solid ${C.border}` : "none", background: C.bg, transition: "all 500ms cubic-bezier(0.32,0.72,0,1)", overflow: "hidden", display: "flex", flexDirection: "column", position: isMobile ? "fixed" : "absolute", top: isMobile ? 0 : -81, bottom: 0, left: 0, paddingTop: isMobile ? 64 : 81, zIndex: 20 }}>
           <div style={{ padding: 10, opacity: sidebarOpen ? 1 : 0, transition: "opacity 400ms cubic-bezier(0.32,0.72,0,1)" }}>
             {/* New Business button */}
-            <button onClick={createNewChat} type="button" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: isMobile ? "11px 0" : "9px 0", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+            <button onClick={createNewChat} type="button" className="z-side-btn-outlined" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: isMobile ? "11px 0" : "9px 0", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
               <Ic n="briefcase" className="h-4 w-4" /> New Business
             </button>
 
             {/* Tool buttons */}
             <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: isMobile ? 1 : 2 }}>
-              <button type="button" onClick={(e) => {
+              <button type="button" className="z-side-btn" onClick={(e) => {
                 summariesOriginRef.current = { x: e.clientX, y: e.clientY };
                 setSummariesOpen(true);
                 if (isMobile) setSidebarOpen(false);
@@ -2633,7 +2642,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 <Ic n="calendar" style={{ width: 15, height: 15, color: "#10B981" }} /> Weekly Summaries
               </button>
               <div style={{ position: "relative" }}>
-                <button type="button" onClick={(e) => {
+                <button type="button" className="z-side-btn" onClick={(e) => {
                   if (deployData?.url) {
                     analyticsOriginRef.current = { x: e.clientX, y: e.clientY };
                     setAnalyticsOpen(true);
@@ -2649,7 +2658,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div style={{
                     position: "absolute", left: isMobile ? "50%" : "calc(100% + 8px)", top: isMobile ? "calc(100% + 6px)" : "50%", transform: isMobile ? "translateX(-50%)" : "translateY(-50%)",
                     padding: "8px 14px", borderRadius: 12, whiteSpace: "nowrap",
-                    background: C.bg.elevated,
+                    background: C.bgElevated,
                     border: `1px solid ${C.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
                     fontSize: 12, color: C.textSec, zIndex: 100,
                     animation: "tooltipIn 200ms ease",
@@ -2659,21 +2668,21 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   </div>
                 )}
               </div>
-              <button type="button" onClick={(e) => {
+              <button type="button" className="z-side-btn" onClick={(e) => {
                 outreachOriginRef.current = { x: e.clientX, y: e.clientY };
                 setOutreachOpen(true);
                 if (isMobile) setSidebarOpen(false);
               }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ color: "#FBBF24" }}><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg> Outreach
               </button>
-              <button type="button" onClick={(e) => {
+              <button type="button" className="z-side-btn" onClick={(e) => {
                 crmOriginRef.current = { x: e.clientX, y: e.clientY };
                 setCrmOpen(true);
                 if (isMobile) setSidebarOpen(false);
               }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ color: "#3B82F6" }}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg> Clients
               </button>
-              <button type="button" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+              <button type="button" className="z-side-btn" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? C.accent : "#F59E0B" }} /> {userGoal ? t("myGoal") : t("setGoal")}
               </button>
             </div>
@@ -2736,10 +2745,10 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 4 }}>
-                        <button onClick={() => startRename(c.id)} type="button" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 999, border: "none", background: "rgba(255,255,255,0.03)", color: C.textSec, fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
+                        <button onClick={() => startRename(c.id)} type="button" className="z-side-btn" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 999, border: "none", background: "rgba(255,255,255,0.03)", color: C.textSec, fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
                           <Ic n="pencil" style={{ width: 11, height: 11 }} /> Rename
                         </button>
-                        <button onClick={() => { deleteChat(c.id); setExpandedBizId(null); }} type="button" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 999, border: "none", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
+                        <button onClick={() => { deleteChat(c.id); setExpandedBizId(null); }} type="button" className="z-side-btn-danger" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 4, padding: "6px", borderRadius: 999, border: "none", background: "rgba(239,68,68,0.06)", color: "#EF4444", fontSize: 11, fontWeight: 500, cursor: "pointer" }}>
                           <Ic n="trash" style={{ width: 11, height: 11 }} /> Delete
                         </button>
                       </div>
@@ -2757,31 +2766,30 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, letterSpacing: "0.03em", marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" onClick={openSettings} title="Settings" style={{ width: 32, height: 32, borderRadius: 999, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: sidebarOpen ? 1 : 0 }}>
+                <button type="button" className="z-side-btn" onClick={openSettings} title="Settings" style={{ width: 32, height: 32, borderRadius: 999, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: sidebarOpen ? 1 : 0 }}>
                   <Ic n="settings" style={{ width: 20, height: 20 }} />
                 </button>
               </div>
             ) : (
-              <button type="button" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 999, background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer" }}
+              <button type="button" className="z-side-btn" style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 999, background: "none", border: "none", color: C.textSec, fontSize: 12, cursor: "pointer" }}
                 onClick={() => { window.location.href = "/sign-in"; }}>
                 <Ic n="signin" className="h-4 w-4" /> Sign in
               </button>
             )}
           </div>
         </aside>
-        </>}
 
         {/* Collapsed profile avatar (visible when sidebar is closed) */}
         {!sidebarOpen && !isMobile && isSignedIn && clerkUser && (
           <div className="collapsed-avatar-wrap" style={{ position: "fixed", bottom: 20, left: 10, zIndex: 21 }}>
             <div className="collapsed-avatar" style={{ position: "relative", cursor: "pointer" }}>
               <img src={clerkUser.imageUrl} alt="" style={{ width: 32, height: 32, borderRadius: 999, border: `1.5px solid ${C.border}`, display: "block" }} />
-              <div className="collapsed-reveal" style={{ position: "absolute", left: 38, top: -4, display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: C.bg.elevated, border: `1px solid ${C.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.4)", whiteSpace: "nowrap", opacity: 0, transform: "translateX(-6px)", transition: "all 500ms cubic-bezier(0.32,0.72,0,1)", pointerEvents: "none" }}>
+              <div className="collapsed-reveal" style={{ position: "absolute", left: 38, top: -4, display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 10, background: C.bgElevated, border: `1px solid ${C.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.4)", whiteSpace: "nowrap", opacity: 0, transform: "translateX(-6px)", transition: "all 500ms cubic-bezier(0.32,0.72,0,1)", pointerEvents: "none" }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" onClick={openSettings} title="Settings" style={{ width: 30, height: 30, borderRadius: 999, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <button type="button" className="z-side-btn" onClick={openSettings} title="Settings" style={{ width: 30, height: 30, borderRadius: 999, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Ic n="settings" style={{ width: 18, height: 18 }} />
                 </button>
               </div>
@@ -3841,7 +3849,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         {showTutorial && (
           <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", alignItems: "center", justifyContent: "center", animation: "vacuumIn 300ms cubic-bezier(0.22,1,0.36,1) forwards" }}>
             <div onClick={() => { setShowTutorial(false); try { localStorage.setItem("zelrex_tutorial_done", "1"); } catch {} }} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)" }} />
-            <div style={{ position: "relative", width: 440, maxWidth: "92vw", borderRadius: 22, border: `0.5px solid ${C.border}`, background: C.bg.elevated, boxShadow: "0 32px 80px rgba(0,0,0,0.6)", overflow: "hidden" }}>
+            <div style={{ position: "relative", width: 440, maxWidth: "92vw", borderRadius: 22, border: `0.5px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 32px 80px rgba(0,0,0,0.6)", overflow: "hidden" }}>
               <div style={{ padding: "32px 28px 20px", textAlign: "center" }}>
                 <div style={{ width: 56, height: 56, borderRadius: 16, background: `${C.accent}15`, border: `1px solid ${C.accent}20`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: `0 0 30px ${C.accent}15` }}>
                   {tutorialStep === 0 && <Ic n="compose" style={{ width: 24, height: 24, color: C.accent }} />}
@@ -3878,7 +3886,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         {(goalModalOpen || goalClosing) && (
           <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", background: "rgb(3,5,8)", transformOrigin: goalOriginRef.current ? `${goalOriginRef.current.x}px ${goalOriginRef.current.y}px` : "center center", animation: `${goalClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: goalClosing ? "none" : undefined }}>
             <div onClick={closeGoalModal} style={{ position: "absolute", inset: 0 }} />
-            <div style={{ position: "relative", width: 420, maxWidth: "90vw", borderRadius: 22, border: `0.5px solid rgba(255,255,255,0.055)`, background: C.bg.elevated, boxShadow: "0 8px 40px rgba(0,0,0,0.22)", padding: 0, overflow: "hidden" }}>
+            <div style={{ position: "relative", width: 420, maxWidth: "90vw", borderRadius: 22, border: `0.5px solid rgba(255,255,255,0.055)`, background: C.bgElevated, boxShadow: "0 8px 40px rgba(0,0,0,0.22)", padding: 0, overflow: "hidden" }}>
               {/* Glass header */}
               <div style={{ padding: "20px 24px 16px", borderBottom: `0.5px solid rgba(255,255,255,0.055)` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
