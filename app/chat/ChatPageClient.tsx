@@ -120,38 +120,59 @@ function getBusinessName(msgs: Msg[]): string | null {
 function Ic({ n, className, style }: { n: string; className?: string; style?: React.CSSProperties }) {
   const cls = cx("inline-block", className);
   const d: Record<string, React.ReactNode> = {
-    menu: <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />,
-    close: <path d="M7 7l10 10M17 7L7 17" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />,
-    plus: <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />,
-    compose: <><path d="M12 20h9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></>,
-    search: <><path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" strokeWidth="1.6" /><path d="M16.5 16.5 21 21" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></>,
-    copy: <><rect x="9" y="3" width="11" height="13" rx="2" stroke="currentColor" strokeWidth="1.4" /><rect x="4" y="8" width="11" height="13" rx="2" stroke="currentColor" strokeWidth="1.4" /></>,
+    menu: <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />,
+    close: <path d="M7 7l10 10M17 7L7 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />,
+    plus: <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />,
+    compose: <><path d="M12 20h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></>,
+    search: <><path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" strokeWidth="1.5" /><path d="M16.5 16.5 21 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></>,
+    copy: <><rect x="9" y="3" width="11" height="13" rx="2" stroke="currentColor" strokeWidth="1.5" /><rect x="4" y="8" width="11" height="13" rx="2" stroke="currentColor" strokeWidth="1.5" /></>,
     dots: <><circle cx="5" cy="12" r="1.8" fill="currentColor" /><circle cx="12" cy="12" r="1.8" fill="currentColor" /><circle cx="19" cy="12" r="1.8" fill="currentColor" /></>,
-    trash: <path d="M9 3h6m-9 4h12m-10 0 1 14h6l1-14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />,
-    pencil: <><path d="M12 20h9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></>,
-    send: <path d="M20 12 4 20l4-8-4-8 16 8Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />,
+    trash: <path d="M9 3h6m-9 4h12m-10 0 1 14h6l1-14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />,
+    pencil: <><path d="M12 20h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></>,
+    send: <path d="M20 12 4 20l4-8-4-8 16 8Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />,
     stop: <rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor" />,
-    user: <><path d="M20 21a8 8 0 1 0-16 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><path d="M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" strokeWidth="1.6" /></>,
-    mic: <><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor" /><path d="M19 11v1a7 7 0 0 1-14 0v-1" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /><path d="M12 19v2M8 21h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></>,
-    rocket: <><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></>,
-    chart: <><path d="M3 3v18h18" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /><path d="M18 17V9M13 17V5M8 17v-3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></>,
-    target: <><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.4" /><circle cx="12" cy="12" r="6" stroke="currentColor" strokeWidth="1.4" /><circle cx="12" cy="12" r="2" fill="currentColor" /></>,
-    preview: <><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.4" /><path d="M8 21h8M12 17v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></>,
-    flag: <><path d="M6 3v18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><path d="M6 5c2-1 4-1 6 0s4 1 6 0v8c-2 1-4 1-6 0s-4-1-6 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></>,
-    settings: <><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.4" /></>,
-    signin: <><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></>,
-    bolt: <><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" /></>,
+    user: <><path d="M20 21a8 8 0 1 0-16 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><path d="M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" strokeWidth="1.5" /></>,
+    mic: <><path d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3z" fill="currentColor" /><path d="M19 11v1a7 7 0 0 1-14 0v-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><path d="M12 19v2M8 21h8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></>,
+    rocket: <><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></>,
+    chart: <><path d="M3 3v18h18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M18 17V9M13 17V5M8 17v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></>,
+    target: <><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" /><circle cx="12" cy="12" r="6" stroke="currentColor" strokeWidth="1.5" /><circle cx="12" cy="12" r="2" fill="currentColor" /></>,
+    preview: <><rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" /><path d="M8 21h8M12 17v4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></>,
+    flag: <><path d="M6 3v18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><path d="M6 5c2-1 4-1 6 0s4 1 6 0v8c-2 1-4 1-6 0s-4-1-6 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></>,
+    settings: <><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" /></>,
+    signin: <><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></>,
+    bolt: <><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></>,
     bell: <><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></>,
-    goal: <><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.4" /><circle cx="12" cy="12" r="6" stroke="currentColor" strokeWidth="1.4" /><circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="1.4" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.5" /></>,
-    chevdown: <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />,
-    chevright: <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />,
-    calendar: <><rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.4" /><path d="M16 2v4M8 2v4M3 10h18" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /><circle cx="8" cy="15" r="1" fill="currentColor" /><circle cx="12" cy="15" r="1" fill="currentColor" /></>,
-    analytics: <><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.4" /><path d="M8 14l2.5-3 2.5 1.5L16 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /><circle cx="16" cy="9" r="1.5" fill="currentColor" /></>,
-    briefcase: <><rect x="2" y="7" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.4" /><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" stroke="currentColor" strokeWidth="1.4" /><path d="M2 13h20" stroke="currentColor" strokeWidth="1.4" /></>,
-    globe: <><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.4" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" strokeWidth="1.4" /></>,
-    credit: <><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.4" /><path d="M2 10h20" stroke="currentColor" strokeWidth="1.4" /><path d="M6 15h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></>,
-    shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />,
-    shield: <><path d="M12 2l8 4v5c0 5.55-3.84 10.74-8 12-4.16-1.26-8-6.45-8-12V6l8-4z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" /><path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></>,
+    /* Redesigned — was a bullseye, identical to "target" and generic. Now a
+       planted flag / milestone marker, distinct from target, with a small
+       signature dot at the base as a Zelrex accent. */
+    goal: <><path d="M6 3v16.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><path d="M6 4.5c2.2-1.1 4-1.1 6 0s3.8 1.1 6 0v7.5c-2.2 1.1-4 1.1-6 0s-3.8-1.1-6 0" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><circle cx="6" cy="21" r="1.15" fill="currentColor" /></>,
+    chevdown: <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />,
+    chevright: <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />,
+    /* Redesigned — was a literal calendar grid with 2 dots (generic
+       "schedule" icon). Now reads as a summary sheet: a page with lines of
+       text and a shorter accented final line, which fits "Weekly Summaries"
+       more directly than a scheduling icon. */
+    calendar: <><rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" strokeWidth="1.5" /><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><circle cx="15.5" cy="16" r="1.15" fill="currentColor" /></>,
+    /* Redesigned — was a circle with a zigzag line + dot (generic
+       "chart in a badge" cliché). Now ascending bars of increasing height
+       with the tallest bar accented — a cleaner, more custom growth motif. */
+    analytics: <><path d="M4 20V15M9.5 20V11M15 20V7M20 20V4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /><circle cx="20" cy="4" r="1.15" fill="currentColor" /></>,
+    /* Redesigned — was a plain briefcase (the single most overused "business"
+       icon). Simplified to cleaner geometry with a centered accent dot on
+       the seam, reading as a considered mark rather than clipart. */
+    briefcase: <><rect x="3" y="8" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" /><path d="M9 8V6.5A1.5 1.5 0 0 1 10.5 5h3A1.5 1.5 0 0 1 15 6.5V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><path d="M3 13h18" stroke="currentColor" strokeWidth="1.5" /><circle cx="12" cy="13" r="1.15" fill="currentColor" /></>,
+    globe: <><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" /><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="currentColor" strokeWidth="1.5" /></>,
+    credit: <><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" /><path d="M2 10h20" stroke="currentColor" strokeWidth="1.5" /><path d="M6 15h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></>,
+    shield: <><path d="M12 2l8 4v5c0 5.55-3.84 10.74-8 12-4.16-1.26-8-6.45-8-12V6l8-4z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /><path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></>,
+    /* Redesigned — was a literal paper airplane (the single most overused
+       "send/outreach" icon in SaaS). Now two connected nodes with a
+       directional line, reading as "reaching out to a contact" instead. */
+    outreach: <><circle cx="5" cy="17" r="2" stroke="currentColor" strokeWidth="1.5" /><circle cx="19" cy="7" r="2" stroke="currentColor" strokeWidth="1.5" /><path d="M6.8 15.3 17.2 8.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><path d="M14 7.5h5.2V12.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></>,
+    /* Redesigned — was the literal Heroicons "users" glyph (the single most
+       overused "clients/people" icon). Now a client record card: a small
+       avatar mark plus two info lines, reading as "a client's file" rather
+       than generic people silhouettes. */
+    clients: <><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" /><circle cx="8" cy="11" r="2" stroke="currentColor" strokeWidth="1.5" /><path d="M13 9.5h5M13 12.5h3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /><path d="M5.5 16c.6-1.4 1.7-2 2.5-2s1.9.6 2.5 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></>,
   };
   return <svg className={cls} style={style} viewBox="0 0 24 24" fill="none">{d[n]}</svg>;
 }
@@ -329,23 +350,58 @@ function fireConfetti() {
   setTimeout(() => container.remove(), 4000);
 }
 
-function WelcomeScreen({ onAction }: { onAction: (t: string) => void }) {
+function WelcomeScreen({ onAction, firstName }: { onAction: (t: string) => void; firstName?: string | null }) {
   const cards = [
-    { icon: "rocket", title: "Build my website", sub: "Premium site, live in minutes", action: "Build me a website for my freelance business" },
-    { icon: "target", title: "Evaluate my market", sub: "Find your most profitable niche", action: "Help me evaluate my market" },
-    { icon: "bolt", title: "Stress test my offer", sub: "Fix weak spots before launch", action: "Stress test my freelance offer" },
+    { title: "Build my website", sub: "Premium site, live in minutes", action: "Build me a website for my freelance business" },
+    { title: "Evaluate my market", sub: "Find your most profitable niche", action: "Help me evaluate my market" },
+    { title: "Stress test my offer", sub: "Fix weak spots before launch", action: "Stress test my freelance offer" },
   ];
+
+  // First-ever-visit gets the full "Welcome to Zelrex" treatment with a
+  // shine sweep and a one-time explanation. Every visit after that gets a
+  // short, quiet line — no re-pitching the product to someone already using it.
+  const [isFirstEver, setIsFirstEver] = useState(false);
+  const [heroText, setHeroText] = useState("");
+
+  useEffect(() => {
+    let firstTime = true;
+    try { firstTime = !localStorage.getItem("zelrex_welcomed_v1"); } catch {}
+    setIsFirstEver(firstTime);
+
+    if (firstTime) {
+      setHeroText("Welcome to Zelrex");
+      try { localStorage.setItem("zelrex_welcomed_v1", "1"); } catch {}
+    } else {
+      const variants = [
+        firstName ? `Welcome back, ${firstName}.` : "Welcome back.",
+        "What are we doing today?",
+        "Let's do something great.",
+        "Ready when you are.",
+      ];
+      setHeroText(variants[Math.floor(Math.random() * variants.length)]);
+    }
+    // Only decide once per mount — re-running on firstName changing mid-session would flip the text unexpectedly.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div style={{ display: "flex", flex: 1, flexDirection: "column", alignItems: "center", justifyContent: "center", paddingBottom: 40, paddingTop: 48, padding: "48px 16px 40px" }}>
-      <h1 className="welcome-h1" style={{ fontSize: 44, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.1, textAlign: "center", color: C.text }}>Go independent. Get paid.</h1>
-      <p className="welcome-sub" style={{ marginTop: 12, fontSize: 16, lineHeight: 1.6, color: C.textSec, textAlign: "center", maxWidth: 520 }}>
-        Stop losing 20% to platforms. Zelrex builds your premium freelance site, connects Stripe, and helps you land higher-paying clients directly.
-      </p>
-      <div className="welcome-grid" style={{ marginTop: 36, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, width: "100%", maxWidth: 540 }}>
-        {cards.map((c) => (
+      <h1
+        className={isFirstEver ? "welcome-h1 welcome-h1-shine" : "welcome-h1"}
+        style={{ fontSize: isFirstEver ? 44 : 32, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.15, textAlign: "center", color: isFirstEver ? undefined : C.text }}
+      >
+        {heroText}
+      </h1>
+      {isFirstEver && (
+        <p className="welcome-sub" style={{ marginTop: 12, fontSize: 16, lineHeight: 1.6, color: C.textSec, textAlign: "center", maxWidth: 480 }}>
+          I'll help you go from idea to a live business — a website, real pricing, and a plan to land clients.
+        </p>
+      )}
+      <div className="welcome-grid" style={{ marginTop: isFirstEver ? 36 : 40, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, width: "100%", maxWidth: 540 }}>
+        {cards.map((c, i) => (
           <button key={c.title} type="button" onClick={() => onAction(c.action)} className="welcome-card"
             style={{ textAlign: "left", padding: "20px 16px", borderRadius: 16, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)", cursor: "pointer", color: C.text }}>
-            <Ic n={c.icon} className="h-5 w-5" style={{ color: C.accent }} />
+            <span className="welcome-card-num">{String(i + 1).padStart(2, "0")}</span>
             <div className="welcome-card-title" style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>{c.title}</div>
             <div className="welcome-card-sub" style={{ marginTop: 4, fontSize: 12, color: C.textMuted, lineHeight: 1.4 }}>{c.sub}</div>
           </button>
@@ -2439,6 +2495,19 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .welcome-card{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),border-color 150ms cubic-bezier(0.22,1,0.36,1),transform 150ms cubic-bezier(0.22,1,0.36,1)}
         .welcome-card:hover{background:rgba(255,255,255,0.045)!important;border-color:${C.borderHover}!important}
         .welcome-card:active{transform:scale(0.98);transition-duration:80ms}
+        .welcome-card-num{display:inline-block;font-family:'JetBrains Mono','SF Mono',Menlo,monospace;font-size:12px;font-weight:500;color:rgba(255,255,255,0.30);letter-spacing:0.03em;transition:color 150ms cubic-bezier(0.22,1,0.36,1)}
+        .welcome-card:hover .welcome-card-num{color:${C.accent}}
+        /* One-time "Welcome to Zelrex" shine sweep — plays once on a user's
+           very first visit, never again. Base color matches C.text so the
+           text settles to a normal look once the sweep finishes. */
+        .welcome-h1-shine{
+          background:linear-gradient(100deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.88) 42%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.88) 58%, rgba(255,255,255,0.88) 100%);
+          background-size:250% 100%;
+          -webkit-background-clip:text;background-clip:text;
+          -webkit-text-fill-color:transparent;color:transparent;
+          animation:heroShine 2.1s cubic-bezier(0.22,1,0.36,1) 0.25s 1 forwards;
+        }
+        @keyframes heroShine{0%{background-position:200% 0}100%{background-position:-50% 0}}
         .user-time{font-size:11px;color:rgba(255,255,255,0.7);font-weight:500;letter-spacing:0.01em}
         .collapsed-avatar:hover .collapsed-reveal,.collapsed-reveal:hover{opacity:1!important;transform:translateX(0)!important;pointer-events:auto!important}
         .drag-handle{width:8px;cursor:col-resize;background:transparent;transition:all 500ms cubic-bezier(0.32,0.72,0,1);flex-shrink:0;position:relative;z-index:10;border-left:1px solid ${C.border}}
@@ -2713,14 +2782,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 setOutreachOpen(true);
                 if (isMobile) setSidebarOpen(false);
               }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ color: "#FBBF24" }}><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg> Outreach
+                <Ic n="outreach" style={{ width: 15, height: 15, color: "#FBBF24" }} /> Outreach
               </button>
               <button type="button" className="z-side-btn" onClick={(e) => {
                 crmOriginRef.current = { x: e.clientX, y: e.clientY };
                 setCrmOpen(true);
                 if (isMobile) setSidebarOpen(false);
               }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ color: "#3B82F6" }}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg> Clients
+                <Ic n="clients" style={{ width: 15, height: 15, color: "#3B82F6" }} /> Clients
               </button>
               <button type="button" className="z-side-btn" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? C.accent : "#F59E0B" }} /> {userGoal ? t("myGoal") : t("setGoal")}
@@ -2842,7 +2911,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           <div className="z-scroll" style={{ flex: 1, overflowY: "auto", padding: isMobile ? "12px 10px" : (showPreview ? "16px 12px" : "16px 16px") }}>
             <div style={{ maxWidth: showPreview ? "100%" : 820, margin: "0 auto" }}>
               {!hasMessages ? (
-                <WelcomeScreen onAction={sendViaCard} />
+                <WelcomeScreen onAction={sendViaCard} firstName={clerkUser?.firstName} />
               ) : (
                 <div style={{ paddingBottom: isMobile ? 120 : 140 }}>
                   {activeChat?.messages.map((m) => {
