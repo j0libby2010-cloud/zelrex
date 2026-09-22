@@ -324,41 +324,41 @@ function StatusBar({
   onAddGoal?: (e: React.MouseEvent) => void;
   crmDashboard?: { totalRevenue?: number; totalClients?: number } | null;
 }) {
+  // No goal set — render nothing at all. Goal-setting now lives entirely in
+  // the sidebar's "Set Goal" item, so this bar has no reason to exist until
+  // there's something real to show.
+  if (!userGoal) return null;
+
   const leftOffset = (!isMobile && sidebarOpen) ? 260 : 0;
-  const progress = userGoal ? parseGoalProgress(userGoal.target, crmDashboard ?? null) : null;
+  const progress = parseGoalProgress(userGoal.target, crmDashboard ?? null);
+  // Only a real, measured percent lights the line. A qualitative goal we
+  // can't measure gets a flat, unlit line — never a fabricated fill.
+  const percent = progress?.percent ?? 0;
 
   return (
-    <div style={{ height: 44, display: "flex", alignItems: "center", justifyContent: "center", borderBottom: `1px solid ${C.border}`, padding: "0 20px", marginLeft: leftOffset, width: `calc(100% - ${leftOffset}px)`, transition: "margin-left 500ms cubic-bezier(0.32,0.72,0,1), width 500ms cubic-bezier(0.32,0.72,0,1)" }}>
-      {userGoal ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", maxWidth: 480 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: isMobile ? 100 : 160, letterSpacing: "-0.005em" }}>
-            {userGoal.text}
-          </span>
-          {progress ? (
-            <>
-              <div style={{ flex: 1, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${progress.percent}%`, background: C.accent, borderRadius: 999, transition: "width 800ms cubic-bezier(0.22,1,0.36,1)" }} />
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 500, color: C.textMuted, whiteSpace: "nowrap", fontFamily: "'JetBrains Mono','SF Mono',Menlo,monospace" }}>
-                {progress.currentLabel} <span style={{ opacity: 0.5 }}>/</span> {progress.targetLabel}
-              </span>
-            </>
-          ) : (
-            <span style={{ fontSize: 11, color: C.textMuted, fontStyle: "italic" }}>tracking manually — check in anytime</span>
-          )}
-          <button type="button" onClick={onAddGoal} className="z-btn-icon" title="Edit goal" style={{ width: 22, height: 22, color: C.textMuted, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Ic n="pencil" style={{ width: 12, height: 12 }} />
-          </button>
+    <div style={{ height: 40, display: "flex", alignItems: "center", justifyContent: "center", borderBottom: `1px solid ${C.border}`, padding: "0 20px", marginLeft: leftOffset, width: `calc(100% - ${leftOffset}px)`, transition: "margin-left 500ms cubic-bezier(0.32,0.72,0,1), width 500ms cubic-bezier(0.32,0.72,0,1)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, width: "100%", maxWidth: 460 }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, letterSpacing: "0.08em", textTransform: "uppercase", flexShrink: 0 }}>Now</span>
+
+        <div style={{ position: "relative", flex: 1, height: 2, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "visible" }}>
+          {/* Lit portion — only ever as wide as real, measured progress */}
+          <div style={{ position: "absolute", top: 0, left: 0, height: "100%", width: `${percent}%`, borderRadius: 999, background: `linear-gradient(90deg, rgba(74,144,255,0.25), ${C.accent})`, transition: "width 900ms cubic-bezier(0.22,1,0.36,1)" }} />
+          {/* Leading edge marker — sits at the front of the lit portion, or
+              at the start (unlit) when there's nothing measurable yet */}
+          <div style={{ position: "absolute", top: "50%", left: `${percent}%`, transform: "translate(-50%,-50%)", width: 7, height: 7, borderRadius: 999, background: percent > 0 ? "#fff" : "rgba(255,255,255,0.25)", boxShadow: percent > 0 ? `0 0 8px 2px ${C.accentGlow}` : "none", transition: "left 900ms cubic-bezier(0.22,1,0.36,1), background-color 300ms, box-shadow 300ms" }} />
         </div>
-      ) : (
-        <button type="button" onClick={onAddGoal} className="z-btn-outlined" style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: 11, fontWeight: 600, cursor: "pointer", letterSpacing: "0.02em" }}>
-          <span style={{ fontSize: 12, lineHeight: 1 }}>+</span> Set a goal
+
+        <span style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: isMobile ? 110 : 180, letterSpacing: "-0.005em", flexShrink: 0 }}>
+          {userGoal.text}
+        </span>
+
+        <button type="button" onClick={onAddGoal} className="z-btn-icon" title="Edit goal" style={{ width: 22, height: 22, color: C.textMuted, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Ic n="pencil" style={{ width: 12, height: 12 }} />
         </button>
-      )}
+      </div>
     </div>
   );
 }
-
 
 function fireConfetti() {
   const count = 120;
@@ -390,39 +390,60 @@ function fireConfetti() {
   setTimeout(() => container.remove(), 4000);
 }
 
-function WelcomeScreen({ onAction, firstName }: { onAction: (t: string) => void; firstName?: string | null }) {
+function WelcomeScreen({ onAction, firstName, chatId }: { onAction: (t: string) => void; firstName?: string | null; chatId?: string }) {
   const cards = [
     { title: "Build my website", sub: "Premium site, live in minutes", action: "Build me a website for my freelance business" },
     { title: "Evaluate my market", sub: "Find your most profitable niche", action: "Help me evaluate my market" },
     { title: "Stress test my offer", sub: "Fix weak spots before launch", action: "Stress test my freelance offer" },
   ];
 
-  // First-ever-visit gets the full "Welcome to Zelrex" treatment with a
-  // shine sweep and a one-time explanation. Every visit after that gets a
-  // short, quiet line — no re-pitching the product to someone already using it.
+  // Each chat gets ONE greeting, decided the first time it's shown and then
+  // persisted — refreshing the page never re-rolls it. The special
+  // "Welcome to Zelrex" shine is a once-ever, account-wide moment; every
+  // other chat (including this one on future visits) gets a short line
+  // that's picked once and then fixed for that chat specifically.
   const [isFirstEver, setIsFirstEver] = useState(false);
   const [heroText, setHeroText] = useState("");
 
   useEffect(() => {
-    let firstTime = true;
-    try { firstTime = !localStorage.getItem("zelrex_welcomed_v1"); } catch {}
-    setIsFirstEver(firstTime);
+    if (!chatId) { setHeroText("What are we doing today?"); return; }
+    const key = `zelrex_greeting_${chatId}`;
 
-    if (firstTime) {
-      setHeroText("Welcome to Zelrex");
-      try { localStorage.setItem("zelrex_welcomed_v1", "1"); } catch {}
-    } else {
-      const variants = [
-        firstName ? `Welcome back, ${firstName}.` : "Welcome back.",
-        "What are we doing today?",
-        "Let's do something great.",
-        "Ready when you are.",
-      ];
-      setHeroText(variants[Math.floor(Math.random() * variants.length)]);
+    let stored: string | null = null;
+    try { stored = localStorage.getItem(key); } catch {}
+
+    if (stored) {
+      // Already decided for this chat — use it. Never replay the shine
+      // animation on a revisit, even if the stored text happens to be the
+      // "Welcome to Zelrex" line from this chat's very first render.
+      setHeroText(stored);
+      setIsFirstEver(false);
+      return;
     }
-    // Only decide once per mount — re-running on firstName changing mid-session would flip the text unexpectedly.
+
+    let firstTimeEver = true;
+    try { firstTimeEver = !localStorage.getItem("zelrex_welcomed_v1"); } catch {}
+
+    const text = firstTimeEver
+      ? "Welcome to Zelrex"
+      : [
+          firstName ? `Welcome back, ${firstName}.` : "Welcome back.",
+          "What are we doing today?",
+          "Let's do something great.",
+          "Ready when you are.",
+        ][Math.floor(Math.random() * 4)];
+
+    setHeroText(text);
+    setIsFirstEver(firstTimeEver);
+
+    try {
+      localStorage.setItem(key, text);
+      if (firstTimeEver) localStorage.setItem("zelrex_welcomed_v1", "1");
+    } catch {}
+    // Deliberately only re-run when the chat itself changes — this is a
+    // one-time-per-chat decision, not something that reacts to other state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [chatId]);
 
   return (
     <div style={{ display: "flex", flex: 1, flexDirection: "column", alignItems: "center", justifyContent: "center", paddingBottom: 40, paddingTop: 48, padding: "48px 16px 40px" }}>
@@ -2950,11 +2971,19 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {/* CHAT */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, justifyContent: !hasMessages ? "center" : undefined, transition: dragRef.current ? "none" : "all 500ms cubic-bezier(0.32,0.72,0,1)", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, transition: dragRef.current ? "none" : "all 500ms cubic-bezier(0.32,0.72,0,1)", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0 }}>
+          {/* Centering scope — always fills all space above the disclaimer.
+              When empty, its own justifyContent centers the hero+input pair
+              together within that space. When active, normal chat behavior
+              (message list fills and scrolls, input sits right after it).
+              The disclaimer below is deliberately OUTSIDE this scope so it
+              never moves — it always stays in its usual spot near the
+              true bottom of the screen. */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, justifyContent: !hasMessages ? "center" : undefined }}>
           <div className="z-scroll" style={{ flex: hasMessages ? 1 : "0 1 auto", overflowY: "auto", padding: isMobile ? "12px 10px" : (showPreview ? "16px 12px" : "16px 16px") }}>
             <div style={{ maxWidth: showPreview ? "100%" : 820, margin: "0 auto" }}>
               {!hasMessages ? (
-                <WelcomeScreen onAction={sendViaCard} firstName={clerkUser?.firstName} />
+                <WelcomeScreen onAction={sendViaCard} firstName={clerkUser?.firstName} chatId={activeChatId} />
               ) : (
                 <div style={{ paddingBottom: isMobile ? 120 : 140 }}>
                   {activeChat?.messages.map((m) => {
@@ -3136,7 +3165,12 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 </div>
               </div>
             </div>
-            <div style={{ marginTop: 8, textAlign: "center", fontSize: 12, fontWeight: 500, color: C.textSec, position: "relative", zIndex: 1 }}>Zelrex can make mistakes. Check important info before making business decisions.</div>
+          </div>
+          </div>
+          {/* Disclaimer — always pinned near the true bottom, outside the
+              centering scope above, so it never travels with the input box. */}
+          <div style={{ padding: isMobile ? "0 8px 10px" : (showPreview ? "0 12px 12px" : "0 16px 14px"), textAlign: "center" }}>
+            <div style={{ fontSize: 12, fontWeight: 500, color: C.textSec }}>Zelrex can make mistakes. Check important info before making business decisions.</div>
           </div>
         </div>
 
