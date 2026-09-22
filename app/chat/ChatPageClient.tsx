@@ -272,53 +272,94 @@ function Typewriter({ text, speed = 8, onFinish }: { text: string; speed?: numbe
   return <div>{formatMessage(text.slice(0, n))}</div>;
 }
 
-function StatusBar({ phase, businessName, sidebarOpen, isMobile, userGoal, onAddGoal }: { phase: BusinessPhase; businessName: string | null; sidebarOpen: boolean; isMobile: boolean; userGoal?: { text: string; target: string; deadline: string } | null; onAddGoal?: (e: React.MouseEvent) => void }) {
-  const phases: { key: string; label: string }[] = [
-    { key: "ready", label: "Start" },
-    { key: "intake", label: "Discovery" },
-    { key: "evaluating", label: "Evaluation" },
-    { key: "building", label: "Website" },
-    { key: "live", label: businessName || "Live" },
-  ];
-  const phaseKeys = ["ready", "intake", "evaluating", "building", "live"];
-  const currentIdx = phaseKeys.indexOf(phase);
-  const accentColor = phase === "live" ? "#10B981" : phase === "building" ? "#8B5CF6" : phase === "evaluating" ? "#F59E0B" : C.accent;
+// Parses a goal's target string into a real, measurable progress figure.
+// Returns null when the target can't be matched to actual tracked data —
+// in that case the UI shows the goal as plain text with NO fill, rather
+// than fabricating a percentage. Never guess; only show what's real.
+function parseGoalProgress(
+  target: string,
+  crmDashboard: { totalRevenue?: number; totalClients?: number } | null
+): { percent: number; currentLabel: string; targetLabel: string } | null {
+  if (!target || !target.trim()) return null;
+  const t = target.trim().toLowerCase();
+
+  // Client-count goal: "10 clients", "5 client"
+  if (/client/.test(t)) {
+    const numMatch = t.match(/(\d+)/);
+    if (!numMatch || crmDashboard?.totalClients === undefined) return null;
+    const targetNum = parseInt(numMatch[1], 10);
+    if (!targetNum) return null;
+    const current = crmDashboard.totalClients;
+    return {
+      percent: Math.max(0, Math.min(100, Math.round((current / targetNum) * 100))),
+      currentLabel: `${current}`,
+      targetLabel: `${targetNum} client${targetNum === 1 ? "" : "s"}`,
+    };
+  }
+
+  // Revenue-style goal: "$10,000", "$10k", "10000/mo"
+  if (t.includes("$") || /^\d/.test(t)) {
+    if (crmDashboard?.totalRevenue === undefined) return null;
+    const cleaned = t.replace(/[^0-9.k]/g, "");
+    let targetNum = parseFloat(cleaned);
+    if (t.includes("k")) targetNum *= 1000;
+    if (!targetNum || isNaN(targetNum)) return null;
+    const current = crmDashboard.totalRevenue;
+    return {
+      percent: Math.max(0, Math.min(100, Math.round((current / targetNum) * 100))),
+      currentLabel: `$${current.toLocaleString()}`,
+      targetLabel: `$${targetNum.toLocaleString()}`,
+    };
+  }
+
+  // Qualitative goal ("get known in my niche", "land my first client") —
+  // there's no reliable number to track this against. Don't fake one.
+  return null;
+}
+
+function StatusBar({
+  sidebarOpen, isMobile, userGoal, onAddGoal, crmDashboard,
+}: {
+  sidebarOpen: boolean; isMobile: boolean;
+  userGoal?: { text: string; target: string; deadline: string } | null;
+  onAddGoal?: (e: React.MouseEvent) => void;
+  crmDashboard?: { totalRevenue?: number; totalClients?: number } | null;
+}) {
   const leftOffset = (!isMobile && sidebarOpen) ? 260 : 0;
+  const progress = userGoal ? parseGoalProgress(userGoal.target, crmDashboard ?? null) : null;
 
   return (
-    <div style={{ height: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 0, borderBottom: `1px solid ${C.border}`, background: currentIdx > 0 ? `linear-gradient(90deg, transparent, ${accentColor}06, transparent)` : "transparent", padding: "0 20px", marginLeft: leftOffset, width: `calc(100% - ${leftOffset}px)`, transition: "margin-left 500ms cubic-bezier(0.32,0.72,0,1), width 500ms cubic-bezier(0.32,0.72,0,1)" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-      {phases.map((p, i) => {
-        const isDone = i < currentIdx;
-        const isCurrent = phaseKeys[currentIdx] === p.key;
-        const color = isDone ? "#10B981" : isCurrent ? accentColor : C.textMuted;
-        return (
-          <React.Fragment key={p.key}>
-            {i > 0 && <div style={{ width: isMobile ? 16 : 32, height: 1, background: isDone ? "#10B981" : C.border, margin: "0 2px", transition: "background 500ms" }} />}
-            <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <span style={{ width: 6, height: 6, borderRadius: 999, background: color, boxShadow: isCurrent ? `0 0 8px ${color}` : "none", transition: "all 500ms", animation: isCurrent && (phase === "evaluating" || phase === "building") ? "zp 2s ease infinite" : "none" }} />
-              <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: isCurrent ? 700 : 500, color, letterSpacing: "0.04em", textTransform: "uppercase", transition: "all 500ms cubic-bezier(0.32,0.72,0,1)" }}>{p.label}</span>
-            </div>
-          </React.Fragment>
-        );
-      })}
-      {/* Separator + Goal or Add Goal */}
-      <div style={{ width: isMobile ? 16 : 32, height: 1, background: C.border, margin: "0 2px" }} />
+    <div style={{ height: 44, display: "flex", alignItems: "center", justifyContent: "center", borderBottom: `1px solid ${C.border}`, padding: "0 20px", marginLeft: leftOffset, width: `calc(100% - ${leftOffset}px)`, transition: "margin-left 500ms cubic-bezier(0.32,0.72,0,1), width 500ms cubic-bezier(0.32,0.72,0,1)" }}>
       {userGoal ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-          <span style={{ fontSize: isMobile ? 9 : 10, fontWeight: 600, color: C.accent, letterSpacing: "0.04em", textTransform: "uppercase", maxWidth: 160, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{userGoal.text}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", maxWidth: 480 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: isMobile ? 100 : 160, letterSpacing: "-0.005em" }}>
+            {userGoal.text}
+          </span>
+          {progress ? (
+            <>
+              <div style={{ flex: 1, height: 4, borderRadius: 999, background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${progress.percent}%`, background: C.accent, borderRadius: 999, transition: "width 800ms cubic-bezier(0.22,1,0.36,1)" }} />
+              </div>
+              <span style={{ fontSize: 11, fontWeight: 500, color: C.textMuted, whiteSpace: "nowrap", fontFamily: "'JetBrains Mono','SF Mono',Menlo,monospace" }}>
+                {progress.currentLabel} <span style={{ opacity: 0.5 }}>/</span> {progress.targetLabel}
+              </span>
+            </>
+          ) : (
+            <span style={{ fontSize: 11, color: C.textMuted, fontStyle: "italic" }}>tracking manually — check in anytime</span>
+          )}
+          <button type="button" onClick={onAddGoal} className="z-btn-icon" title="Edit goal" style={{ width: 22, height: 22, color: C.textMuted, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Ic n="pencil" style={{ width: 12, height: 12 }} />
+          </button>
         </div>
       ) : (
-        <button type="button" onClick={onAddGoal} className="z-btn-outlined" style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: isMobile ? 9 : 10, fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em", textTransform: "uppercase" }}>
-          <span style={{ fontSize: 11, lineHeight: 1 }}>+</span> Goal
+        <button type="button" onClick={onAddGoal} className="z-btn-outlined" style={{ display: "flex", alignItems: "center", gap: 4, padding: "4px 10px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: 11, fontWeight: 600, cursor: "pointer", letterSpacing: "0.02em" }}>
+          <span style={{ fontSize: 12, lineHeight: 1 }}>+</span> Set a goal
         </button>
       )}
-      </div>
-      <style>{`@keyframes zp{0%,100%{opacity:1}50%{opacity:.35}}`}</style>
     </div>
   );
 }
+
 
 function fireConfetti() {
   const count = 120;
@@ -393,20 +434,22 @@ function WelcomeScreen({ onAction, firstName }: { onAction: (t: string) => void;
         {heroText}
       </h1>
       {isFirstEver && (
-        <p className="welcome-sub" style={{ marginTop: 12, fontSize: 16, lineHeight: 1.6, color: C.textSec, textAlign: "center", maxWidth: 480 }}>
-          I'll help you go from idea to a live business — a website, real pricing, and a plan to land clients.
-        </p>
+        <>
+          <p className="welcome-sub" style={{ marginTop: 12, fontSize: 16, lineHeight: 1.6, color: C.textSec, textAlign: "center", maxWidth: 480 }}>
+            I'll help you go from idea to a live business — a website, real pricing, and a plan to land clients.
+          </p>
+          {/* Shown once, on the very first visit only. Not decoration — this is
+              the only place a brand-new user learns what's possible, so it's
+              worth a small nudge here. It never appears again after this. */}
+          <div style={{ marginTop: 32, display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+            {cards.map((c) => (
+              <button key={c.title} type="button" onClick={() => onAction(c.action)} className="welcome-link">
+                {c.title}
+              </button>
+            ))}
+          </div>
+        </>
       )}
-      <div className="welcome-grid" style={{ marginTop: isFirstEver ? 36 : 40, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, width: "100%", maxWidth: 540 }}>
-        {cards.map((c, i) => (
-          <button key={c.title} type="button" onClick={() => onAction(c.action)} className="welcome-card"
-            style={{ textAlign: "left", padding: "20px 16px", borderRadius: 16, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)", cursor: "pointer", color: C.text }}>
-            <span className="welcome-card-num">{String(i + 1).padStart(2, "0")}</span>
-            <div className="welcome-card-title" style={{ marginTop: 10, fontSize: 13, fontWeight: 600 }}>{c.title}</div>
-            <div className="welcome-card-sub" style={{ marginTop: 4, fontSize: 12, color: C.textMuted, lineHeight: 1.4 }}>{c.sub}</div>
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
@@ -625,6 +668,10 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const outreachOriginRef = useRef<{ x: number; y: number } | null>(null);
   const [crmOpen, setCrmOpen] = useState(false);
   const [crmClosing, setCrmClosing] = useState(false);
+  // Real revenue/client numbers for the goal bar — populated from the same
+  // CRM dashboard fetch already used for notifications. Never fabricated:
+  // if this is null, the goal bar shows no fill rather than guessing.
+  const [crmDashboard, setCrmDashboard] = useState<{ totalRevenue?: number; totalClients?: number } | null>(null);
   const [domainManagerOpen, setDomainManagerOpen] = useState(false);
   const [editModeOpen, setEditModeOpen] = useState(false);
   const crmOriginRef = useRef<{ x: number; y: number } | null>(null);
@@ -758,6 +805,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
         const crmRes = await fetch("/api/z/crm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "dashboard", userId: clerkUser.id }) });
         const crm = await crmRes.json();
+        setCrmDashboard({ totalRevenue: crm.totalRevenue, totalClients: crm.totalClients });
 
         // Overdue invoices
         if (zelrexSettings.notifOverdueInvoices && crm.overdueInvoices > 0) {
@@ -2492,11 +2540,11 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .msg-act:hover{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.12);color:${C.text}}
         .msg-act:active{transform:scale(0.92) translateY(0);transition-duration:120ms}
         .msg-act svg{width:15px;height:15px}
-        .welcome-card{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),border-color 150ms cubic-bezier(0.22,1,0.36,1),transform 150ms cubic-bezier(0.22,1,0.36,1)}
-        .welcome-card:hover{background:rgba(255,255,255,0.045)!important;border-color:${C.borderHover}!important}
-        .welcome-card:active{transform:scale(0.98);transition-duration:80ms}
-        .welcome-card-num{display:inline-block;font-family:'JetBrains Mono','SF Mono',Menlo,monospace;font-size:12px;font-weight:500;color:rgba(255,255,255,0.30);letter-spacing:0.03em;transition:color 150ms cubic-bezier(0.22,1,0.36,1)}
-        .welcome-card:hover .welcome-card-num{color:${C.accent}}
+        /* Plain-text suggestion links — shown only once, on a user's first
+           ever visit. No border, no background, no card weight. Just a
+           quiet hint at what's possible, then it's gone for good. */
+        .welcome-link{background:none;border:none;padding:6px 4px;color:${C.textSec};font-size:14px;font-weight:500;letter-spacing:-0.005em;cursor:pointer;transition:color 150ms cubic-bezier(0.22,1,0.36,1)}
+        .welcome-link:hover{color:${C.accent}}
         /* One-time "Welcome to Zelrex" shine sweep — plays once on a user's
            very first visit, never again. Base color matches C.text so the
            text settles to a normal look once the sweep finishes. */
@@ -2549,11 +2597,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         @media(max-width:768px){
           .hide-mobile{display:none!important}
           .welcome-h1{font-size:28px!important}
-          .welcome-grid{grid-template-columns:1fr!important;max-width:340px!important}
           .welcome-sub{font-size:14px!important;max-width:360px!important}
-          .welcome-card{padding:18px 18px!important;min-height:72px!important}
-          .welcome-card-title{font-size:14px!important}
-          .welcome-card-sub{font-size:12px!important}
+          .welcome-link{font-size:15px!important;padding:8px 4px!important}
           .msg-actions{opacity:1}
           .user-actions{opacity:1}
           .msg-act{width:36px!important;height:34px!important}
@@ -2577,7 +2622,6 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         }
         @media(max-width:480px){
           .welcome-h1{font-size:24px!important}
-          .welcome-grid{max-width:100%!important;gap:10px!important}
           .notif-overlay{width:calc(100vw - 16px)!important;right:-4px!important}
         }
         /* Mobile safe area for input */
@@ -2686,7 +2730,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         </div>
       </div>
 
-      <StatusBar phase={phase} businessName={businessName} sidebarOpen={sidebarOpen} isMobile={isMobile} userGoal={userGoal} onAddGoal={openGoalModal} />
+      <StatusBar sidebarOpen={sidebarOpen} isMobile={isMobile} userGoal={userGoal} onAddGoal={openGoalModal} crmDashboard={crmDashboard} />
 
       {/* LAYOUT: sidebar + chat + preview */}
       <div style={{ display: "flex", height: `calc(100vh - ${isMobile ? 85 : 81}px)`, position: "relative" }}>
@@ -3059,7 +3103,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 <div style={{ position: "relative" }}>
                   <input ref={imageInputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.currentTarget.value = ""; }} />
                   <input ref={fileInputRef} type="file" multiple style={{ display: "none" }} onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.currentTarget.value = ""; }} />
-                  <HBtn onClick={() => setAttachMenuOpen((v) => !v)} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: C.textMuted }}><Ic n="plus" style={{ width: 20, height: 20 }} /></HBtn>
+                  <HBtn onClick={() => setAttachMenuOpen((v) => !v)} className="z-btn-icon" style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: C.textMuted }}><Ic n="plus" style={{ width: 20, height: 20 }} /></HBtn>
                   {attachMenuOpen && (
                     <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "absolute", left: 0, bottom: isMobile ? 48 : 42, zIndex: 50, width: isMobile ? 160 : 140, borderRadius: 12, border: `1px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 12px 36px rgba(0,0,0,0.5)", overflow: "hidden" }}>
                       <button type="button" className="z-btn" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} style={{ width: "100%", padding: isMobile ? "12px 14px" : "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: isMobile ? 14 : 12, cursor: "pointer", textAlign: "left" }}>Add images</button>
@@ -3070,7 +3114,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} onPaste={onPaste} placeholder={t("askAnything")}
                   style={{ flex: 1, maxHeight: 200, minHeight: isMobile ? 44 : 42, height: isMobile ? 44 : 42, resize: "none", background: "none", border: "none", outline: "none", padding: isMobile ? "11px 8px" : "10px 8px", fontSize: isMobile ? 16 : 14, lineHeight: 1.5, color: C.text, boxSizing: "border-box" }} />
                 <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 2 }}>
-                  <HBtn onClick={startSpeech} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: listening ? C.accent : C.textMuted }}><Ic n="mic" style={{ width: 20, height: 20 }} /></HBtn>
+                  <HBtn onClick={startSpeech} className="z-btn-icon" style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: listening ? C.accent : C.textMuted }}><Ic n="mic" style={{ width: 20, height: 20 }} /></HBtn>
                   <HBtn
                     onClick={isSending ? stopResponse : () => sendMessage()}
                     title={isSending ? "Stop generation" : "Send message"}
