@@ -219,44 +219,43 @@ function ZelrexZIcon({ size = 24 }: { size?: number }) {
 
 function ZelrexThinking({ stage }: { stage?: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 0", minHeight: 44 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 0", minHeight: 48 }}>
       <div className="dyson-wrap">
-        <div className="dyson-core"><ZelrexZIcon size={16} /></div>
-        {/* Orbital rings tilted at different 3D angles to form a sphere */}
+        <div className="dyson-glow" />
+        <div className="dyson-core"><ZelrexZIcon size={18} /></div>
+        {/* Three orbital rings at distinct depths and tilts — proper 3D
+            compositing via transform-style:preserve-3d on the parent, so
+            they read as one coherent rotating sphere instead of a flat
+            stack. Each ring is a thin masked comet-trail (bright head,
+            fading tail) rather than a solid glowing border, which is what
+            reads as crisp/premium instead of a blurry blob. */}
         <div className="dyson-ring dyson-r1" />
         <div className="dyson-ring dyson-r2" />
         <div className="dyson-ring dyson-r3" />
-        <div className="dyson-ring dyson-r4" />
-        <div className="dyson-ring dyson-r5" />
-        <div className="dyson-glow" />
-        <div className="dyson-pulse" />
       </div>
       <span className="z-think-label">{stage || "Thinking"}</span>
       <style>{`
-        .dyson-wrap{position:relative;width:44px;height:44px;flex-shrink:0;perspective:200px}
-        .dyson-core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:4}
-        .dyson-glow{position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,0.32) 0%,rgba(74,144,255,0.06) 60%,transparent 85%);animation:dyson-breathe 3s ease-in-out infinite;z-index:0}
-        .dyson-pulse{position:absolute;inset:-8px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,0.05) 0%,transparent 65%);animation:dyson-pa 4s ease-in-out infinite;z-index:0}
-        @keyframes dyson-breathe{0%,100%{opacity:0.35;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}
-        @keyframes dyson-pa{0%,100%{opacity:0;transform:scale(0.7)}50%{opacity:0.5;transform:scale(1.6)}}
-        .dyson-ring{position:absolute;inset:2px;border-radius:50%;border:1.2px solid transparent;z-index:2}
-        /* Equatorial ring — flat, fastest */
-        .dyson-r1{border-top-color:#3B82F6;border-bottom-color:rgba(59,130,246,0.15);animation:dyson-spin 1.8s linear infinite;filter:drop-shadow(0 0 5px rgba(59,130,246,0.5))}
-        /* Tilted ring 60° on X */
-        .dyson-r2{border-left-color:rgba(96,165,250,0.8);border-right-color:rgba(96,165,250,0.15);transform:rotateX(60deg);animation:dyson-spin-r 2.6s linear infinite;filter:drop-shadow(0 0 4px rgba(96,165,250,0.4))}
-        /* Tilted ring -60° on X */
-        .dyson-r3{border-top-color:rgba(147,197,253,0.6);border-bottom-color:rgba(147,197,253,0.1);transform:rotateX(-60deg);animation:dyson-spin 3.4s linear infinite;filter:drop-shadow(0 0 4px rgba(147,197,253,0.3))}
-        /* Polar ring — 90° on X (vertical), slight Y tilt */
-        .dyson-r4{border-left-color:rgba(59,130,246,0.45);border-right-color:rgba(59,130,246,0.08);transform:rotateX(90deg) rotateY(20deg);animation:dyson-spin-r 4s linear infinite;filter:drop-shadow(0 0 6px rgba(59,130,246,0.25))}
-        /* Diagonal ring — 45° on both axes */
-        .dyson-r5{inset:0px;border-top-color:rgba(147,197,253,0.2);border-left-color:rgba(147,197,253,0.08);transform:rotateX(45deg) rotateZ(45deg);animation:dyson-spin 5.5s linear infinite;filter:drop-shadow(0 0 8px rgba(147,197,253,0.12))}
-        @keyframes dyson-spin{to{transform:rotateX(var(--rx,0deg)) rotateZ(var(--rz,0deg)) rotate(360deg)}}
-        @keyframes dyson-spin-r{to{transform:rotateX(var(--rx,0deg)) rotateZ(var(--rz,0deg)) rotate(-360deg)}}
-        .dyson-r1{--rx:0deg;--rz:0deg}
-        .dyson-r2{--rx:60deg;--rz:0deg}
-        .dyson-r3{--rx:-60deg;--rz:0deg}
-        .dyson-r4{--rx:90deg;--rz:20deg}
-        .dyson-r5{--rx:45deg;--rz:45deg}
+        .dyson-wrap{position:relative;width:48px;height:48px;flex-shrink:0;perspective:340px;transform-style:preserve-3d}
+        .dyson-core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5}
+        .dyson-glow{position:absolute;inset:12px;border-radius:50%;background:radial-gradient(circle,rgba(74,144,255,0.38) 0%,rgba(74,144,255,0.08) 55%,transparent 80%);animation:dyson-breathe 2.6s ease-in-out infinite;z-index:0}
+        @keyframes dyson-breathe{0%,100%{opacity:0.4;transform:scale(0.85)}50%{opacity:0.95;transform:scale(1.18)}}
+
+        .dyson-ring{position:absolute;border-radius:50%;z-index:2}
+        .dyson-ring::before{content:'';position:absolute;inset:0;border-radius:50%;background:conic-gradient(from var(--start,0deg), transparent 0%, var(--c,#4A90FF) 10%, transparent 32%, transparent 100%);-webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));mask:radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px))}
+
+        /* Equatorial ring — flattest, fastest, brightest */
+        .dyson-r1{inset:1px;--rx:0deg;--rz:0deg;animation:dyson-orbit 2.1s linear infinite}
+        .dyson-r1::before{--c:#6BA6FF}
+        /* Tilted ring, opposite direction, mid depth */
+        .dyson-r2{inset:7px;--rx:64deg;--rz:10deg;animation:dyson-orbit-rev 3.1s linear infinite}
+        .dyson-r2::before{--c:#8FBBFF}
+        /* Counter-tilted ring, slowest, innermost */
+        .dyson-r3{inset:13px;--rx:-56deg;--rz:-16deg;animation:dyson-orbit 4.2s linear infinite}
+        .dyson-r3::before{--c:#3B82F6}
+
+        @keyframes dyson-orbit{from{transform:rotateX(var(--rx)) rotateZ(var(--rz)) rotate(0deg)}to{transform:rotateX(var(--rx)) rotateZ(var(--rz)) rotate(360deg)}}
+        @keyframes dyson-orbit-rev{from{transform:rotateX(var(--rx)) rotateZ(var(--rz)) rotate(360deg)}to{transform:rotateX(var(--rx)) rotateZ(var(--rz)) rotate(0deg)}}
+
         .z-think-label{font-size:13px;font-weight:600;letter-spacing:0.02em;background:linear-gradient(135deg,#93C5FD,#3B82F6,#60A5FA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:z-label-fade 2.4s cubic-bezier(0.4,0,0.2,1) infinite}
         @keyframes z-label-fade{0%,100%{opacity:0.5}40%{opacity:1}}
       `}</style>
@@ -2951,8 +2950,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {/* CHAT */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, transition: dragRef.current ? "none" : "all 500ms cubic-bezier(0.32,0.72,0,1)", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0 }}>
-          <div className="z-scroll" style={{ flex: 1, overflowY: "auto", padding: isMobile ? "12px 10px" : (showPreview ? "16px 12px" : "16px 16px") }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, justifyContent: !hasMessages ? "center" : undefined, transition: dragRef.current ? "none" : "all 500ms cubic-bezier(0.32,0.72,0,1)", marginLeft: (!isMobile && sidebarOpen) ? 260 : 0 }}>
+          <div className="z-scroll" style={{ flex: hasMessages ? 1 : "0 1 auto", overflowY: "auto", padding: isMobile ? "12px 10px" : (showPreview ? "16px 12px" : "16px 16px") }}>
             <div style={{ maxWidth: showPreview ? "100%" : 820, margin: "0 auto" }}>
               {!hasMessages ? (
                 <WelcomeScreen onAction={sendViaCard} firstName={clerkUser?.firstName} />
@@ -3103,7 +3102,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 <div style={{ position: "relative" }}>
                   <input ref={imageInputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.currentTarget.value = ""; }} />
                   <input ref={fileInputRef} type="file" multiple style={{ display: "none" }} onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.currentTarget.value = ""; }} />
-                  <HBtn onClick={() => setAttachMenuOpen((v) => !v)} className="z-btn-icon" style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: C.textMuted }}><Ic n="plus" style={{ width: 20, height: 20 }} /></HBtn>
+                  <HBtn onClick={() => setAttachMenuOpen((v) => !v)} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: C.textMuted }}><Ic n="plus" style={{ width: 20, height: 20 }} /></HBtn>
                   {attachMenuOpen && (
                     <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "absolute", left: 0, bottom: isMobile ? 48 : 42, zIndex: 50, width: isMobile ? 160 : 140, borderRadius: 12, border: `1px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 12px 36px rgba(0,0,0,0.5)", overflow: "hidden" }}>
                       <button type="button" className="z-btn" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} style={{ width: "100%", padding: isMobile ? "12px 14px" : "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: isMobile ? 14 : 12, cursor: "pointer", textAlign: "left" }}>Add images</button>
@@ -3114,7 +3113,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} onPaste={onPaste} placeholder={t("askAnything")}
                   style={{ flex: 1, maxHeight: 200, minHeight: isMobile ? 44 : 42, height: isMobile ? 44 : 42, resize: "none", background: "none", border: "none", outline: "none", padding: isMobile ? "11px 8px" : "10px 8px", fontSize: isMobile ? 16 : 14, lineHeight: 1.5, color: C.text, boxSizing: "border-box" }} />
                 <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 2 }}>
-                  <HBtn onClick={startSpeech} className="z-btn-icon" style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: listening ? C.accent : C.textMuted }}><Ic n="mic" style={{ width: 20, height: 20 }} /></HBtn>
+                  <HBtn onClick={startSpeech} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: listening ? C.accent : C.textMuted }}><Ic n="mic" style={{ width: 20, height: 20 }} /></HBtn>
                   <HBtn
                     onClick={isSending ? stopResponse : () => sendMessage()}
                     title={isSending ? "Stop generation" : "Send message"}
