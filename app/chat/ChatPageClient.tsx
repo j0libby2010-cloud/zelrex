@@ -779,7 +779,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   // ─── Load user data from Supabase ────────────────────────────────
   useEffect(() => {
     if (!isSignedIn || !clerkUser?.id) return;
-    db.loadAll().then((data) => {
+    db.loadAll().then(async (data) => {
       if (!data) { setDataLoaded(true); return; }
       setDbUserId(data.user.id);
       // Load chats
@@ -797,6 +797,39 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         }));
         setChats(mapped);
         setActiveChatId(mapped[0]?.id ?? "");
+      } else {
+        // FIXED: Brand-new user, zero chats in the database yet. Previously
+        // the local-only placeholder chat (created via useState's default
+        // value, with a client-generated id) was left in place here — its
+        // id was NEVER passed through db.createChat(), so sendMessage()
+        // would let the user type into it, but every save silently called
+        // db.updateChat() against a row that was never created. Nothing
+        // persisted, and the messages vanished on the next reload.
+        //
+        // Fix: create a real chat now, before dataLoaded flips true and the
+        // UI becomes interactive, so activeChat is ALWAYS backed by a real
+        // database row — sendMessage() itself never creates one, so this
+        // is the only place that guarantee can be made.
+        try {
+          const dbChat = await db.createChat("New business");
+          if (dbChat?.id) {
+            setChats([{
+              id: dbChat.id,
+              title: dbChat.title || "New business",
+              messages: [],
+              createdAt: dbChat.created_at ? new Date(dbChat.created_at).getTime() : Date.now(),
+              updatedAt: dbChat.updated_at ? new Date(dbChat.updated_at).getTime() : Date.now(),
+              pendingSurvey: false,
+            }]);
+            setActiveChatId(dbChat.id);
+          }
+        } catch (e) {
+          console.error("[Zelrex] Failed to create initial chat:", e);
+          // Leave the local placeholder in place as a last-resort fallback
+          // so the UI isn't completely broken — this one chat is still at
+          // risk until the next successful load, but that's better than
+          // showing nothing at all.
+        }
       }
       // Load goal
       if (data.goal) {
@@ -3131,7 +3164,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 <div style={{ position: "relative" }}>
                   <input ref={imageInputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.currentTarget.value = ""; }} />
                   <input ref={fileInputRef} type="file" multiple style={{ display: "none" }} onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.currentTarget.value = ""; }} />
-                  <HBtn onClick={() => setAttachMenuOpen((v) => !v)} className="z-btn-icon" style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: C.textMuted }}><Ic n="plus" style={{ width: 20, height: 20 }} /></HBtn>
+                  <HBtn onClick={() => setAttachMenuOpen((v) => !v)} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: C.textMuted }}><Ic n="plus" style={{ width: 20, height: 20 }} /></HBtn>
                   {attachMenuOpen && (
                     <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "absolute", left: 0, bottom: isMobile ? 48 : 42, zIndex: 50, width: isMobile ? 160 : 140, borderRadius: 12, border: `1px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 12px 36px rgba(0,0,0,0.5)", overflow: "hidden" }}>
                       <button type="button" className="z-btn" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} style={{ width: "100%", padding: isMobile ? "12px 14px" : "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: isMobile ? 14 : 12, cursor: "pointer", textAlign: "left" }}>Add images</button>
@@ -3142,7 +3175,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} onPaste={onPaste} placeholder={t("askAnything")}
                   style={{ flex: 1, maxHeight: 200, minHeight: isMobile ? 44 : 42, height: isMobile ? 44 : 42, resize: "none", background: "none", border: "none", outline: "none", padding: isMobile ? "11px 8px" : "10px 8px", fontSize: isMobile ? 16 : 14, lineHeight: 1.5, color: C.text, boxSizing: "border-box" }} />
                 <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 2 }}>
-                  <HBtn onClick={startSpeech} className="z-btn-icon" style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: listening ? C.accent : C.textMuted }}><Ic n="mic" style={{ width: 20, height: 20 }} /></HBtn>
+                  <HBtn onClick={startSpeech} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: listening ? C.accent : C.textMuted }}><Ic n="mic" style={{ width: 20, height: 20 }} /></HBtn>
                   <HBtn
                     onClick={isSending ? stopResponse : () => sendMessage()}
                     title={isSending ? "Stop generation" : "Send message"}
