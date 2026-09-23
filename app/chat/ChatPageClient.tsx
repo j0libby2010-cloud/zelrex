@@ -2080,6 +2080,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   useEffect(() => { if (initialChatId && chats.some(c => c.id === initialChatId)) { setActiveChatId(initialChatId); } }, [initialChatId]);
   // Redirect bare /chat to most recent chat (only once on initial load)
   const didInitRedirect = useRef(false);
+  // Once we've ever seen a real chat id in the URL, we never need the
+  // "redirect bare /chat to latest" behavior again this session. Arming
+  // this immediately (not just inside the redirect effect's own body)
+  // closes a race: without this, a transient render where initialChatId
+  // briefly reads as empty during a normal click-to-switch-chats
+  // navigation could fire the redirect and hijack you back to whichever
+  // chat was most recently updated, overriding the chat you actually clicked.
+  useEffect(() => { if (initialChatId) didInitRedirect.current = true; }, [initialChatId]);
   useEffect(() => { if (didInitRedirect.current) return; if (!initialChatId && chats.length > 0 && dataLoaded) { didInitRedirect.current = true; const latest = [...chats].sort((a, b) => b.updatedAt - a.updatedAt)[0]; if (latest?.id) { setActiveChatId(latest.id); router.replace(`/chat/${latest.id}`, { scroll: false }); } } }, [initialChatId, chats.length, dataLoaded]);
   useEffect(() => { listEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [activeChat?.messages.length, isSending]);
   useEffect(() => { const el = textareaRef.current; if (!el) return; el.style.height = "42px"; if (input) { el.style.height = `${Math.max(42, Math.min(180, el.scrollHeight))}px`; } }, [input]);
@@ -3036,21 +3044,19 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                                 {m.previewUrl && websiteData && <div style={{ marginTop: 14 }}><ActionPill label="Open website preview" onClick={() => setPreviewOpen(true)} /></div>}
                                 <div className="msg-actions">
                                   <button className="msg-act" title="Copy" onClick={() => { navigator.clipboard.writeText(m.content); setCopiedMsgId(m.id); setTimeout(() => setCopiedMsgId(null), 1200); }}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                                    <Ic n="copy" />
                                   </button>
                                   <button className="msg-act" title="Good response" onClick={() => sendFeedback(m.id, activeChat?.id || "", "good")} style={feedbackMap[m.id] === "good" ? { color: "#34D399" } : undefined}>
-                                    <svg viewBox="0 0 24 24" fill={feedbackMap[m.id] === "good" ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v12"/><path d="M15 5.88L14 10h5.83a2 2 0 011.92 2.56l-2.33 8A2 2 0 0117.5 22H4a2 2 0 01-2-2v-8a2 2 0 012-2h2.76a2 2 0 001.79-1.11L12 2a3.13 3.13 0 013 3.88z"/></svg>
+                                    <svg viewBox="0 0 24 24" fill={feedbackMap[m.id] === "good" ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M7 10v12"/><path d="M15 5.88L14 10h5.83a2 2 0 011.92 2.56l-2.33 8A2 2 0 0117.5 22H4a2 2 0 01-2-2v-8a2 2 0 012-2h2.76a2 2 0 001.79-1.11L12 2a3.13 3.13 0 013 3.88z"/></svg>
                                   </button>
                                   <button className="msg-act" title="Bad response" onClick={() => sendFeedback(m.id, activeChat?.id || "", "bad")} style={feedbackMap[m.id] === "bad" ? { color: "#F87171" } : undefined}>
-                                    <svg viewBox="0 0 24 24" fill={feedbackMap[m.id] === "bad" ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 14V2"/><path d="M9 18.12L10 14H4.17a2 2 0 01-1.92-2.56l2.33-8A2 2 0 016.5 2H20a2 2 0 012 2v8a2 2 0 01-2 2h-2.76a2 2 0 00-1.79 1.11L12 22a3.13 3.13 0 01-3-3.88z"/></svg>
+                                    <svg viewBox="0 0 24 24" fill={feedbackMap[m.id] === "bad" ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 14V2"/><path d="M9 18.12L10 14H4.17a2 2 0 01-1.92-2.56l2.33-8A2 2 0 016.5 2H20a2 2 0 012 2v8a2 2 0 01-2 2h-2.76a2 2 0 00-1.79 1.11L12 22a3.13 3.13 0 01-3-3.88z"/></svg>
                                   </button>
                                   <button className="msg-act" title="Retry" onClick={() => retryLast()}>
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg>
                                   </button>
                                 </div>
                                 {copiedMsgId === m.id && <div style={{ fontSize: 11, color: C.accent, marginTop: 2 }}>Copied</div>}
-                                {/* AI Disclaimer */}
-                                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginTop: 8, lineHeight: 1.4, userSelect: "none" }}>AI-generated · May contain errors · Not financial or legal advice</div>
                               </>
                             ) : (
                               <>
