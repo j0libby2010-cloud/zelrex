@@ -2074,10 +2074,21 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       );
     });
   }, [chats, dataLoaded, dbUserId, zelrexSettings.chatHistoryEnabled]);
-  // Only fix activeChatId if it points to a deleted chat
-  useEffect(() => { if (activeChatId && !chats.some((c) => c.id === activeChatId)) { const latest = [...chats].sort((a, b) => b.updatedAt - a.updatedAt)[0]; if (latest?.id) { setActiveChatId(latest.id); router.replace(`/chat/${latest.id}`, { scroll: false }); } } }, [chats]);
-  // Select chat from URL param on mount
+  // Shared guard: if the user explicitly clicked a chat in the last 600ms,
+  // every "auto-correct activeChatId" effect below ignores anything that
+  // contradicts it. There are three separate places that can redirect to
+  // "the most recently updated chat" (this deleted-chat safety net, the
+  // URL-sync effect, and the bare-/chat redirect) — without this shared
+  // guard, any one of them firing on a stale/transitional value during a
+  // normal click-to-switch-chats navigation could snap the UI back to a
+  // different chat right after you clicked the one you wanted.
   const recentChatClickRef = useRef<{ id: string; until: number } | null>(null);
+  // Only fix activeChatId if it points to a deleted chat
+  useEffect(() => {
+    if (recentChatClickRef.current && Date.now() < recentChatClickRef.current.until) return;
+    if (activeChatId && !chats.some((c) => c.id === activeChatId)) { const latest = [...chats].sort((a, b) => b.updatedAt - a.updatedAt)[0]; if (latest?.id) { setActiveChatId(latest.id); router.replace(`/chat/${latest.id}`, { scroll: false }); } }
+  }, [chats]);
+  // Select chat from URL param on mount
   useEffect(() => {
     // Defensive guard: if the user explicitly clicked a chat in the last
     // 600ms, ignore any initialChatId value that doesn't match it. This
@@ -2097,7 +2108,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   // navigation could fire the redirect and hijack you back to whichever
   // chat was most recently updated, overriding the chat you actually clicked.
   useEffect(() => { if (initialChatId) didInitRedirect.current = true; }, [initialChatId]);
-  useEffect(() => { if (didInitRedirect.current) return; if (!initialChatId && chats.length > 0 && dataLoaded) { didInitRedirect.current = true; const latest = [...chats].sort((a, b) => b.updatedAt - a.updatedAt)[0]; if (latest?.id) { setActiveChatId(latest.id); router.replace(`/chat/${latest.id}`, { scroll: false }); } } }, [initialChatId, chats.length, dataLoaded]);
+  useEffect(() => { if (didInitRedirect.current) return; if (recentChatClickRef.current && Date.now() < recentChatClickRef.current.until) return; if (!initialChatId && chats.length > 0 && dataLoaded) { didInitRedirect.current = true; const latest = [...chats].sort((a, b) => b.updatedAt - a.updatedAt)[0]; if (latest?.id) { setActiveChatId(latest.id); router.replace(`/chat/${latest.id}`, { scroll: false }); } } }, [initialChatId, chats.length, dataLoaded]);
   useEffect(() => { listEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [activeChat?.messages.length, isSending]);
   useEffect(() => { const el = textareaRef.current; if (!el) return; el.style.height = "42px"; if (input) { el.style.height = `${Math.max(42, Math.min(180, el.scrollHeight))}px`; } }, [input]);
   useEffect(() => { const el = textareaRef.current; if (el) { el.style.height = "42px"; } }, []);
@@ -3006,7 +3017,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                         {!isUser && <div style={{ width: isMobile ? 24 : 26, height: isMobile ? 24 : 26, flexShrink: 0, marginTop: 2 }}><ZelrexZIcon size={isMobile ? 24 : 26} /></div>}
                         <div style={{ maxWidth: isMobile ? "calc(100% - 40px)" : (showPreview ? "100%" : 700) }}>
                           <div className={isUser ? "msg-bubble-user" : "msg-bubble-ai"} style={{
-                            ...(isUser ? { display: "inline-block", padding: isMobile ? "10px 16px" : "8px 14px", borderRadius: 16, background: C.userBubble, border: `1px solid ${C.userBorder}` } : { padding: isMobile ? "6px 0 6px 14px" : "4px 0 4px 14px", borderLeft: `2px solid ${C.accent}18` }),
+                            ...(isUser ? { display: "inline-block", padding: isMobile ? "10px 18px" : "8px 16px", borderRadius: 999, background: C.userBubble, border: `1px solid ${C.userBorder}` } : { padding: isMobile ? "6px 0 6px 14px" : "4px 0 4px 14px", borderLeft: `2px solid ${C.accent}18` }),
                           }}>
                             {m.role === "assistant" ? (
                               <>
