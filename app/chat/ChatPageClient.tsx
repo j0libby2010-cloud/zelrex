@@ -26,7 +26,6 @@ const i18n: Record<string, Record<string, string>> = {
 import { CRMSystem } from "@/components/CRMSystem";
 import { DomainManager } from "@/components/DomainManager";
 import { WebsiteEditMode } from "@/components/WebsiteEditMode";
-import Sidebar from "@/components/Sidebar";
 import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
 
@@ -535,9 +534,10 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [dataLoaded, setDataLoaded] = useState(false);
   const debouncedSave = useDebouncedSave(800);
 
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => { const check = () => setIsMobile(window.innerWidth < 768); check(); window.addEventListener("resize", check); return () => window.removeEventListener("resize", check); }, []);
+  const didSetInitialSidebar = useRef(false);
+  useEffect(() => { const check = () => { const mobile = window.innerWidth < 768; setIsMobile(mobile); if (!didSetInitialSidebar.current) { didSetInitialSidebar.current = true; setSidebarOpen(!mobile); } }; check(); window.addEventListener("resize", check); return () => window.removeEventListener("resize", check); }, []);
 
   // Register PWA service worker
   useEffect(() => {
@@ -2077,7 +2077,16 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   // Only fix activeChatId if it points to a deleted chat
   useEffect(() => { if (activeChatId && !chats.some((c) => c.id === activeChatId)) { const latest = [...chats].sort((a, b) => b.updatedAt - a.updatedAt)[0]; if (latest?.id) { setActiveChatId(latest.id); router.replace(`/chat/${latest.id}`, { scroll: false }); } } }, [chats]);
   // Select chat from URL param on mount
-  useEffect(() => { if (initialChatId && chats.some(c => c.id === initialChatId)) { setActiveChatId(initialChatId); } }, [initialChatId]);
+  const recentChatClickRef = useRef<{ id: string; until: number } | null>(null);
+  useEffect(() => {
+    // Defensive guard: if the user explicitly clicked a chat in the last
+    // 600ms, ignore any initialChatId value that doesn't match it. This
+    // covers a brief window where the URL param can transiently read a
+    // stale value during a client-side navigation, which could otherwise
+    // snap the UI back to the previous chat right after a fresh click.
+    if (recentChatClickRef.current && Date.now() < recentChatClickRef.current.until && recentChatClickRef.current.id !== initialChatId) return;
+    if (initialChatId && chats.some(c => c.id === initialChatId)) { setActiveChatId(initialChatId); }
+  }, [initialChatId]);
   // Redirect bare /chat to most recent chat (only once on initial load)
   const didInitRedirect = useRef(false);
   // Once we've ever seen a real chat id in the URL, we never need the
@@ -2534,7 +2543,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   if (!isSignedIn) return <RedirectToSignIn />;
 
   return (
-    <div style={{ minHeight: "100vh", background: C.bg, color: C.text }}>
+    <div style={{ height: "100vh", display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg, color: C.text }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,sans-serif}
@@ -2794,44 +2803,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
       <StatusBar sidebarOpen={sidebarOpen} isMobile={isMobile} userGoal={userGoal} onAddGoal={openGoalModal} crmDashboard={crmDashboard} />
 
       {/* LAYOUT: sidebar + chat + preview */}
-      <div style={{ display: "flex", height: `calc(100vh - ${isMobile ? 85 : 81}px)`, position: "relative" }}>
-
-        <Sidebar
-          sidebarOpen={sidebarOpen}
-          onToggle={() => setSidebarOpen(false)}
-          isMobile={isMobile}
-          chats={chats}
-          activeChatId={activeChatId}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          expandedBizId={expandedBizId}
-          renamingChatId={renamingChatId}
-          renameValue={renameValue}
-          onNewChat={createNewChat}
-          onSelectChat={(id) => { setActiveChatId(id); router.push(`/chat/${id}`, { scroll: false }); if (isMobile) setSidebarOpen(false); }}
-          onExpandChat={setExpandedBizId}
-          onStartRename={startRename}
-          onRenameChange={setRenameValue}
-          onCommitRename={commitRename}
-          onCancelRename={() => { setRenamingChatId(null); setRenameValue(""); }}
-          onDeleteChat={deleteChat}
-          onOpenSummaries={(e) => { summariesOriginRef.current = { x: e.clientX, y: e.clientY }; setSummariesOpen(true); if (isMobile) setSidebarOpen(false); }}
-          onOpenAnalytics={(e) => { if (deployData?.url) { analyticsOriginRef.current = { x: e.clientX, y: e.clientY }; setAnalyticsOpen(true); if (isMobile) setSidebarOpen(false); } else { setAnalyticsTooltip(true); setTimeout(() => setAnalyticsTooltip(false), 3000); } }}
-          onOpenOutreach={(e) => { outreachOriginRef.current = { x: e.clientX, y: e.clientY }; setOutreachOpen(true); if (isMobile) setSidebarOpen(false); }}
-          onOpenCRM={(e) => { crmOriginRef.current = { x: e.clientX, y: e.clientY }; setCrmOpen(true); if (isMobile) setSidebarOpen(false); }}
-          onOpenGoal={openGoalModal}
-          hasDeployedSite={!!deployData?.url}
-          analyticsTooltip={analyticsTooltip}
-          userGoal={userGoal}
-          isSignedIn={!!isSignedIn}
-          clerkUser={clerkUser ? { imageUrl: clerkUser.imageUrl, fullName: clerkUser.fullName, firstName: clerkUser.firstName } : null}
-          onOpenSettings={openSettings}
-          detectPhase={detectPhase}
-          getBusinessName={getBusinessName}
-          t={t}
-          Ic={Ic}
-          HBtn={HBtn}
-        />
+      <div style={{ display: "flex", flex: 1, minHeight: 0, position: "relative" }}>
 
         {/* SIDEBAR BACKDROP (mobile only) */}
         {sidebarOpen && isMobile && (
@@ -2905,7 +2877,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
             <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 6, padding: isMobile ? "10px 12px" : "7px 10px", borderRadius: 999, border: `1px solid ${C.border}`, background: "rgba(255,255,255,0.02)" }}>
               <Ic n="search" className="h-3.5 w-3.5" style={{ color: C.textMuted }} />
               <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t("searchBiz")} style={{ flex: 1, background: "none", border: "none", outline: "none", color: C.text, fontSize: isMobile ? 14 : 12 }} />
-              {searchQuery && <HBtn onClick={() => setSearchQuery("")} style={{ width: isMobile ? 24 : 20, height: isMobile ? 24 : 20, color: C.textMuted }}><Ic n="close" className="h-3 w-3" /></HBtn>}
+              {searchQuery && <HBtn onClick={() => setSearchQuery("")} className="z-btn-icon" style={{ width: isMobile ? 24 : 20, height: isMobile ? 24 : 20, color: C.textMuted }}><Ic n="close" className="h-3 w-3" /></HBtn>}
             </div>
           </div>
           <div style={{ height: 1, margin: "0 10px", background: C.border }} />
@@ -2923,7 +2895,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div className="chat-row" style={{ display: "flex", alignItems: "center", padding: isMobile ? "10px 10px" : "7px 8px", cursor: "pointer", transition: "background 500ms cubic-bezier(0.32,0.72,0,1)" }}
                     onMouseEnter={(e) => { if (!isA) e.currentTarget.style.background = "rgba(255,255,255,0.03)"; }}
                     onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
-                    <button onClick={() => { setActiveChatId(c.id); router.push(`/chat/${c.id}`, { scroll: false }); if (isMobile) setSidebarOpen(false); }} type="button" className="chat-title" style={{ flex: 1, textAlign: "left", background: "none", border: "none", cursor: "pointer", color: isA ? C.text : C.textSec, padding: 0, overflow: "hidden", transition: "color 150ms cubic-bezier(0.22,1,0.36,1)" }}>
+                    <button onClick={() => { recentChatClickRef.current = { id: c.id, until: Date.now() + 600 }; setActiveChatId(c.id); router.push(`/chat/${c.id}`, { scroll: false }); if (isMobile) setSidebarOpen(false); }} type="button" className="chat-title" style={{ flex: 1, textAlign: "left", background: "none", border: "none", cursor: "pointer", color: isA ? C.text : C.textSec, padding: 0, overflow: "hidden", transition: "color 150ms cubic-bezier(0.22,1,0.36,1)" }}>
                       {isR ? (
                         <input value={renameValue} onChange={(e) => setRenameValue(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") { setRenamingChatId(null); setRenameValue(""); } }} onBlur={commitRename} autoFocus style={{ width: "100%", background: "rgba(0,0,0,0.3)", border: `1px solid ${C.border}`, borderRadius: 6, padding: "3px 8px", color: C.text, fontSize: 12, outline: "none" }} />
                       ) : (
@@ -3170,7 +3142,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 <div style={{ position: "relative" }}>
                   <input ref={imageInputRef} type="file" accept="image/*" multiple style={{ display: "none" }} onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.currentTarget.value = ""; }} />
                   <input ref={fileInputRef} type="file" multiple style={{ display: "none" }} onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.currentTarget.value = ""; }} />
-                  <HBtn onClick={() => setAttachMenuOpen((v) => !v)} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: C.textMuted }}><Ic n="plus" style={{ width: 20, height: 20 }} /></HBtn>
+                  <HBtn onClick={() => setAttachMenuOpen((v) => !v)} className="z-btn-icon" style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: C.textMuted }}><Ic n="plus" style={{ width: 20, height: 20 }} /></HBtn>
                   {attachMenuOpen && (
                     <div onMouseDown={(e) => e.stopPropagation()} style={{ position: "absolute", left: 0, bottom: isMobile ? 48 : 42, zIndex: 50, width: isMobile ? 160 : 140, borderRadius: 12, border: `1px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 12px 36px rgba(0,0,0,0.5)", overflow: "hidden" }}>
                       <button type="button" className="z-btn" onClick={() => { setAttachMenuOpen(false); imageInputRef.current?.click(); }} style={{ width: "100%", padding: isMobile ? "12px 14px" : "8px 12px", background: "none", border: "none", color: C.textSec, fontSize: isMobile ? 14 : 12, cursor: "pointer", textAlign: "left" }}>Add images</button>
@@ -3181,7 +3153,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }} onPaste={onPaste} placeholder={t("askAnything")}
                   style={{ flex: 1, maxHeight: 200, minHeight: isMobile ? 44 : 42, height: isMobile ? 44 : 42, resize: "none", background: "none", border: "none", outline: "none", padding: isMobile ? "11px 8px" : "10px 8px", fontSize: isMobile ? 16 : 14, lineHeight: 1.5, color: C.text, boxSizing: "border-box" }} />
                 <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 4 : 2 }}>
-                  <HBtn onClick={startSpeech} style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: listening ? C.accent : C.textMuted }}><Ic n="mic" style={{ width: 20, height: 20 }} /></HBtn>
+                  <HBtn onClick={startSpeech} className="z-btn-icon" style={{ width: isMobile ? 42 : 38, height: isMobile ? 42 : 38, color: listening ? C.accent : C.textMuted }}><Ic n="mic" style={{ width: 20, height: 20 }} /></HBtn>
                   <HBtn
                     onClick={isSending ? stopResponse : () => sendMessage()}
                     title={isSending ? "Stop generation" : "Send message"}
@@ -3247,7 +3219,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           <div style={{ width: isMobile ? undefined : (previewWidth || "60%"), flexShrink: 0, background: C.bg, display: "flex", flexDirection: "column", minWidth: 0, transition: dragRef.current ? "none" : "width 300ms ease", ...(isMobile ? { position: "fixed", inset: 0, zIndex: 50 } : {}) }}>
             <div style={{ height: 44, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 14px", borderBottom: `1px solid ${C.border}`, fontSize: 12, fontWeight: 600, color: C.textSec }}>
               <span>Website Preview — {websiteData.branding?.name || "Preview"}</span>
-              <HBtn onClick={() => { setPreviewOpen(false); setPreviewWidth(0); }} style={{ width: 28, height: 28, color: C.textMuted }}><Ic n="close" className="h-4 w-4" /></HBtn>
+              <HBtn onClick={() => { setPreviewOpen(false); setPreviewWidth(0); }} className="z-btn-icon" style={{ width: 28, height: 28, color: C.textMuted }}><Ic n="close" className="h-4 w-4" /></HBtn>
             </div>
             <PreviewFrame html={buildPreviewHtml(websiteData)} />
           </div>
