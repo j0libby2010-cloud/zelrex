@@ -810,21 +810,33 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           deployData: c.deploy_data || c.deployData || undefined,
           surveyData: c.survey_data || c.surveyData || undefined,
         }));
-        // FIXED: Don't blindly trust the fresh fetch's updatedAt for every
-        // chat. The sidebar sorts by updatedAt, so if a re-fetch (e.g. from
-        // a remount we haven't fully diagnosed) ever returns a timestamp
-        // that differs even slightly from what's already known locally
-        // (from the module cache surviving that remount), the whole list
-        // would visibly reshuffle for no reason tied to actual message
-        // activity. Only let the server's value move a chat's updatedAt
-        // FORWARD (a genuine newer message, e.g. from another device) —
-        // never let a re-fetch move it backward or sideways.
-        setChats((prevChats) => mapped.map((freshChat) => {
-          const existing = prevChats.find((pc) => pc.id === freshChat.id);
-          return existing && existing.updatedAt > freshChat.updatedAt
-            ? { ...freshChat, updatedAt: existing.updatedAt }
-            : freshChat;
-        }));
+        // FIXED: My previous fix preserved each chat's updatedAt VALUE
+        // correctly, but still rebuilt the array in whatever order the
+        // server happened to return it (mapped.map(...)). The sidebar's
+        // sort is stable, so when two chats have equal (or very close)
+        // updatedAt — common for chats that have never had a message sent
+        // — the tie-break follows ARRAY order, not just the values. That
+        // meant the list could still visibly reshuffle on every re-fetch
+        // even though no individual timestamp regressed. Fix: preserve the
+        // existing array's order as the base, only refresh each chat's
+        // content in place, and only append genuinely new chats (ones we
+        // didn't know about before) rather than rebuilding from scratch.
+        setChats((prevChats) => {
+          const freshById = new Map(mapped.map((c: any) => [c.id, c]));
+          const merged: Chat[] = [];
+          for (const existing of prevChats) {
+            const fresh = freshById.get(existing.id);
+            if (fresh) {
+              merged.push(fresh.updatedAt < existing.updatedAt ? { ...fresh, updatedAt: existing.updatedAt } : fresh);
+              freshById.delete(existing.id);
+            }
+            // If existing.id has no match in fresh data, it was deleted
+            // elsewhere (another tab/device) — drop it rather than keep it.
+          }
+          // Anything left is a genuinely new chat we didn't know about yet.
+          for (const fresh of freshById.values()) merged.push(fresh);
+          return merged;
+        });
         setActiveChatId((prev) => (prev && mapped.some((c: any) => c.id === prev)) ? prev : (mapped[0]?.id ?? ""));
       } else {
         // FIXED: Brand-new user, zero chats in the database yet. Previously
