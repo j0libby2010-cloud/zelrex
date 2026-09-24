@@ -525,6 +525,17 @@ function PreviewFrame({ html }: { html: string }) {
 const Z_SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const Z_SB_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
+// ─── Module-level state cache ──────────────────────────────────────────
+// Survives even if this component gets torn down and recreated (which can
+// happen during client-side navigation in Next.js App Router — despite the
+// unified [[...chatId]] catch-all route, this has been observed to still
+// remount in some cases we haven't fully pinned down). This is NOT a
+// replacement for the database; it's a synchronous rehydration source so
+// that if a remount does happen, the very next render picks up exactly
+// where the last one left off instead of flashing an empty placeholder
+// chat and falling back to "whichever chat was most recently updated."
+let moduleChatCache: { chats: Chat[]; activeChatId: string } | null = null;
+
 export default function ChatPage({ initialChatId }: { initialChatId?: string } = {}) {
   // ─── Auth ──────────────────────────────────────────────────────────
   const { user: clerkUser, isLoaded: authLoaded, isSignedIn } = useUser();
@@ -742,9 +753,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     setTimeout(() => { setNotifOpen(false); setNotifClosing(false); }, 300);
   };
 
-  const [chats, setChats] = useState<Chat[]>([{ id: uid("chat"), title: "New business", messages: [], updatedAt: Date.now() }]);
-  const [activeChatId, setActiveChatId] = useState(() => chats[0]?.id ?? "");
+  const [chats, setChats] = useState<Chat[]>(() => moduleChatCache?.chats ?? [{ id: uid("chat"), title: "New business", messages: [], updatedAt: Date.now() }]);
+  const [activeChatId, setActiveChatId] = useState(() => moduleChatCache?.activeChatId ?? (chats[0]?.id ?? ""));
   const activeChat = useMemo(() => chats.find((c) => c.id === activeChatId) ?? chats[0], [chats, activeChatId]);
+  // Keep the module cache in sync so a remount (whatever its cause) can
+  // rehydrate instantly from the last known-good state instead of starting
+  // over from an empty placeholder.
+  useEffect(() => { moduleChatCache = { chats, activeChatId }; }, [chats, activeChatId]);
 
   // Sync websiteData/deployData from active chat when switching chats (with localStorage backup)
   useEffect(() => {
@@ -796,7 +811,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           surveyData: c.survey_data || c.surveyData || undefined,
         }));
         setChats(mapped);
-        setActiveChatId(mapped[0]?.id ?? "");
+        setActiveChatId((prev) => (prev && mapped.some((c: any) => c.id === prev)) ? prev : (mapped[0]?.id ?? ""));
       } else {
         // FIXED: Brand-new user, zero chats in the database yet. Previously
         // the local-only placeholder chat (created via useState's default
