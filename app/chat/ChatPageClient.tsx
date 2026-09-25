@@ -534,7 +534,20 @@ const Z_SB_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 // that if a remount does happen, the very next render picks up exactly
 // where the last one left off instead of flashing an empty placeholder
 // chat and falling back to "whichever chat was most recently updated."
-let moduleChatCache: { chats: Chat[]; activeChatId: string } | null = null;
+let moduleChatCache: {
+  chats: Chat[];
+  activeChatId: string;
+  userGoal: { text: string; target: string; deadline: string } | null;
+  notifications: Array<{ id: string; text: string; time: number; read: boolean }>;
+} | null = null;
+// Tracks whether we've EVER successfully loaded data in this browser tab.
+// If a remount happens silently (invisible now that state seeds instantly
+// from moduleChatCache above), this stops db.loadAll() from firing again
+// and re-merging — which was the remaining source of chat-order instability
+// even after the merge logic itself was made order-preserving. Once we've
+// loaded for real, we trust local state (kept in sync with the server via
+// the debounced save effect) rather than re-fetching on every remount.
+let hasLoadedOnce = false;
 
 export default function ChatPage({ initialChatId }: { initialChatId?: string } = {}) {
   // ─── Auth ──────────────────────────────────────────────────────────
@@ -640,11 +653,11 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   const [isDeploying, setIsDeploying] = useState(false);
   
   // Goals & Notifications
-  const [userGoal, setUserGoal] = useState<{ text: string; target: string; deadline: string } | null>(null);
+  const [userGoal, setUserGoal] = useState<{ text: string; target: string; deadline: string } | null>(() => moduleChatCache?.userGoal ?? null);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [goalDraft, setGoalDraft] = useState({ text: "", target: "", deadline: "" });
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Array<{ id: string; text: string; time: number; read: boolean }>>([]);
+  const [notifications, setNotifications] = useState<Array<{ id: string; text: string; time: number; read: boolean }>>(() => moduleChatCache?.notifications ?? []);
   const [notifPage, setNotifPage] = useState(1);
 
   // Smart notification helper
@@ -759,7 +772,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   // Keep the module cache in sync so a remount (whatever its cause) can
   // rehydrate instantly from the last known-good state instead of starting
   // over from an empty placeholder.
-  useEffect(() => { moduleChatCache = { chats, activeChatId }; }, [chats, activeChatId]);
+  useEffect(() => { moduleChatCache = { chats, activeChatId, userGoal, notifications }; }, [chats, activeChatId, userGoal, notifications]);
 
   // Sync websiteData/deployData from active chat when switching chats (with localStorage backup)
   useEffect(() => {
@@ -794,6 +807,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
   // ─── Load user data from Supabase ────────────────────────────────
   useEffect(() => {
     if (!isSignedIn || !clerkUser?.id) return;
+    // Only ever fetch once per browser tab. If this component gets torn
+    // down and rebuilt for any reason after that, moduleChatCache already
+    // has correct, current local state — re-fetching here would just
+    // re-run the merge logic on every remount, which turned out to still
+    // be a source of chat-order instability even with order preserved.
+    if (hasLoadedOnce) { setDataLoaded(true); return; }
+    hasLoadedOnce = true;
     db.loadAll().then(async (data) => {
       if (!data) { setDataLoaded(true); return; }
       setDbUserId(data.user.id);
