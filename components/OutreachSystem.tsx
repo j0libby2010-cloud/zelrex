@@ -298,13 +298,12 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
   const queueProspects = knownProspects.filter((p) => ["discovered", "queued"].includes(p.status));
   const sentProspects = knownProspects.filter((p) => ["sent", "replied"].includes(p.status));
 
-  const platformColor = (p: string) => {
-    const colors: Record<string, string> = { youtube: "#FF0000", instagram: "#E1306C", linkedin: "#0A66C2", website: C.accent, other: C.textMuted };
-    return colors[p] || C.textMuted;
-  };
-
+  // A restrained 3-step ladder instead of a different hue per status:
+  // nothing's happened yet (muted), something's in flight (accent), or it
+  // actually worked (green, reserved for genuine positive outcomes — same
+  // way the main interface uses green only for real success states).
   const statusColor = (s: string) => {
-    const colors: Record<string, string> = { discovered: C.accent, queued: C.accent, sent: C.purple, replied: C.green, archived: C.textMuted };
+    const colors: Record<string, string> = { discovered: C.textMuted, queued: C.textMuted, sent: C.accent, replied: C.green, archived: C.textMuted };
     return colors[s] || C.textMuted;
   };
 
@@ -417,8 +416,8 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
         <div className="or-stats-bar" style={{ padding: "10px 24px", display: "flex", alignItems: "center", borderBottom: `1px solid ${C.border}`, animation: "or-fadeIn 300ms ease 100ms both" }}>
           <div style={{ display: "inline-flex", alignItems: "center", background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 999, padding: "7px 4px" }}>
             {[
-              { label: "Queued", value: stats.queued, color: C.accent },
-              { label: "Sent", value: stats.sent, color: C.purple },
+              { label: "Queued", value: stats.queued, color: C.textMuted },
+              { label: "Sent", value: stats.sent, color: C.accent },
               { label: "Replied", value: stats.replied, color: C.green },
               { label: "Reply rate", value: `${stats.replyRate}%`, color: stats.replyRate > 10 ? C.green : C.textMuted },
             ].map((s, i, arr) => (
@@ -447,7 +446,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
       <div className="or-gs or-content" style={{ flex: 1, overflow: "auto", padding: 24, display: "flex", flexDirection: "column" }}>
         {loading ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ width: 36, height: 36, borderRadius: 999, border: `2px solid ${C.border}`, borderTopColor: C.amber, animation: "or-spin 0.8s linear infinite" }} />
+            <div style={{ width: 36, height: 36, borderRadius: 999, border: `2px solid ${C.border}`, borderTopColor: C.accent, animation: "or-spin 0.8s linear infinite" }} />
           </div>
         ) : setupMode || tab === "settings" ? (
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -522,8 +521,8 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                separate floating button above an unrelated message. */
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <div style={{ textAlign: "center", animation: "or-fadeUp 300ms ease 80ms both" }}>
-                <div style={{ width: 56, height: 56, borderRadius: 16, margin: "0 auto 20px", background: `${C.amber}12`, border: `1px solid ${C.amber}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="17" r="2" stroke={C.amber} strokeWidth="1.5" /><circle cx="19" cy="7" r="2" stroke={C.amber} strokeWidth="1.5" /><path d="M6.8 15.3 17.2 8.7" stroke={C.amber} strokeWidth="1.5" strokeLinecap="round" /></svg>
+                <div style={{ width: 56, height: 56, borderRadius: 16, margin: "0 auto 20px", background: C.bgInput, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="17" r="2" stroke={C.textMuted} strokeWidth="1.5" /><circle cx="19" cy="7" r="2" stroke={C.textMuted} strokeWidth="1.5" /><path d="M6.8 15.3 17.2 8.7" stroke={C.textMuted} strokeWidth="1.5" strokeLinecap="round" /></svg>
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 8 }}>No prospects yet</div>
                 <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, maxWidth: 340, margin: "0 auto 20px" }}>
@@ -551,17 +550,15 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                       animation: `or-fadeUp 250ms ease ${80 + i * 40}ms both`,
                     }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{ width: 36, height: 36, borderRadius: 10, background: `${platformColor(p.platform)}15`, border: `1px solid ${platformColor(p.platform)}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: platformColor(p.platform), fontWeight: 700 }}>
-                            {p.name?.[0]?.toUpperCase() || "?"}
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.name}</div>
-                            <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1 }}>{p.company || "—"}{p.platform ? ` · ${p.platform}` : ""}</div>
-                          </div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.name}</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1 }}>{p.company || "—"}{p.platform ? ` · ${p.platform}` : ""}</div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <div style={{ padding: "3px 10px", borderRadius: 999, background: `${statusColor(p.status)}15`, border: `1px solid ${statusColor(p.status)}25`, fontSize: 11, fontWeight: 600, color: statusColor(p.status), textTransform: "capitalize" }}>{statusLabel(p.status)}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <div style={{ width: 5, height: 5, borderRadius: 999, background: statusColor(p.status) }} />
+                            <span style={{ fontSize: 11, fontWeight: 500, color: C.textMuted }}>{statusLabel(p.status)}</span>
+                          </div>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: C.textMuted, transition: "transform 200ms ease", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                         </div>
                       </div>
@@ -570,7 +567,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
 
                       {p.platform_url && (
                         <div style={{ marginTop: 8 }}>
-                          <a href={p.platform_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="or-btn" style={{ fontSize: 11, fontWeight: 600, color: C.accent, textDecoration: "none", padding: "3px 10px", borderRadius: 999, background: C.accentSoft, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <a href={p.platform_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="or-btn" style={{ fontSize: 11, fontWeight: 500, color: C.textSec, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
                             Visit website ↗
                           </a>
                         </div>
@@ -578,14 +575,15 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
 
                       {isExpanded && email && (
                         <div style={{ marginTop: 14, padding: 16, borderRadius: 12, background: C.bgInput, border: `1px solid ${C.border}` }} onClick={(e) => e.stopPropagation()}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: C.accent, marginBottom: 6 }}>Subject: {email.subject}</div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>Subject: {email.subject}</div>
                           <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.7, whiteSpace: "pre-wrap", marginBottom: 14 }}>{email.body}</div>
-                          <div className="or-email-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            <button className="or-btn-accent" onClick={() => { openInEmail(email, p); markSent(email.id); }} style={{ padding: "8px 16px", borderRadius: 999, border: "none", background: C.green, color: "#fff", fontSize: 12, fontWeight: 600 }}>Open in email ↗</button>
-                            <button className="or-btn-outlined" onClick={() => copyEmail(email)} style={{ padding: "8px 16px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 12, fontWeight: 600 }}>Copy</button>
-                            <button className="or-btn-outlined" onClick={() => regenerateEmail(p.id)} style={{ padding: "8px 16px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 12, fontWeight: 600 }}>Rewrite</button>
-                            <button className="or-btn-outlined" onClick={() => generateLinkedInDM(p.id)} style={{ padding: "8px 16px", borderRadius: 999, border: `1px solid ${C.purple}30`, background: `${C.purple}12`, color: C.purple, fontSize: 12, fontWeight: 600 }}>LinkedIn DM</button>
-                            <button className="or-btn-outlined" onClick={() => archiveProspect(p.id)} style={{ padding: "8px 16px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.red, fontSize: 12, fontWeight: 600 }}>Skip</button>
+                          <div className="or-email-actions" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <button className="or-btn-accent" onClick={() => { openInEmail(email, p); markSent(email.id); }} style={{ padding: "8px 16px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 12, fontWeight: 600 }}>Open in email ↗</button>
+                            <button className="or-btn" onClick={() => copyEmail(email)} style={{ padding: "8px 12px", borderRadius: 999, border: "none", background: "none", color: C.textMuted, fontSize: 12, fontWeight: 500 }}>Copy</button>
+                            <button className="or-btn" onClick={() => regenerateEmail(p.id)} style={{ padding: "8px 12px", borderRadius: 999, border: "none", background: "none", color: C.textMuted, fontSize: 12, fontWeight: 500 }}>Rewrite</button>
+                            <button className="or-btn" onClick={() => generateLinkedInDM(p.id)} style={{ padding: "8px 12px", borderRadius: 999, border: "none", background: "none", color: C.textMuted, fontSize: 12, fontWeight: 500 }}>LinkedIn DM</button>
+                            <div style={{ flex: 1 }} />
+                            <button className="or-btn" onClick={() => archiveProspect(p.id)} style={{ padding: "8px 12px", borderRadius: 999, border: "none", background: "none", color: C.textMuted, fontSize: 12, fontWeight: 500 }}>Skip</button>
                           </div>
                         </div>
                       )}
@@ -605,7 +603,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                           ) : (
                             <>
                               <button className="or-btn-accent" onClick={() => generateEmails([p.id])} style={{ padding: "8px 18px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 12, fontWeight: 600 }}>Write email</button>
-                              <button className="or-btn-outlined" onClick={() => generateABTest(p.id)} style={{ padding: "8px 18px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.amber, fontSize: 12, fontWeight: 600 }}>A/B test</button>
+                              <button className="or-btn-outlined" onClick={() => generateABTest(p.id)} style={{ padding: "8px 18px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 12, fontWeight: 600 }}>A/B test</button>
                             </>
                           )}
                         </div>
@@ -620,8 +618,8 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
           <div style={{ maxWidth: 780, margin: "0 auto", width: "100%", flex: sentProspects.length === 0 ? 1 : undefined, display: sentProspects.length === 0 ? "flex" : "block", alignItems: sentProspects.length === 0 ? "center" : undefined, justifyContent: sentProspects.length === 0 ? "center" : undefined }}>
             {sentProspects.length === 0 ? (
               <div style={{ textAlign: "center", animation: "or-fadeUp 300ms ease 80ms both" }}>
-                <div style={{ width: 56, height: 56, borderRadius: 16, margin: "0 auto 20px", background: `${C.purple}12`, border: `1px solid ${C.purple}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z" stroke={C.purple} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <div style={{ width: 56, height: 56, borderRadius: 16, margin: "0 auto 20px", background: C.bgInput, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z" stroke={C.textMuted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 8 }}>No sent emails yet</div>
                 <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, maxWidth: 340, margin: "0 auto" }}>Add a prospect and send your first outreach email.</div>
@@ -633,7 +631,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                   return (
                     <div key={p.id} className="or-card" style={{
                       background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18,
-                      borderLeft: `2px solid ${p.status === "replied" ? C.green : C.purple}`,
+                      borderLeft: `2px solid ${statusColor(p.status)}`,
                       animation: `or-fadeUp 250ms ease ${80 + i * 40}ms both`,
                     }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -641,10 +639,13 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                           <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.name}{p.company ? ` — ${p.company}` : ""}</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{email?.subject || "No subject"}</div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ padding: "3px 10px", borderRadius: 999, background: `${statusColor(p.status)}15`, border: `1px solid ${statusColor(p.status)}25`, fontSize: 11, fontWeight: 600, color: statusColor(p.status), textTransform: "capitalize" }}>{statusLabel(p.status)}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <div style={{ width: 5, height: 5, borderRadius: 999, background: statusColor(p.status) }} />
+                            <span style={{ fontSize: 11, fontWeight: 500, color: C.textMuted }}>{statusLabel(p.status)}</span>
+                          </div>
                           {p.status === "sent" && email && (
-                            <button className="or-btn-outlined" onClick={() => markReplied(email.id, p.id)} style={{ padding: "5px 12px", borderRadius: 999, border: `1px solid ${C.green}30`, background: `${C.green}12`, color: C.green, fontSize: 11, fontWeight: 600 }}>Mark replied</button>
+                            <button className="or-btn" onClick={() => markReplied(email.id, p.id)} style={{ padding: "5px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 11, fontWeight: 600 }}>Mark replied</button>
                           )}
                         </div>
                       </div>
@@ -679,19 +680,19 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
             ) : linkedInDm && (
               <div style={{ padding: "18px 22px 22px" }}>
                 <div style={{ marginBottom: 18 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.purple, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Connection request note</div>
-                  <div style={{ padding: "11px 14px", borderRadius: 10, background: `${C.purple}0A`, border: `1px solid ${C.purple}20`, color: C.textSec, fontSize: 13, lineHeight: 1.6 }}>{linkedInDm.connection_note}</div>
-                  <button className="or-btn-outlined" onClick={() => copyToClipboard(linkedInDm.connection_note)} style={{ marginTop: 6, padding: "5px 12px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>Copy</button>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Connection request note</div>
+                  <div style={{ padding: "11px 14px", borderRadius: 10, background: C.bgInput, border: `1px solid ${C.border}`, color: C.textSec, fontSize: 13, lineHeight: 1.6 }}>{linkedInDm.connection_note}</div>
+                  <button className="or-btn" onClick={() => copyToClipboard(linkedInDm.connection_note)} style={{ marginTop: 6, padding: "5px 10px", borderRadius: 999, border: "none", background: "none", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>Copy</button>
                 </div>
                 <div style={{ marginBottom: 18 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.accent, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Opening DM</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Opening DM</div>
                   <div style={{ padding: "11px 14px", borderRadius: 10, background: C.bgInput, border: `1px solid ${C.border}`, color: C.textSec, fontSize: 13, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{linkedInDm.opening_dm}</div>
-                  <button className="or-btn-outlined" onClick={() => copyToClipboard(linkedInDm.opening_dm)} style={{ marginTop: 6, padding: "5px 12px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>Copy</button>
+                  <button className="or-btn" onClick={() => copyToClipboard(linkedInDm.opening_dm)} style={{ marginTop: 6, padding: "5px 10px", borderRadius: 999, border: "none", background: "none", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>Copy</button>
                 </div>
                 <div style={{ marginBottom: linkedInDm.profile_tip ? 18 : 0 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.amber, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Follow-up DM (5 days later)</div>
-                  <div style={{ padding: "11px 14px", borderRadius: 10, background: `${C.amber}08`, border: `1px solid ${C.amber}18`, color: C.textSec, fontSize: 13, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{linkedInDm.follow_up_dm}</div>
-                  <button className="or-btn-outlined" onClick={() => copyToClipboard(linkedInDm.follow_up_dm)} style={{ marginTop: 6, padding: "5px 12px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>Copy</button>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Follow-up DM (5 days later)</div>
+                  <div style={{ padding: "11px 14px", borderRadius: 10, background: C.bgInput, border: `1px solid ${C.border}`, color: C.textSec, fontSize: 13, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{linkedInDm.follow_up_dm}</div>
+                  <button className="or-btn" onClick={() => copyToClipboard(linkedInDm.follow_up_dm)} style={{ marginTop: 6, padding: "5px 10px", borderRadius: 999, border: "none", background: "none", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>Copy</button>
                 </div>
                 {linkedInDm.profile_tip && (
                   <div style={{ padding: "10px 14px", borderRadius: 10, background: C.bgInput, border: `1px solid ${C.border}`, fontSize: 12, color: C.textMuted, lineHeight: 1.6 }}>💡 {linkedInDm.profile_tip}</div>
