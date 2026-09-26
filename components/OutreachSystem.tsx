@@ -128,10 +128,28 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
   const saveSettings = async () => {
     await api("setup", { tone: formTone });
     setSettings({ tone: formTone, follow_up_days: 3, active: true });
     setSetupMode(false);
+  };
+  const handleSaveSettings = async () => {
+    const wasAlreadySetUp = !!settings;
+    setSavingSettings(true);
+    try {
+      await saveSettings();
+      // First-time setup navigates straight to the queue view, so there's
+      // nothing to show a confirmation on. Only flash "Saved" when editing
+      // existing settings, where the screen stays put.
+      if (wasAlreadySetUp) {
+        setSettingsSaved(true);
+        setTimeout(() => setSettingsSaved(false), 1800);
+      }
+    } finally {
+      setSavingSettings(false);
+    }
   };
 
   const generateEmails = async (prospectIds?: string[]) => {
@@ -190,16 +208,21 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
     setGenerating(false);
   };
 
+  const [savingProspect, setSavingProspect] = useState(false);
   const addManualProspect = async () => {
     if (!manualForm.name.trim()) return;
+    setSavingProspect(true);
     try {
       const res = await api("add-manual", { ...manualForm });
       if (res.prospect) {
-        loadData();
+        await loadData();
         setManualForm({ name: "", company: "", email: "", platform_url: "", notes: "" });
         setShowManualAdd(false);
       }
-    } catch {}
+    } catch {
+    } finally {
+      setSavingProspect(false);
+    }
   };
 
   const openInEmail = (email: Email, prospect: Prospect) => {
@@ -341,9 +364,8 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
           .or-header { flex-direction: column !important; gap: 10px !important; padding: 14px 16px !important; position: relative !important; }
           .or-header > div:first-child { width: 100%; }
           .or-header .or-close { position: absolute !important; right: 14px !important; top: 14px !important; }
-          .or-stats-bar { flex-wrap: nowrap !important; gap: 8px !important; padding: 10px 14px !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+          .or-stats-bar { padding: 10px 14px !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
           .or-stats-bar::-webkit-scrollbar { display: none; }
-          .or-stat { flex: none !important; padding: 10px 16px !important; min-width: auto !important; white-space: nowrap !important; }
           .or-content { padding: 14px !important; }
           .or-actions { flex-direction: column !important; gap: 8px !important; }
           .or-actions button { width: 100% !important; min-height: 44px !important; }
@@ -391,25 +413,25 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
         }}>✕</button>
       </div>
 
-      {stats && !setupMode && (
-        <div className="or-stats-bar" style={{ padding: "12px 24px", display: "flex", gap: 10, borderBottom: `1px solid ${C.border}`, animation: "or-fadeIn 300ms ease 100ms both" }}>
-          {[
-            { label: "Queued", value: stats.queued, color: C.accent },
-            { label: "Sent", value: stats.sent, color: C.purple },
-            { label: "Replied", value: stats.replied, color: C.green },
-            { label: "Reply Rate", value: `${stats.replyRate}%`, color: stats.replyRate > 10 ? C.green : C.textMuted },
-          ].map((s, i) => (
-            <div key={i} className="or-stat" style={{
-              background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 12, padding: "9px 14px",
-              flex: 1, display: "flex", alignItems: "center", gap: 9,
-            }}>
-              <div style={{ width: 6, height: 6, borderRadius: 999, background: s.color, flexShrink: 0 }} />
-              <div>
-                <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 500, letterSpacing: "0.03em", textTransform: "uppercase" }}>{s.label}</div>
-                <div style={{ fontSize: 14, color: C.text, fontWeight: 700, marginTop: 1 }}>{s.value}</div>
-              </div>
-            </div>
-          ))}
+      {stats && !setupMode && knownProspects.length > 0 && (
+        <div className="or-stats-bar" style={{ padding: "10px 24px", display: "flex", alignItems: "center", borderBottom: `1px solid ${C.border}`, animation: "or-fadeIn 300ms ease 100ms both" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 999, padding: "7px 4px" }}>
+            {[
+              { label: "Queued", value: stats.queued, color: C.accent },
+              { label: "Sent", value: stats.sent, color: C.purple },
+              { label: "Replied", value: stats.replied, color: C.green },
+              { label: "Reply rate", value: `${stats.replyRate}%`, color: stats.replyRate > 10 ? C.green : C.textMuted },
+            ].map((s, i, arr) => (
+              <React.Fragment key={i}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "0 14px" }}>
+                  <div style={{ width: 5, height: 5, borderRadius: 999, background: s.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 11, color: C.textMuted, fontWeight: 500 }}>{s.label}</span>
+                  <span style={{ fontSize: 12, color: C.text, fontWeight: 700 }}>{s.value}</span>
+                </div>
+                {i < arr.length - 1 && <div style={{ width: 1, height: 14, background: C.border }} />}
+              </React.Fragment>
+            ))}
+          </div>
         </div>
       )}
 
@@ -422,77 +444,103 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
         </div>
       )}
 
-      <div className="or-gs or-content" style={{ flex: 1, overflow: "auto", padding: 24 }}>
+      <div className="or-gs or-content" style={{ flex: 1, overflow: "auto", padding: 24, display: "flex", flexDirection: "column" }}>
         {loading ? (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <div style={{ width: 36, height: 36, borderRadius: 999, border: `2px solid ${C.border}`, borderTopColor: C.amber, animation: "or-spin 0.8s linear infinite" }} />
           </div>
         ) : setupMode || tab === "settings" ? (
-          <div style={{ maxWidth: 480, margin: "0 auto", animation: "or-fadeUp 300ms ease 80ms both" }}>
-            <div style={{ background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 16, padding: 28 }}>
-              <div style={{ fontSize: 18, fontWeight: 600, color: C.text, marginBottom: 6, letterSpacing: "-0.01em" }}>
-                {settings ? "Outreach Settings" : "Set Up Outreach"}
-              </div>
-              <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
-                What tone should Zelrex use when writing your outreach messages?
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 8, display: "block" }}>Email tone</label>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {["professional", "casual", "bold"].map((t) => (
-                      <button key={t} className={formTone === t ? "or-btn-accent" : "or-btn-outlined"} onClick={() => setFormTone(t)} style={{
-                        padding: "8px 18px", borderRadius: 999, fontSize: 12, fontWeight: 600, textTransform: "capitalize",
-                        border: `1px solid ${formTone === t ? "transparent" : C.border}`,
-                        background: formTone === t ? C.accent : "none",
-                        color: formTone === t ? "#fff" : C.textSec,
-                      }}>{t}</button>
-                    ))}
-                  </div>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ maxWidth: 440, width: "100%", animation: "or-fadeUp 300ms ease 80ms both" }}>
+              <div style={{ background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 16, padding: 28 }}>
+                <div style={{ fontSize: 18, fontWeight: 600, color: C.text, marginBottom: 6, letterSpacing: "-0.01em" }}>
+                  {settings ? "Outreach Settings" : "Set Up Outreach"}
+                </div>
+                <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
+                  What tone should Zelrex use when writing your outreach messages?
                 </div>
 
-                <button className="or-btn-accent" onClick={saveSettings} style={{
-                  padding: "11px 24px", borderRadius: 999, border: "none", marginTop: 6,
-                  background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600,
-                }}>{settings ? "Save Settings" : "Get Started"}</button>
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 8, display: "block" }}>Email tone</label>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {["professional", "casual", "bold"].map((t) => (
+                        <button key={t} className={formTone === t ? "or-btn-accent" : "or-btn-outlined"} onClick={() => setFormTone(t)} style={{
+                          padding: "8px 18px", borderRadius: 999, fontSize: 12, fontWeight: 600, textTransform: "capitalize",
+                          border: `1px solid ${formTone === t ? "transparent" : C.border}`,
+                          background: formTone === t ? C.accent : "none",
+                          color: formTone === t ? "#fff" : C.textSec,
+                        }}>{t}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button className="or-btn-accent" onClick={handleSaveSettings} disabled={savingSettings} style={{
+                    padding: "11px 24px", borderRadius: 999, border: "none", marginTop: 6,
+                    background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  }}>
+                    {savingSettings && <div style={{ width: 12, height: 12, borderRadius: 999, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", animation: "or-spin 0.7s linear infinite" }} />}
+                    {savingSettings ? "Saving…" : settingsSaved ? "Saved ✓" : settings ? "Save Settings" : "Get Started"}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         ) : tab === "queue" ? (
-          <div style={{ maxWidth: 780, margin: "0 auto" }}>
-            <div className="or-actions" style={{ display: "flex", gap: 10, marginBottom: 16, animation: "or-fadeUp 300ms ease 60ms both" }}>
-              <button className="or-btn-accent" onClick={() => setShowManualAdd(!showManualAdd)} style={{
-                padding: "9px 20px", borderRadius: 999, border: "none",
-                background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600,
-              }}>{showManualAdd ? "Cancel" : "+ Add a prospect"}</button>
-            </div>
-
-            {showManualAdd && (
-              <div style={{ background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18, marginBottom: 16, animation: "or-fadeUp 200ms ease" }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 12 }}>Add a prospect</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-                  <input className="or-input" placeholder="Name *" value={manualForm.name} onChange={e => setManualForm(f => ({ ...f, name: e.target.value }))} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none" }} />
-                  <input className="or-input" placeholder="Company" value={manualForm.company} onChange={e => setManualForm(f => ({ ...f, company: e.target.value }))} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none" }} />
-                  <input className="or-input" placeholder="Email" value={manualForm.email} onChange={e => setManualForm(f => ({ ...f, email: e.target.value }))} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none" }} />
-                  <input className="or-input" placeholder="Website URL" value={manualForm.platform_url} onChange={e => setManualForm(f => ({ ...f, platform_url: e.target.value }))} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none" }} />
+          showManualAdd ? (
+            /* Adding a prospect — this is the only thing on screen while
+               it's open. Showing "No prospects yet" underneath a form
+               whose entire purpose is adding one was a real bug, not just
+               visual noise — it directly contradicted the form above it. */
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ maxWidth: 480, width: "100%", animation: "or-fadeUp 200ms ease" }}>
+                <div style={{ background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Add a prospect</div>
+                    <button className="or-btn-icon" onClick={() => setShowManualAdd(false)} style={{ width: 26, height: 26, border: "none", background: "none", color: C.textMuted, fontSize: 13 }}>✕</button>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
+                    <input className="or-input" placeholder="Name *" value={manualForm.name} onChange={e => setManualForm(f => ({ ...f, name: e.target.value }))} style={{ padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none" }} />
+                    <input className="or-input" placeholder="Company" value={manualForm.company} onChange={e => setManualForm(f => ({ ...f, company: e.target.value }))} style={{ padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none" }} />
+                    <input className="or-input" placeholder="Email" value={manualForm.email} onChange={e => setManualForm(f => ({ ...f, email: e.target.value }))} style={{ padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none" }} />
+                    <input className="or-input" placeholder="Website URL" value={manualForm.platform_url} onChange={e => setManualForm(f => ({ ...f, platform_url: e.target.value }))} style={{ padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none" }} />
+                  </div>
+                  <input className="or-input" placeholder="How do you know them? (helps Zelrex write a relevant email)" value={manualForm.notes} onChange={e => setManualForm(f => ({ ...f, notes: e.target.value }))} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none", marginBottom: 16 }} />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="or-btn-accent" onClick={addManualProspect} disabled={savingProspect || !manualForm.name.trim()} style={{ flex: 1, padding: "10px 18px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                      {savingProspect && <div style={{ width: 12, height: 12, borderRadius: 999, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", animation: "or-spin 0.7s linear infinite" }} />}
+                      {savingProspect ? "Saving…" : "Save"}
+                    </button>
+                    <button className="or-btn-outlined" onClick={() => setShowManualAdd(false)} style={{ padding: "10px 18px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600 }}>Cancel</button>
+                  </div>
                 </div>
-                <input className="or-input" placeholder="How do you know them? (helps Zelrex write a relevant email)" value={manualForm.notes} onChange={e => setManualForm(f => ({ ...f, notes: e.target.value }))} style={{ width: "100%", padding: "9px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none", marginBottom: 12 }} />
-                <button className="or-btn-accent" onClick={addManualProspect} style={{ padding: "9px 18px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600 }}>Save</button>
               </div>
-            )}
-
-            {queueProspects.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "56px 40px", animation: "or-fadeUp 300ms ease 120ms both" }}>
+            </div>
+          ) : queueProspects.length === 0 ? (
+            /* Empty state carries its own call to action — there's no
+               separate floating button above an unrelated message. */
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ textAlign: "center", animation: "or-fadeUp 300ms ease 80ms both" }}>
                 <div style={{ width: 56, height: 56, borderRadius: 16, margin: "0 auto 20px", background: `${C.amber}12`, border: `1px solid ${C.amber}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="17" r="2" stroke={C.amber} strokeWidth="1.5" /><circle cx="19" cy="7" r="2" stroke={C.amber} strokeWidth="1.5" /><path d="M6.8 15.3 17.2 8.7" stroke={C.amber} strokeWidth="1.5" strokeLinecap="round" /></svg>
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 8 }}>No prospects yet</div>
-                <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, maxWidth: 340, margin: "0 auto" }}>
+                <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, maxWidth: 340, margin: "0 auto 20px" }}>
                   Add someone you'd like to reach out to — a referral, a past client, someone who already knows your work.
                 </div>
+                <button className="or-btn-accent" onClick={() => setShowManualAdd(true)} style={{ padding: "9px 20px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600 }}>+ Add a prospect</button>
               </div>
-            ) : (
+            </div>
+          ) : (
+            <div style={{ maxWidth: 780, margin: "0 auto", width: "100%" }}>
+              <div className="or-actions" style={{ display: "flex", gap: 10, marginBottom: 16, animation: "or-fadeUp 300ms ease 60ms both" }}>
+                <button className="or-btn-accent" onClick={() => setShowManualAdd(true)} style={{
+                  padding: "9px 20px", borderRadius: 999, border: "none",
+                  background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600,
+                }}>+ Add a prospect</button>
+              </div>
+
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {queueProspects.map((p, i) => {
                   const email = p.outreach_emails?.[0];
@@ -566,12 +614,12 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                   );
                 })}
               </div>
-            )}
-          </div>
+            </div>
+          )
         ) : (
-          <div style={{ maxWidth: 780, margin: "0 auto" }}>
+          <div style={{ maxWidth: 780, margin: "0 auto", width: "100%", flex: sentProspects.length === 0 ? 1 : undefined, display: sentProspects.length === 0 ? "flex" : "block", alignItems: sentProspects.length === 0 ? "center" : undefined, justifyContent: sentProspects.length === 0 ? "center" : undefined }}>
             {sentProspects.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "56px 40px", animation: "or-fadeUp 300ms ease 120ms both" }}>
+              <div style={{ textAlign: "center", animation: "or-fadeUp 300ms ease 80ms both" }}>
                 <div style={{ width: 56, height: 56, borderRadius: 16, margin: "0 auto 20px", background: `${C.purple}12`, border: `1px solid ${C.purple}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z" stroke={C.purple} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </div>
