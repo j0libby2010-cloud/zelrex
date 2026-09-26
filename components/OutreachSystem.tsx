@@ -8,8 +8,6 @@ interface Prospect {
   company: string;
   platform: string;
   platform_url: string;
-  source_url?: string;
-  relevance_score: number;
   relevance_reason: string;
   status: string;
   email?: string;
@@ -28,11 +26,9 @@ interface Email {
 }
 
 interface Stats {
-  discovered: number;
   queued: number;
   sent: number;
   replied: number;
-  archived: number;
   replyRate: number;
   templateStats?: {
     currentTone: string;
@@ -42,61 +38,20 @@ interface Stats {
 }
 
 interface Settings {
-  daily_limit: number;
   tone: string;
-  target_description: string;
   follow_up_days: number;
-  auto_queue: boolean;
   active: boolean;
 }
 
-/* ─── Apple Liquid Glass Design System ────────────── */
-const G = {
-  bg: "#050709",
-  glass: "rgba(255,255,255,0.025)",
-  glassBorder: "rgba(255,255,255,0.055)",
-  glassHighlight: "rgba(255,255,255,0.07)",
-  text: "rgba(255,255,255,0.92)",
-  textSec: "rgba(255,255,255,0.52)",
-  textMuted: "rgba(255,255,255,0.26)",
-  accent: "#3B82F6",
-  accentSoft: "#5B9BF7",
-  accentGlow: "rgba(59,130,246,0.12)",
-  green: "#34D399",
-  greenGlow: "rgba(52,211,153,0.10)",
-  amber: "#FBBF24",
-  amberGlow: "rgba(251,191,36,0.10)",
-  purple: "#A78BFA",
-  purpleGlow: "rgba(167,139,250,0.10)",
-  red: "#F87171",
-};
-
-const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
-const EASE_SPRING = "cubic-bezier(0.32, 0.72, 0, 1)";
-
-/* Apple Liquid Glass — layered depth, luminous edge, soft refraction */
-const liquidGlass: React.CSSProperties = {
-  background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.012) 50%, rgba(255,255,255,0.02) 100%)",
-  backdropFilter: "blur(64px) saturate(1.6) brightness(1.04)",
-  WebkitBackdropFilter: "blur(64px) saturate(1.6) brightness(1.04)",
-  border: `0.5px solid ${G.glassBorder}`,
-  boxShadow: `
-    0 0.5px 0 0 rgba(255,255,255,0.06) inset,
-    0 -0.5px 0 0 rgba(255,255,255,0.02) inset,
-    0 1px 3px rgba(0,0,0,0.12),
-    0 8px 40px rgba(0,0,0,0.22)
-  `,
-  borderRadius: 22,
-};
-
-const liquidPill: React.CSSProperties = {
-  ...liquidGlass,
-  borderRadius: 999,
-  boxShadow: `
-    0 0.5px 0 0 rgba(255,255,255,0.06) inset,
-    0 1px 2px rgba(0,0,0,0.10),
-    0 4px 16px rgba(0,0,0,0.14)
-  `,
+/* Zelrex design tokens — mirrors the C object in ChatPageClient.tsx.
+   Same values, so this panel reads as part of the same product instead of
+   a separately-designed screen bolted on. */
+const C = {
+  bg: "#06090F", bgSurface: "#0A0F1A", bgElevated: "#0D1320", bgInput: "#080D17",
+  border: "rgba(255,255,255,0.07)", borderHover: "rgba(255,255,255,0.14)",
+  accent: "#4A90FF", accentGlow: "rgba(74,144,255,0.15)", accentSoft: "rgba(74,144,255,0.08)",
+  text: "rgba(255,255,255,0.88)", textSec: "rgba(255,255,255,0.50)", textMuted: "rgba(255,255,255,0.30)",
+  green: "#10B981", purple: "#8B5CF6", amber: "#F59E0B", red: "#EF4444",
 };
 
 export function OutreachSystem({ userId, onClose }: { userId: string; onClose: () => void }) {
@@ -105,7 +60,6 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
   const [stats, setStats] = useState<Stats | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
-  const [finding, setFinding] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showManualAdd, setShowManualAdd] = useState(false);
@@ -114,15 +68,9 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
   const [mounted, setMounted] = useState(false);
   const [linkedInDm, setLinkedInDm] = useState<any>(null);
   const [linkedInLoading, setLinkedInLoading] = useState(false);
-  const [emailFinderResult, setEmailFinderResult] = useState<any>(null);
-  const [emailFinderLoading, setEmailFinderLoading] = useState(false);
   const [abTesting, setAbTesting] = useState(false);
-  const [abResults, setAbResults] = useState<any>(null);
 
-  // Settings form
-  const [formTarget, setFormTarget] = useState("");
   const [formTone, setFormTone] = useState("professional");
-  const [formLimit, setFormLimit] = useState(5);
 
   useEffect(() => { requestAnimationFrame(() => setMounted(true)); }, []);
 
@@ -146,9 +94,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
     setStats(statsRes);
     if (settingsRes.settings) {
       setSettings(settingsRes.settings);
-      setFormTarget(settingsRes.settings.target_description || "");
       setFormTone(settingsRes.settings.tone || "professional");
-      setFormLimit(settingsRes.settings.daily_limit || 5);
     } else {
       setSetupMode(true);
     }
@@ -162,18 +108,9 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
   useEffect(() => { loadData(); }, [loadData]);
 
   const saveSettings = async () => {
-    await api("setup", { targetDescription: formTarget, tone: formTone, dailyLimit: formLimit });
-    setSettings({ daily_limit: formLimit, tone: formTone, target_description: formTarget, follow_up_days: 3, auto_queue: false, active: true });
+    await api("setup", { tone: formTone });
+    setSettings({ tone: formTone, follow_up_days: 3, active: true });
     setSetupMode(false);
-  };
-
-  const findProspects = async () => {
-    setFinding(true);
-    const data = await api("find");
-    if (data.prospects) setProspects((p) => [...data.prospects, ...p]);
-    const s = await api("stats");
-    setStats(s);
-    setFinding(false);
   };
 
   const generateEmails = async (prospectIds?: string[]) => {
@@ -262,33 +199,6 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
     navigator.clipboard.writeText(text);
   };
 
-  const findEmail = async (prospectId: string) => {
-    setEmailFinderLoading(true);
-    setEmailFinderResult(null);
-    try {
-      const res = await fetch("/api/z/outreach", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "find-email", userId, prospectId }),
-      });
-      const data = await res.json();
-      setEmailFinderResult(data);
-      if (data.found && data.email) {
-        // Refresh the prospect list to show the updated email
-        const listRes = await fetch("/api/z/outreach", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "list", userId }),
-        });
-        const listData = await listRes.json();
-        setProspects(listData.prospects || []);
-      }
-    } catch (e) {
-      console.error("[Outreach] Email finder error:", e);
-    } finally {
-      setEmailFinderLoading(false);
-    }
-  };
-
   const generateABTest = async (prospectId: string) => {
     setAbTesting(true);
     try {
@@ -317,653 +227,273 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
   const queueProspects = prospects.filter((p) => ["discovered", "queued"].includes(p.status));
   const sentProspects = prospects.filter((p) => ["sent", "replied"].includes(p.status));
 
-  const platformIcon = (p: string) => {
-    const icons: Record<string, string> = { youtube: "▶", instagram: "◎", linkedin: "in", website: "◆", other: "●" };
-    return icons[p] || "●";
-  };
-
   const platformColor = (p: string) => {
-    const colors: Record<string, string> = { youtube: "#FF0000", instagram: "#E1306C", linkedin: "#0A66C2", website: G.accent, other: G.textMuted };
-    return colors[p] || G.textMuted;
+    const colors: Record<string, string> = { youtube: "#FF0000", instagram: "#E1306C", linkedin: "#0A66C2", website: C.accent, other: C.textMuted };
+    return colors[p] || C.textMuted;
   };
 
   const statusColor = (s: string) => {
-    const colors: Record<string, string> = { discovered: G.amber, queued: G.accent, sent: G.purple, replied: G.green, archived: G.textMuted };
-    return colors[s] || G.textMuted;
+    const colors: Record<string, string> = { discovered: C.amber, queued: C.accent, sent: C.purple, replied: C.green, archived: C.textMuted };
+    return colors[s] || C.textMuted;
   };
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9600,
-      background: "rgb(3,5,8)",
+      background: C.bg,
       display: "flex", flexDirection: "column", overflow: "hidden",
       opacity: mounted ? 1 : 0,
-      transition: `opacity 450ms ${EASE}`,
+      transition: "opacity 300ms cubic-bezier(0.22,1,0.36,1)",
     }}>
       <style>{`
-        @keyframes or-fadeUp {
-          from { opacity: 0; transform: translateY(8px) scale(0.98); }
-          to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-        @keyframes or-fadeIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
+        @keyframes or-fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes or-fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes or-spin { to { transform: rotate(360deg) } }
-        @keyframes or-pulse {
-          0%, 100% { opacity: 0.4; }
-          50%      { opacity: 1; }
-        }
-        @keyframes or-shimmer {
-          0%   { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
 
-        /* ─ Liquid glass card ─ */
-        .or-card {
-          position: relative;
-          overflow: hidden;
-          transition: transform 500ms ${EASE_SPRING}, box-shadow 500ms ${EASE_SPRING}, border-color 500ms ${EASE_SPRING};
-          will-change: transform;
-        }
-        .or-card::before {
-          content: '';
-          position: absolute; inset: 0;
-          border-radius: inherit;
-          opacity: 0;
-          background: linear-gradient(160deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 15%, transparent 42%, transparent 58%, rgba(255,255,255,0.03) 80%, rgba(255,255,255,0.10) 100%);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -0.5px 0 rgba(255,255,255,0.03);
-          transition: opacity 500ms ${EASE_SPRING};
-          pointer-events: none;
-          z-index: 0;
-        }
-        .or-card::after {
-          content: '';
-          position: absolute;
-          top: -50%; left: 5%; width: 90%; height: 80%;
-          border-radius: 50%;
-          background: radial-gradient(ellipse at 40% 25%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 35%, transparent 70%);
-          opacity: 0;
-          transition: opacity 500ms ${EASE_SPRING};
-          pointer-events: none;
-          z-index: 0;
-        }
-        .or-card:hover::before, .or-card:hover::after { opacity: 1; }
-        .or-card:hover {
-          transform: translateY(-1px) scale(1.003) !important;
-          border-color: rgba(255,255,255,0.10) !important;
-          box-shadow:
-            0 0.5px 0 0 rgba(255,255,255,0.09) inset,
-            0 -0.5px 0 0 rgba(255,255,255,0.03) inset,
-            0 2px 8px rgba(0,0,0,0.15),
-            0 16px 48px rgba(0,0,0,0.28) !important;
-        }
-        .or-card > * { position: relative; z-index: 1; }
+        .or-btn{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),border-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1);cursor:pointer}
+        .or-btn:hover{background:rgba(255,255,255,0.04)!important;color:${C.text}!important}
+        .or-btn:active{background:rgba(255,255,255,0.06)!important;transition-duration:80ms!important}
+        .or-btn:disabled{opacity:0.5!important;cursor:not-allowed!important}
 
-        /* ─ Liquid glass button ─ */
-        .or-btn {
-          position: relative;
-          overflow: hidden;
-          cursor: pointer;
-          border-radius: 999px;
-          transition: all 500ms ${EASE_SPRING};
-        }
-        .or-btn::before {
-          content: '';
-          position: absolute; inset: 0;
-          border-radius: inherit;
-          opacity: 0;
-          background: linear-gradient(160deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.03) 15%, transparent 42%, transparent 58%, rgba(255,255,255,0.02) 80%, rgba(255,255,255,0.08) 100%);
-          box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.30);
-          transition: opacity 500ms ${EASE_SPRING};
-          pointer-events: none;
-          z-index: 0;
-        }
-        .or-btn::after {
-          content: '';
-          position: absolute;
-          top: -50%; left: 5%; width: 90%; height: 80%;
-          border-radius: 50%;
-          background: radial-gradient(ellipse at 40% 25%, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.015) 35%, transparent 70%);
-          opacity: 0;
-          transition: opacity 500ms ${EASE_SPRING};
-          pointer-events: none;
-          z-index: 0;
-        }
-        .or-btn:hover::before, .or-btn:hover::after { opacity: 1; }
-        .or-btn:hover { transform: translateY(-0.5px); }
-        .or-btn:active { transform: scale(0.95); transition-duration: 120ms; }
-        .or-btn > * { position: relative; z-index: 1; }
+        .or-btn-outlined{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),border-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1);cursor:pointer}
+        .or-btn-outlined:hover{background:rgba(255,255,255,0.04)!important;border-color:${C.borderHover}!important;color:${C.text}!important}
+        .or-btn-outlined:active{background:rgba(255,255,255,0.06)!important;transition-duration:80ms!important}
 
-        /* ─ Liquid glass close button ─ */
-        .or-close {
-          position: relative;
-          overflow: hidden;
-          transition: all 500ms ${EASE_SPRING} !important;
-          backdrop-filter: none;
-          -webkit-backdrop-filter: none;
-        }
-        .or-close::before {
-          content: '';
-          position: absolute; inset: 0;
-          border-radius: inherit;
-          opacity: 0;
-          background: linear-gradient(160deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.04) 15%, transparent 42%, transparent 58%, rgba(255,255,255,0.03) 80%, rgba(255,255,255,0.12) 100%);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -0.5px 0 rgba(255,255,255,0.04);
-          transition: opacity 500ms ${EASE_SPRING};
-          pointer-events: none;
-        }
-        .or-close::after {
-          content: '';
-          position: absolute;
-          top: -50%; left: 5%; width: 90%; height: 80%;
-          border-radius: 50%;
-          background: radial-gradient(ellipse at 40% 25%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 35%, transparent 70%);
-          opacity: 0;
-          transition: opacity 500ms ${EASE_SPRING};
-          pointer-events: none;
-        }
-        .or-close:hover::before, .or-close:hover::after { opacity: 1; }
-        .or-close:hover {
-          background: rgba(255,255,255,0.05) !important;
-          border-color: rgba(255,255,255,0.12) !important;
-          backdrop-filter: blur(20px) brightness(1.22) saturate(1.6) !important;
-          -webkit-backdrop-filter: blur(20px) brightness(1.22) saturate(1.6) !important;
-          box-shadow: 0 0 0 0.5px rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.45) !important;
-          transform: translateY(-0.5px);
-        }
-        .or-close:active { transform: scale(0.92) translateY(0); transition-duration: 120ms; }
+        .or-btn-accent{transition:filter 150ms cubic-bezier(0.22,1,0.36,1),transform 100ms cubic-bezier(0.22,1,0.36,1);cursor:pointer}
+        .or-btn-accent:hover{filter:brightness(1.1)}
+        .or-btn-accent:active{filter:brightness(0.95);transform:scale(0.98);transition-duration:80ms}
+        .or-btn-accent:disabled{opacity:0.5!important;cursor:not-allowed!important;filter:none!important}
 
-        /* ─ Stat card hover ─ */
-        .or-stat {
-          transition: transform 500ms ${EASE_SPRING}, box-shadow 500ms ${EASE_SPRING}, border-color 500ms ${EASE_SPRING};
-          will-change: transform;
-        }
-        .or-stat:hover {
-          transform: translateY(-1px) scale(1.01) !important;
-          box-shadow:
-            0 0.5px 0 0 rgba(255,255,255,0.09) inset,
-            0 -0.5px 0 0 rgba(255,255,255,0.03) inset,
-            0 2px 8px rgba(0,0,0,0.15),
-            0 12px 40px rgba(0,0,0,0.25) !important;
-          border-color: rgba(255,255,255,0.09) !important;
-        }
+        .or-btn-icon{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1);cursor:pointer;border-radius:999px}
+        .or-btn-icon:hover{background:rgba(255,255,255,0.06)!important;color:${C.text}!important}
+        .or-btn-icon:active{background:rgba(255,255,255,0.10)!important;transition-duration:80ms!important}
 
-        /* ─ Tab pill ─ */
-        .or-tab {
-          position: relative;
-          overflow: hidden;
-          transition: all 500ms ${EASE_SPRING};
-        }
-        .or-tab::before {
-          content: '';
-          position: absolute; inset: 0;
-          border-radius: inherit;
-          opacity: 0;
-          background: linear-gradient(160deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 15%, transparent 42%, transparent 58%, rgba(255,255,255,0.03) 80%, rgba(255,255,255,0.10) 100%);
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -0.5px 0 rgba(255,255,255,0.03);
-          transition: opacity 500ms ${EASE_SPRING};
-          pointer-events: none;
-          z-index: 0;
-        }
-        .or-tab:hover::before { opacity: 1; }
-        .or-tab:hover { background: rgba(255,255,255,0.04) !important; }
-        .or-tab:active { transform: scale(0.95); transition-duration: 120ms; }
-        .or-tab > * { position: relative; z-index: 1; }
+        .or-card{transition:border-color 150ms cubic-bezier(0.22,1,0.36,1),background-color 150ms cubic-bezier(0.22,1,0.36,1)}
+        .or-card:hover{border-color:${C.borderHover}!important;background:${C.bgElevated}!important}
 
-        /* ─ Scrollbar ─ */
+        .or-tab{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1);cursor:pointer}
+        .or-tab:hover{background:rgba(255,255,255,0.04)!important}
+
         .or-gs::-webkit-scrollbar { width: 5px; }
         .or-gs::-webkit-scrollbar-track { background: transparent; }
-        .or-gs::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 999px; }
-        .or-gs::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.10); }
+        .or-gs::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 999px; }
+        .or-gs::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
 
-        /* ─ Input focus ─ */
-        .or-input:focus {
-          border-color: rgba(59,130,246,0.35) !important;
-          box-shadow: 0 0 0 3px rgba(59,130,246,0.08), 0 0 20px rgba(59,130,246,0.06) !important;
-          outline: none;
-        }
+        .or-input{transition:border-color 150ms cubic-bezier(0.22,1,0.36,1)}
+        .or-input:focus { border-color: ${C.accent} !important; outline: none; }
 
-        /* ─── Mobile Responsive ─── */
         @media (max-width: 768px) {
           .or-header { flex-direction: column !important; gap: 10px !important; padding: 14px 16px !important; position: relative !important; }
           .or-header > div:first-child { width: 100%; }
-          .or-header .or-close { position: absolute !important; right: 14px !important; top: 14px !important; width: 38px !important; height: 38px !important; }
-          .or-stats-bar {
-            flex-wrap: nowrap !important; gap: 8px !important; padding: 10px 14px !important;
-            overflow-x: auto !important; -webkit-overflow-scrolling: touch;
-          }
+          .or-header .or-close { position: absolute !important; right: 14px !important; top: 14px !important; }
+          .or-stats-bar { flex-wrap: nowrap !important; gap: 8px !important; padding: 10px 14px !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
           .or-stats-bar::-webkit-scrollbar { display: none; }
-          .or-stat {
-            flex: none !important; padding: 10px 16px !important; border-radius: 14px !important;
-            min-width: auto !important; white-space: nowrap !important;
-          }
+          .or-stat { flex: none !important; padding: 10px 16px !important; min-width: auto !important; white-space: nowrap !important; }
           .or-content { padding: 14px !important; }
           .or-actions { flex-direction: column !important; gap: 8px !important; }
-          .or-actions button { width: 100% !important; min-height: 44px !important; font-size: 13px !important; }
-          .or-email-actions { flex-wrap: wrap !important; gap: 8px !important; }
-          .or-email-actions button { flex: 1 !important; min-width: calc(50% - 4px) !important; padding: 10px 12px !important; min-height: 42px !important; font-size: 12px !important; }
-          .or-settings-form { padding: 18px !important; }
-          .or-settings-form input, .or-settings-form select, .or-settings-form textarea { font-size: 16px !important; min-height: 44px !important; }
-          .or-prospect-card { border-radius: 16px !important; padding: 16px !important; }
-          .or-prospect-card .or-score { width: 36px !important; height: 36px !important; font-size: 12px !important; }
+          .or-actions button { width: 100% !important; min-height: 44px !important; }
+          .or-email-actions button { flex: 1 !important; min-width: calc(50% - 4px) !important; min-height: 42px !important; }
+          .or-prospect-card { padding: 16px !important; }
         }
-        @media (max-width: 480px) {
-          .or-header { padding: 12px 14px !important; }
-          .or-email-actions button { min-width: 100% !important; }
-          .or-content { padding: 10px !important; }
-          .or-stat { padding: 8px 12px !important; }
-        }
-        /* Mobile safe area */
         @supports(padding-bottom: env(safe-area-inset-bottom)){
           .or-content { padding-bottom: calc(14px + env(safe-area-inset-bottom)) !important; }
         }
-        /* Mobile touch improvements */
-        @media(hover:none){
-          .or-tab:active { transform: scale(0.93) !important; transition-duration: 100ms !important; }
-          .or-close:active { transform: scale(0.90) !important; transition-duration: 100ms !important; }
-          .or-btn:active { transform: scale(0.97) !important; transition-duration: 100ms !important; }
-          .or-prospect-card:active { transform: scale(0.99) !important; transition-duration: 120ms !important; }
-        }
       `}</style>
 
-      {/* ─── Header ─────────────────────────────────── */}
       <div className="or-header" style={{
-        padding: "18px 28px", display: "flex", alignItems: "center", justifyContent: "space-between",
-        borderBottom: `0.5px solid ${G.glassBorder}`,
-        background: "linear-gradient(180deg, rgba(255,255,255,0.015) 0%, transparent 100%)",
+        padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between",
+        borderBottom: `1px solid ${C.border}`,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{
-            width: 40, height: 40, borderRadius: 14,
-            background: `linear-gradient(135deg, ${G.amber}18, ${G.amber}06)`,
-            border: `0.5px solid ${G.amber}20`,
-            boxShadow: `0 0 20px ${G.amber}12, 0 0 60px ${G.amber}06`,
+            width: 36, height: 36, borderRadius: 10,
+            background: `${C.amber}15`, border: `1px solid ${C.amber}25`,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke={G.amber} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="17" r="2" stroke={C.amber} strokeWidth="1.5" /><circle cx="19" cy="7" r="2" stroke={C.amber} strokeWidth="1.5" /><path d="M6.8 15.3 17.2 8.7" stroke={C.amber} strokeWidth="1.5" strokeLinecap="round" /><path d="M14 7.5h5.2V12.7" stroke={C.amber} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </div>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: G.text, letterSpacing: "-0.025em", fontFamily: "-apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif" }}>Outreach</div>
-            <div style={{ fontSize: 12, color: G.textMuted, letterSpacing: "0.01em" }}>Find clients quickly</div>
+            <div style={{ fontSize: 15, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Outreach</div>
+            <div style={{ fontSize: 12, color: C.textMuted }}>Reach out to people you know</div>
           </div>
         </div>
 
-        {/* Tabs — Sliding Glass Pill */}
-        <div style={{ display: "flex", gap: 4, padding: 3, ...liquidPill, position: "relative" }}>
+        <div style={{ display: "flex", gap: 2, padding: 3, borderRadius: 999, background: C.bgInput, border: `1px solid ${C.border}` }}>
           {(["queue", "sent", "settings"] as const).map((t) => (
             <button key={t} className="or-tab" onClick={() => { setTab(t); setSetupMode(false); }} style={{
-              padding: "7px 18px", border: "none", fontSize: 12, fontWeight: 600, textTransform: "capitalize",
-              borderRadius: 999, cursor: "pointer",
-              background: tab === t ? `linear-gradient(135deg, ${G.accent}25, ${G.accent}10)` : "transparent",
-              color: tab === t ? G.accentSoft : G.textSec,
-              boxShadow: tab === t ? `0 0 16px ${G.accent}15, inset 0 0.5px 0 rgba(255,255,255,0.12)` : "none",
-              transition: `all 400ms ${EASE_SPRING}`,
-            }}>
-              <span>{t}</span>
-            </button>
+              padding: "6px 16px", border: "none", fontSize: 12, fontWeight: 600, textTransform: "capitalize",
+              borderRadius: 999,
+              background: tab === t ? C.accentSoft : "transparent",
+              color: tab === t ? C.accent : C.textSec,
+            }}>{t}</button>
           ))}
         </div>
 
-        <button className="or-close" onClick={onClose} style={{
-          width: 38, height: 38, borderRadius: 999,
-          border: `0.5px solid ${G.glassBorder}`,
-          background: G.glass, color: G.textSec,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          cursor: "pointer", fontSize: 15, fontWeight: 300,
+        <button className="or-btn-icon or-close" onClick={onClose} style={{
+          width: 32, height: 32,
+          border: `1px solid ${C.border}`, background: "none", color: C.textSec,
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14,
         }}>✕</button>
       </div>
 
-      {/* ─── Stats Bar ──────────────────────────────── */}
       {stats && !setupMode && (
-        <div className="or-stats-bar" style={{
-          padding: "14px 28px", display: "flex", gap: 12,
-          borderBottom: `0.5px solid ${G.glassBorder}`,
-          animation: `or-fadeIn 400ms ${EASE} 200ms both`,
-        }}>
+        <div className="or-stats-bar" style={{ padding: "12px 24px", display: "flex", gap: 10, borderBottom: `1px solid ${C.border}`, animation: "or-fadeIn 300ms ease 100ms both" }}>
           {[
-            { label: "Discovered", value: stats.discovered, color: G.amber, glow: G.amberGlow },
-            { label: "Queued", value: stats.queued, color: G.accent, glow: G.accentGlow },
-            { label: "Sent", value: stats.sent, color: G.purple, glow: G.purpleGlow },
-            { label: "Replied", value: stats.replied, color: G.green, glow: G.greenGlow },
-            { label: "Reply Rate", value: `${stats.replyRate}%`, color: stats.replyRate > 10 ? G.green : G.textMuted, glow: stats.replyRate > 10 ? G.greenGlow : "rgba(255,255,255,0.04)" },
+            { label: "Queued", value: stats.queued, color: C.accent },
+            { label: "Sent", value: stats.sent, color: C.purple },
+            { label: "Replied", value: stats.replied, color: C.green },
+            { label: "Reply Rate", value: `${stats.replyRate}%`, color: stats.replyRate > 10 ? C.green : C.textMuted },
           ].map((s, i) => (
             <div key={i} className="or-stat" style={{
-              ...liquidGlass, borderRadius: 16, padding: "10px 16px",
-              flex: 1, display: "flex", alignItems: "center", gap: 10,
-              animation: `or-fadeUp 350ms ${EASE} ${180 + i * 60}ms both`,
+              background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 12, padding: "9px 14px",
+              flex: 1, display: "flex", alignItems: "center", gap: 9,
             }}>
-              <div style={{ position: "relative" }}>
-                <div style={{ width: 7, height: 7, borderRadius: 999, background: s.color }} />
-                <div style={{ position: "absolute", inset: -3, borderRadius: 999, background: s.color, opacity: 0.25, filter: "blur(4px)" }} />
-              </div>
+              <div style={{ width: 6, height: 6, borderRadius: 999, background: s.color, flexShrink: 0 }} />
               <div>
-                <div style={{ fontSize: 10, color: G.textMuted, fontWeight: 500, letterSpacing: "0.04em", textTransform: "uppercase" }}>{s.label}</div>
-                <div style={{ fontSize: 15, color: G.text, fontWeight: 700, letterSpacing: "-0.02em", marginTop: 1 }}>{s.value}</div>
+                <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 500, letterSpacing: "0.03em", textTransform: "uppercase" }}>{s.label}</div>
+                <div style={{ fontSize: 14, color: C.text, fontWeight: 700, marginTop: 1 }}>{s.value}</div>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Template performance breakdown */}
       {stats?.templateStats && (stats.templateStats.initialEmails.sent > 0 || stats.templateStats.followUps.sent > 0) && !setupMode && (
-        <div style={{
-          padding: "8px 28px 10px", display: "flex", gap: 16, alignItems: "center",
-          borderBottom: `0.5px solid ${G.glassBorder}`, fontSize: 11,
-        }}>
-          <span style={{ color: G.textMuted, fontWeight: 500 }}>Performance:</span>
-          <span style={{ color: G.textSec }}>
-            Initial {stats.templateStats.initialEmails.replyRate}% reply rate ({stats.templateStats.initialEmails.replied}/{stats.templateStats.initialEmails.sent})
-          </span>
-          {stats.templateStats.followUps.sent > 0 && (
-            <span style={{ color: G.textSec }}>
-              · Follow-ups {stats.templateStats.followUps.replyRate}% ({stats.templateStats.followUps.replied}/{stats.templateStats.followUps.sent})
-            </span>
-          )}
-          <span style={{ color: G.textMuted }}>
-            · Tone: {stats.templateStats.currentTone}
-          </span>
+        <div style={{ padding: "8px 24px 10px", display: "flex", gap: 14, alignItems: "center", borderBottom: `1px solid ${C.border}`, fontSize: 11, flexWrap: "wrap" }}>
+          <span style={{ color: C.textMuted, fontWeight: 500 }}>Performance:</span>
+          <span style={{ color: C.textSec }}>Initial {stats.templateStats.initialEmails.replyRate}% reply rate ({stats.templateStats.initialEmails.replied}/{stats.templateStats.initialEmails.sent})</span>
+          {stats.templateStats.followUps.sent > 0 && <span style={{ color: C.textSec }}>· Follow-ups {stats.templateStats.followUps.replyRate}% ({stats.templateStats.followUps.replied}/{stats.templateStats.followUps.sent})</span>}
+          <span style={{ color: C.textMuted }}>· Tone: {stats.templateStats.currentTone}</span>
         </div>
       )}
 
-      {/* ─── Content ────────────────────────────────── */}
-      <div className="or-gs or-content" style={{ flex: 1, overflow: "auto", padding: 28 }}>
+      <div className="or-gs or-content" style={{ flex: 1, overflow: "auto", padding: 24 }}>
         {loading ? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
-            <div style={{
-              width: 44, height: 44, borderRadius: 999,
-              border: `2px solid ${G.glassBorder}`, borderTopColor: G.amber,
-              animation: "or-spin 1s linear infinite",
-              boxShadow: `0 0 20px ${G.amber}15`,
-            }} />
+            <div style={{ width: 36, height: 36, borderRadius: 999, border: `2px solid ${C.border}`, borderTopColor: C.amber, animation: "or-spin 0.8s linear infinite" }} />
           </div>
         ) : setupMode || tab === "settings" ? (
-          /* ─── Settings / Setup ────────────────────── */
-          <div style={{ maxWidth: 580, margin: "0 auto", animation: `or-fadeUp 400ms ${EASE} 100ms both` }}>
-            <div className="or-settings-form" style={{ ...liquidGlass, padding: 32 }}>
-              <div style={{
-                fontSize: 20, fontWeight: 700, color: G.text, marginBottom: 6,
-                letterSpacing: "-0.025em",
-                fontFamily: "-apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif",
-              }}>
+          <div style={{ maxWidth: 480, margin: "0 auto", animation: "or-fadeUp 300ms ease 80ms both" }}>
+            <div style={{ background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 16, padding: 28 }}>
+              <div style={{ fontSize: 18, fontWeight: 600, color: C.text, marginBottom: 6, letterSpacing: "-0.01em" }}>
                 {settings ? "Outreach Settings" : "Set Up Outreach"}
               </div>
-              <div style={{ fontSize: 13, color: G.textMuted, marginBottom: 28, lineHeight: 1.6 }}>
-                {settings ? "Adjust how Zelrex finds and contacts prospects." : "Tell Zelrex who your ideal clients are and how to reach them."}
+              <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
+                What tone should Zelrex use when writing your outreach messages?
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-                <div style={{ animation: `or-fadeUp 350ms ${EASE} 200ms both` }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: G.textSec, marginBottom: 8, display: "block", letterSpacing: "0.02em" }}>Who is your ideal client?</label>
-                  <textarea className="or-input" value={formTarget} onChange={(e) => setFormTarget(e.target.value)} placeholder="e.g., YouTube creators with 10k-100k subscribers who post weekly but have inconsistent editing quality" style={{
-                    width: "100%", padding: "14px 16px", borderRadius: 16,
-                    border: `0.5px solid ${G.glassBorder}`,
-                    background: "rgba(255,255,255,0.025)",
-                    color: G.text, fontSize: 13, lineHeight: 1.7, resize: "vertical", minHeight: 90,
-                    transition: `all 400ms ${EASE}`,
-                    fontFamily: "-apple-system, 'SF Pro Text', BlinkMacSystemFont, sans-serif",
-                  }} />
-                </div>
-
-                <div style={{ animation: `or-fadeUp 350ms ${EASE} 280ms both` }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: G.textSec, marginBottom: 8, display: "block", letterSpacing: "0.02em" }}>Email tone</label>
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 8, display: "block" }}>Email tone</label>
                   <div style={{ display: "flex", gap: 8 }}>
                     {["professional", "casual", "bold"].map((t) => (
-                      <button key={t} className="or-btn" onClick={() => setFormTone(t)} style={{
-                        padding: "9px 20px", border: `0.5px solid ${formTone === t ? G.accent + "40" : G.glassBorder}`,
-                        background: formTone === t ? `linear-gradient(135deg, ${G.accent}18, ${G.accent}06)` : G.glass,
-                        color: formTone === t ? G.accentSoft : G.textSec, fontSize: 12, fontWeight: 600, textTransform: "capitalize",
-                        boxShadow: formTone === t ? `0 0 12px ${G.accent}10` : "none",
-                      }}>
-                        <span>{t}</span>
-                      </button>
+                      <button key={t} className={formTone === t ? "or-btn-accent" : "or-btn-outlined"} onClick={() => setFormTone(t)} style={{
+                        padding: "8px 18px", borderRadius: 999, fontSize: 12, fontWeight: 600, textTransform: "capitalize",
+                        border: `1px solid ${formTone === t ? "transparent" : C.border}`,
+                        background: formTone === t ? C.accent : "none",
+                        color: formTone === t ? "#fff" : C.textSec,
+                      }}>{t}</button>
                     ))}
                   </div>
                 </div>
 
-                <div style={{ animation: `or-fadeUp 350ms ${EASE} 360ms both` }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: G.textSec, marginBottom: 8, display: "block", letterSpacing: "0.02em" }}>Daily prospect limit</label>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {[3, 5, 10].map((n) => (
-                      <button key={n} className="or-btn" onClick={() => setFormLimit(n)} style={{
-                        padding: "9px 20px", border: `0.5px solid ${formLimit === n ? G.accent + "40" : G.glassBorder}`,
-                        background: formLimit === n ? `linear-gradient(135deg, ${G.accent}18, ${G.accent}06)` : G.glass,
-                        color: formLimit === n ? G.accentSoft : G.textSec, fontSize: 12, fontWeight: 700,
-                        boxShadow: formLimit === n ? `0 0 12px ${G.accent}10` : "none",
-                      }}>
-                        <span>{n}/day</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <button className="or-btn" onClick={saveSettings} style={{
-                  padding: "13px 28px", border: "none", marginTop: 10,
-                  background: `linear-gradient(135deg, ${G.green}22, ${G.green}08)`,
-                  color: G.green, fontSize: 14, fontWeight: 700,
-                  boxShadow: `0 0 20px ${G.green}12, inset 0 0.5px 0 rgba(255,255,255,0.10)`,
-                  animation: `or-fadeUp 350ms ${EASE} 440ms both`,
-                  letterSpacing: "-0.01em",
-                }}>
-                  <span>{settings ? "Save Settings" : "Start Finding Clients"}</span>
-                </button>
+                <button className="or-btn-accent" onClick={saveSettings} style={{
+                  padding: "11px 24px", borderRadius: 999, border: "none", marginTop: 6,
+                  background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600,
+                }}>{settings ? "Save Settings" : "Get Started"}</button>
               </div>
             </div>
           </div>
         ) : tab === "queue" ? (
-          /* ─── Queue Tab ───────────────────────────── */
-          <div style={{ maxWidth: 820, margin: "0 auto" }}>
-            {/* Action buttons */}
-            <div className="or-actions" style={{ display: "flex", gap: 10, marginBottom: 12, animation: `or-fadeUp 350ms ${EASE} 100ms both`, flexWrap: "wrap" }}>
-              <button className="or-btn" onClick={findProspects} disabled={finding} style={{
-                padding: "11px 22px", border: "none",
-                background: `linear-gradient(135deg, ${G.amber}20, ${G.amber}06)`,
-                color: G.amber, fontSize: 13, fontWeight: 700, opacity: finding ? 0.55 : 1,
-                boxShadow: `0 0 16px ${G.amber}10, inset 0 0.5px 0 rgba(255,255,255,0.08)`,
-                letterSpacing: "-0.01em",
-              }}>
-                <span>{finding ? "Searching the web..." : "Find New Prospects"}</span>
-              </button>
-              <button className="or-btn" onClick={() => setShowManualAdd(!showManualAdd)} style={{
-                padding: "11px 22px", border: "none",
-                background: `linear-gradient(135deg, ${G.accent}14, ${G.accent}04)`,
-                color: G.accentSoft, fontSize: 13, fontWeight: 700,
-                boxShadow: `0 0 12px ${G.accent}08, inset 0 0.5px 0 rgba(255,255,255,0.06)`,
-                letterSpacing: "-0.01em",
-              }}>
-                <span>{showManualAdd ? "Cancel" : "+ Add Your Own"}</span>
-              </button>
-              {queueProspects.some((p) => p.status === "discovered") && (
-                <button className="or-btn" onClick={() => generateEmails()} disabled={generating} style={{
-                  padding: "11px 22px", border: "none",
-                  background: `linear-gradient(135deg, ${G.accent}20, ${G.accent}06)`,
-                  color: G.accentSoft, fontSize: 13, fontWeight: 700, opacity: generating ? 0.55 : 1,
-                  boxShadow: `0 0 16px ${G.accent}10, inset 0 0.5px 0 rgba(255,255,255,0.08)`,
-                  letterSpacing: "-0.01em",
-                }}>
-                  <span>{generating ? "Writing Emails..." : "Generate Emails"}</span>
-                </button>
+          <div style={{ maxWidth: 780, margin: "0 auto" }}>
+            <div className="or-actions" style={{ display: "flex", gap: 10, marginBottom: 16, animation: "or-fadeUp 300ms ease 60ms both" }}>
+              <button className="or-btn-accent" onClick={() => setShowManualAdd(!showManualAdd)} style={{
+                padding: "9px 20px", borderRadius: 999, border: "none",
+                background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600,
+              }}>{showManualAdd ? "Cancel" : "+ Add a prospect"}</button>
+              {queueProspects.some((p) => !p.outreach_emails?.length) && (
+                <button className="or-btn-outlined" onClick={() => generateEmails()} disabled={generating} style={{
+                  padding: "9px 20px", borderRadius: 999, border: `1px solid ${C.border}`,
+                  background: "none", color: C.textSec, fontSize: 13, fontWeight: 600,
+                }}>{generating ? "Writing emails…" : "Generate emails"}</button>
               )}
             </div>
 
-            {/* Disclaimer */}
-            <div style={{ fontSize: 11, color: G.textMuted, marginBottom: 18, padding: "8px 14px", borderRadius: 10, background: "rgba(255,255,255,0.015)", border: `0.5px solid ${G.glassBorder}`, lineHeight: 1.5 }}>
-              ⓘ Prospects are found via web search. Always verify before reaching out. Click "Visit Website" or "View Source" on each prospect to fact-check.
-            </div>
-
-            {/* Manual Add Form */}
             {showManualAdd && (
-              <div style={{ ...liquidGlass, padding: 20, marginBottom: 16, animation: `or-fadeUp 250ms ${EASE}` }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: G.text, letterSpacing: "-0.02em", marginBottom: 14 }}>Add a Prospect</div>
+              <div style={{ background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18, marginBottom: 16, animation: "or-fadeUp 200ms ease" }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 12 }}>Add a prospect</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-                  <input className="or-input" placeholder="Name *" value={manualForm.name} onChange={e => setManualForm(f => ({ ...f, name: e.target.value }))} style={{ padding: "10px 14px", borderRadius: 12, border: `0.5px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.025)", color: G.text, fontSize: 13, outline: "none" }} />
-                  <input className="or-input" placeholder="Company" value={manualForm.company} onChange={e => setManualForm(f => ({ ...f, company: e.target.value }))} style={{ padding: "10px 14px", borderRadius: 12, border: `0.5px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.025)", color: G.text, fontSize: 13, outline: "none" }} />
-                  <input className="or-input" placeholder="Email" value={manualForm.email} onChange={e => setManualForm(f => ({ ...f, email: e.target.value }))} style={{ padding: "10px 14px", borderRadius: 12, border: `0.5px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.025)", color: G.text, fontSize: 13, outline: "none" }} />
-                  <input className="or-input" placeholder="Website URL" value={manualForm.platform_url} onChange={e => setManualForm(f => ({ ...f, platform_url: e.target.value }))} style={{ padding: "10px 14px", borderRadius: 12, border: `0.5px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.025)", color: G.text, fontSize: 13, outline: "none" }} />
+                  <input className="or-input" placeholder="Name *" value={manualForm.name} onChange={e => setManualForm(f => ({ ...f, name: e.target.value }))} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none" }} />
+                  <input className="or-input" placeholder="Company" value={manualForm.company} onChange={e => setManualForm(f => ({ ...f, company: e.target.value }))} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none" }} />
+                  <input className="or-input" placeholder="Email" value={manualForm.email} onChange={e => setManualForm(f => ({ ...f, email: e.target.value }))} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none" }} />
+                  <input className="or-input" placeholder="Website URL" value={manualForm.platform_url} onChange={e => setManualForm(f => ({ ...f, platform_url: e.target.value }))} style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none" }} />
                 </div>
-                <input className="or-input" placeholder="Notes (why they're a good prospect)" value={manualForm.notes} onChange={e => setManualForm(f => ({ ...f, notes: e.target.value }))} style={{ width: "100%", padding: "10px 14px", borderRadius: 12, border: `0.5px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.025)", color: G.text, fontSize: 13, outline: "none", marginBottom: 12 }} />
-                <button className="or-btn" onClick={addManualProspect} style={{ padding: "10px 20px", border: "none", background: `${G.green}15`, color: G.green, fontSize: 13, fontWeight: 700, boxShadow: `inset 0 0.5px 0 rgba(255,255,255,0.06)` }}>
-                  <span>Save Prospect</span>
-                </button>
+                <input className="or-input" placeholder="How do you know them? (helps Zelrex write a relevant email)" value={manualForm.notes} onChange={e => setManualForm(f => ({ ...f, notes: e.target.value }))} style={{ width: "100%", padding: "9px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none", marginBottom: 12 }} />
+                <button className="or-btn-accent" onClick={addManualProspect} style={{ padding: "9px 18px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600 }}>Save</button>
               </div>
             )}
 
             {queueProspects.length === 0 ? (
-              <div style={{
-                textAlign: "center", padding: "60px 40px", color: G.textMuted,
-                animation: `or-fadeUp 400ms ${EASE} 200ms both`,
-              }}>
-                <div style={{
-                  width: 68, height: 68, borderRadius: 22, margin: "0 auto 22px",
-                  background: `linear-gradient(135deg, ${G.amber}14, ${G.amber}04)`,
-                  border: `0.5px solid ${G.amber}18`,
-                  boxShadow: `0 0 30px ${G.amber}10, 0 0 60px ${G.amber}05`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke={G.amber} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+              <div style={{ textAlign: "center", padding: "56px 40px", animation: "or-fadeUp 300ms ease 120ms both" }}>
+                <div style={{ width: 56, height: 56, borderRadius: 16, margin: "0 auto 20px", background: `${C.amber}12`, border: `1px solid ${C.amber}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="17" r="2" stroke={C.amber} strokeWidth="1.5" /><circle cx="19" cy="7" r="2" stroke={C.amber} strokeWidth="1.5" /><path d="M6.8 15.3 17.2 8.7" stroke={C.amber} strokeWidth="1.5" strokeLinecap="round" /></svg>
                 </div>
-                <div style={{
-                  fontSize: 19, fontWeight: 700, color: G.text, marginBottom: 8,
-                  letterSpacing: "-0.025em",
-                  fontFamily: "-apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif",
-                }}>No prospects yet</div>
-                <div style={{ fontSize: 14, lineHeight: 1.7, maxWidth: 380, margin: "0 auto" }}>
-                  Click &ldquo;Find New Prospects&rdquo; to discover potential clients based on your business.
+                <div style={{ fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 8 }}>No prospects yet</div>
+                <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, maxWidth: 340, margin: "0 auto" }}>
+                  Add someone you'd like to reach out to — a referral, a past client, someone who already knows your work.
                 </div>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {queueProspects.map((p, i) => {
                   const email = p.outreach_emails?.[0];
                   const isExpanded = expandedId === p.id;
                   return (
-                    <div key={p.id} className="or-card" onClick={() => setExpandedId(isExpanded ? null : p.id)} style={{
-                      ...liquidGlass, padding: 20, cursor: "pointer",
-                      animation: `or-fadeUp 350ms ${EASE} ${120 + i * 50}ms both`,
+                    <div key={p.id} className="or-card or-prospect-card" onClick={() => setExpandedId(isExpanded ? null : p.id)} style={{
+                      background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18, cursor: "pointer",
+                      animation: `or-fadeUp 250ms ease ${80 + i * 40}ms both`,
                     }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                          <div style={{
-                            width: 40, height: 40, borderRadius: 12,
-                            background: `${platformColor(p.platform)}12`,
-                            border: `0.5px solid ${platformColor(p.platform)}20`,
-                            boxShadow: `0 0 12px ${platformColor(p.platform)}08`,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 14, color: platformColor(p.platform), fontWeight: 700,
-                          }}>
-                            {platformIcon(p.platform)}
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 10, background: `${platformColor(p.platform)}15`, border: `1px solid ${platformColor(p.platform)}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: platformColor(p.platform), fontWeight: 700 }}>
+                            {p.name?.[0]?.toUpperCase() || "?"}
                           </div>
                           <div>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: G.text, letterSpacing: "-0.01em" }}>{p.name}</div>
-                            <div style={{ fontSize: 12, color: G.textMuted, marginTop: 1 }}>{p.company} · {p.platform}</div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.name}</div>
+                            <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1 }}>{p.company || "—"}{p.platform ? ` · ${p.platform}` : ""}</div>
                           </div>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{
-                            padding: "4px 12px", borderRadius: 999,
-                            background: `${statusColor(p.status)}12`,
-                            border: `0.5px solid ${statusColor(p.status)}20`,
-                            fontSize: 11, fontWeight: 600, color: statusColor(p.status),
-                            textTransform: "capitalize", letterSpacing: "0.02em",
-                          }}>
-                            {p.status}
-                          </div>
-                          <div style={{
-                            fontSize: 12, color: G.textMuted, fontWeight: 600,
-                            background: `rgba(255,255,255,0.03)`, padding: "3px 8px", borderRadius: 8,
-                          }}>{p.relevance_score}%</div>
+                        <div style={{ padding: "3px 10px", borderRadius: 999, background: `${statusColor(p.status)}15`, border: `1px solid ${statusColor(p.status)}25`, fontSize: 11, fontWeight: 600, color: statusColor(p.status), textTransform: "capitalize" }}>{p.status}</div>
+                      </div>
+
+                      {p.relevance_reason && <div style={{ fontSize: 12, color: C.textSec, marginTop: 10, lineHeight: 1.6 }}>{p.relevance_reason}</div>}
+
+                      {p.platform_url && (
+                        <div style={{ marginTop: 8 }}>
+                          <a href={p.platform_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="or-btn" style={{ fontSize: 11, fontWeight: 600, color: C.accent, textDecoration: "none", padding: "3px 10px", borderRadius: 999, background: C.accentSoft, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                            Visit website ↗
+                          </a>
                         </div>
-                      </div>
-
-                      <div style={{ fontSize: 12, color: G.textSec, marginTop: 10, lineHeight: 1.6 }}>{p.relevance_reason}</div>
-
-                      {/* Source verification links */}
-                      <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-                        {p.platform_url && (
-                          <a href={p.platform_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11, fontWeight: 600, color: G.accent, textDecoration: "none", padding: "3px 10px", borderRadius: 8, background: `${G.accent}10`, border: `0.5px solid ${G.accent}20`, display: "flex", alignItems: "center", gap: 4 }}>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                            Visit Website
-                          </a>
-                        )}
-                        {p.source_url && p.source_url !== "manual" && (
-                          <a href={p.source_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ fontSize: 11, fontWeight: 600, color: G.textMuted, textDecoration: "none", padding: "3px 10px", borderRadius: 8, background: "rgba(255,255,255,0.03)", border: `0.5px solid ${G.glassBorder}`, display: "flex", alignItems: "center", gap: 4 }}>
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                            View Source
-                          </a>
-                        )}
-                        {p.source_url === "manual" && (
-                          <span style={{ fontSize: 10, color: G.textMuted, padding: "3px 8px", borderRadius: 6, background: "rgba(255,255,255,0.02)", fontWeight: 500 }}>✓ Added manually</span>
-                        )}
-                      </div>
+                      )}
 
                       {isExpanded && email && (
-                        <div style={{
-                          marginTop: 16, padding: 18, borderRadius: 16,
-                          background: "linear-gradient(165deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)",
-                          border: `0.5px solid ${G.glassBorder}`,
-                          boxShadow: "inset 0 0.5px 0 rgba(255,255,255,0.04)",
-                          animation: `or-fadeUp 250ms ${EASE}`,
-                        }} onClick={(e) => e.stopPropagation()}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: G.accentSoft, marginBottom: 6, letterSpacing: "-0.01em" }}>Subject: {email.subject}</div>
-                          <div style={{ fontSize: 13, color: G.textSec, lineHeight: 1.8, whiteSpace: "pre-wrap", marginBottom: 16 }}>{email.body}</div>
+                        <div style={{ marginTop: 14, padding: 16, borderRadius: 12, background: C.bgInput, border: `1px solid ${C.border}` }} onClick={(e) => e.stopPropagation()}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: C.accent, marginBottom: 6 }}>Subject: {email.subject}</div>
+                          <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.7, whiteSpace: "pre-wrap", marginBottom: 14 }}>{email.body}</div>
                           <div className="or-email-actions" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                            <button className="or-btn" onClick={() => { openInEmail(email, p); markSent(email.id); }} style={{
-                              padding: "9px 18px", border: "none",
-                              background: `linear-gradient(135deg, ${G.green}20, ${G.green}06)`,
-                              color: G.green, fontSize: 12, fontWeight: 700,
-                              boxShadow: `0 0 12px ${G.green}08`,
-                            }}><span>Open in Email ↗</span></button>
-                            <button className="or-btn" onClick={() => copyEmail(email)} style={{
-                              padding: "9px 18px", border: `0.5px solid ${G.glassBorder}`,
-                              background: G.glass, color: G.textSec, fontSize: 12, fontWeight: 600,
-                            }}><span>Copy</span></button>
-                            <button className="or-btn" onClick={() => regenerateEmail(p.id)} style={{
-                              padding: "9px 18px", border: `0.5px solid ${G.glassBorder}`,
-                              background: G.glass, color: G.textSec, fontSize: 12, fontWeight: 600,
-                            }}><span>Rewrite</span></button>
-                            <button className="or-btn" onClick={() => archiveProspect(p.id)} style={{
-                              padding: "9px 18px", border: `0.5px solid ${G.glassBorder}`,
-                              background: G.glass, color: G.red, fontSize: 12, fontWeight: 600,
-                            }}><span>Skip</span></button>
-                            <button className="or-btn" onClick={() => generateLinkedInDM(p.id)} style={{
-                              padding: "9px 18px", border: `0.5px solid ${G.glassBorder}`,
-                              background: `linear-gradient(135deg, ${G.purple}20, ${G.purple}06)`,
-                              color: G.purple, fontSize: 12, fontWeight: 700,
-                              boxShadow: `0 0 12px ${G.purple}08`,
-                            }}><span>LinkedIn DM</span></button>
-                            {!p.email && (
-                              <button className="or-btn" onClick={() => findEmail(p.id)} disabled={emailFinderLoading} style={{
-                                padding: "9px 18px", border: `0.5px solid ${G.glassBorder}`,
-                                background: `linear-gradient(135deg, ${G.accent}20, ${G.accent}06)`,
-                                color: G.accent, fontSize: 12, fontWeight: 700,
-                                boxShadow: `0 0 12px ${G.accent}08`,
-                                opacity: emailFinderLoading ? 0.5 : 1,
-                              }}><span>{emailFinderLoading ? "Searching..." : "Find Email"}</span></button>
-                            )}
+                            <button className="or-btn-accent" onClick={() => { openInEmail(email, p); markSent(email.id); }} style={{ padding: "8px 16px", borderRadius: 999, border: "none", background: C.green, color: "#fff", fontSize: 12, fontWeight: 600 }}>Open in email ↗</button>
+                            <button className="or-btn-outlined" onClick={() => copyEmail(email)} style={{ padding: "8px 16px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 12, fontWeight: 600 }}>Copy</button>
+                            <button className="or-btn-outlined" onClick={() => regenerateEmail(p.id)} style={{ padding: "8px 16px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 12, fontWeight: 600 }}>Rewrite</button>
+                            <button className="or-btn-outlined" onClick={() => generateLinkedInDM(p.id)} style={{ padding: "8px 16px", borderRadius: 999, border: `1px solid ${C.purple}30`, background: `${C.purple}12`, color: C.purple, fontSize: 12, fontWeight: 600 }}>LinkedIn DM</button>
+                            <button className="or-btn-outlined" onClick={() => archiveProspect(p.id)} style={{ padding: "8px 16px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.red, fontSize: 12, fontWeight: 600 }}>Skip</button>
                           </div>
                         </div>
                       )}
 
-                      {isExpanded && !email && p.status === "discovered" && (
-                        <div style={{ marginTop: 16, textAlign: "center", display: "flex", gap: 8, justifyContent: "center" }} onClick={(e) => e.stopPropagation()}>
-                          <button className="or-btn" onClick={() => generateEmails([p.id])} disabled={generating || abTesting} style={{
-                            padding: "9px 22px", border: "none",
-                            background: `linear-gradient(135deg, ${G.accent}20, ${G.accent}06)`,
-                            color: G.accentSoft, fontSize: 12, fontWeight: 700,
-                            boxShadow: `0 0 12px ${G.accent}08`,
-                          }}><span>{generating ? "Writing..." : "Write Email"}</span></button>
-                          <button className="or-btn" onClick={() => generateABTest(p.id)} disabled={generating || abTesting} style={{
-                            padding: "9px 22px", border: `0.5px solid ${G.glassBorder}`,
-                            background: `linear-gradient(135deg, ${G.amber}15, ${G.amber}04)`,
-                            color: G.amber, fontSize: 12, fontWeight: 700,
-                            boxShadow: `0 0 12px ${G.amber}06`,
-                            opacity: abTesting ? 0.5 : 1,
-                          }}><span>{abTesting ? "Testing..." : "A/B Test"}</span></button>
+                      {isExpanded && !email && (
+                        <div style={{ marginTop: 14, display: "flex", gap: 8, justifyContent: "center" }} onClick={(e) => e.stopPropagation()}>
+                          <button className="or-btn-accent" onClick={() => generateEmails([p.id])} disabled={generating || abTesting} style={{ padding: "8px 18px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 12, fontWeight: 600 }}>{generating ? "Writing…" : "Write email"}</button>
+                          <button className="or-btn-outlined" onClick={() => generateABTest(p.id)} disabled={generating || abTesting} style={{ padding: "8px 18px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.amber, fontSize: 12, fontWeight: 600 }}>{abTesting ? "Testing…" : "A/B test"}</button>
                         </div>
                       )}
                     </div>
@@ -973,70 +503,39 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
             )}
           </div>
         ) : (
-          /* ─── Sent Tab ────────────────────────────── */
-          <div style={{ maxWidth: 820, margin: "0 auto" }}>
+          <div style={{ maxWidth: 780, margin: "0 auto" }}>
             {sentProspects.length === 0 ? (
-              <div style={{
-                textAlign: "center", padding: "60px 40px", color: G.textMuted,
-                animation: `or-fadeUp 400ms ${EASE} 200ms both`,
-              }}>
-                <div style={{
-                  width: 68, height: 68, borderRadius: 22, margin: "0 auto 22px",
-                  background: `linear-gradient(135deg, ${G.purple}14, ${G.purple}04)`,
-                  border: `0.5px solid ${G.purple}18`,
-                  boxShadow: `0 0 30px ${G.purple}10`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 12l2 2 4-4M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z" stroke={G.purple} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
+              <div style={{ textAlign: "center", padding: "56px 40px", animation: "or-fadeUp 300ms ease 120ms both" }}>
+                <div style={{ width: 56, height: 56, borderRadius: 16, margin: "0 auto 20px", background: `${C.purple}12`, border: `1px solid ${C.purple}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z" stroke={C.purple} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </div>
-                <div style={{
-                  fontSize: 19, fontWeight: 700, color: G.text, marginBottom: 8,
-                  letterSpacing: "-0.025em",
-                  fontFamily: "-apple-system, 'SF Pro Display', BlinkMacSystemFont, sans-serif",
-                }}>No sent emails yet</div>
-                <div style={{ fontSize: 14, lineHeight: 1.7, maxWidth: 380, margin: "0 auto" }}>
-                  Find prospects and send your first outreach emails.
-                </div>
+                <div style={{ fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 8 }}>No sent emails yet</div>
+                <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, maxWidth: 340, margin: "0 auto" }}>Add a prospect and send your first outreach email.</div>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {sentProspects.map((p, i) => {
                   const email = p.outreach_emails?.[0];
                   return (
                     <div key={p.id} className="or-card" style={{
-                      ...liquidGlass, padding: 20,
-                      animation: `or-fadeUp 350ms ${EASE} ${120 + i * 50}ms both`,
-                      borderLeft: `2.5px solid ${p.status === "replied" ? G.green : G.purple}`,
+                      background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18,
+                      borderLeft: `2px solid ${p.status === "replied" ? C.green : C.purple}`,
+                      animation: `or-fadeUp 250ms ease ${80 + i * 40}ms both`,
                     }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: G.text, letterSpacing: "-0.01em" }}>{p.name} — {p.company}</div>
-                          <div style={{ fontSize: 12, color: G.textMuted, marginTop: 3 }}>{email?.subject || "No subject"}</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.name}{p.company ? ` — ${p.company}` : ""}</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{email?.subject || "No subject"}</div>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{
-                            padding: "4px 12px", borderRadius: 999,
-                            background: `${statusColor(p.status)}12`,
-                            border: `0.5px solid ${statusColor(p.status)}20`,
-                            fontSize: 11, fontWeight: 600, color: statusColor(p.status),
-                            textTransform: "capitalize", letterSpacing: "0.02em",
-                          }}>
-                            {p.status}
-                          </div>
+                          <div style={{ padding: "3px 10px", borderRadius: 999, background: `${statusColor(p.status)}15`, border: `1px solid ${statusColor(p.status)}25`, fontSize: 11, fontWeight: 600, color: statusColor(p.status), textTransform: "capitalize" }}>{p.status}</div>
                           {p.status === "sent" && email && (
-                            <button className="or-btn" onClick={() => markReplied(email.id, p.id)} style={{
-                              padding: "6px 14px", border: `0.5px solid ${G.green}25`,
-                              background: `linear-gradient(135deg, ${G.green}15, ${G.green}05)`,
-                              color: G.green, fontSize: 11, fontWeight: 700,
-                              boxShadow: `0 0 10px ${G.green}08`,
-                            }}><span>Mark Replied</span></button>
+                            <button className="or-btn-outlined" onClick={() => markReplied(email.id, p.id)} style={{ padding: "5px 12px", borderRadius: 999, border: `1px solid ${C.green}30`, background: `${C.green}12`, color: C.green, fontSize: 11, fontWeight: 600 }}>Mark replied</button>
                           )}
                         </div>
                       </div>
                       {email?.sent_at && (
-                        <div style={{ fontSize: 11, color: G.textMuted, marginTop: 8, letterSpacing: "0.01em" }}>
+                        <div style={{ fontSize: 11, color: C.textMuted, marginTop: 8 }}>
                           Sent {new Date(email.sent_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
                           {email.replied_at && ` · Replied ${new Date(email.replied_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`}
                         </div>
@@ -1050,192 +549,41 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
         )}
       </div>
 
-      {/* LinkedIn DM Modal */}
       {(linkedInDm || linkedInLoading) && (
-        <div style={{
-          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          zIndex: 10000, padding: 20,
-        }} onClick={() => { setLinkedInDm(null); setLinkedInLoading(false); }}>
-          <div style={{
-            ...liquidGlass,
-            maxWidth: 520, width: "100%", padding: 0, overflow: "hidden",
-            animation: `or-fadeUp 300ms ${EASE}`,
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{
-              padding: "20px 24px", borderBottom: `1px solid ${G.glassBorder}`,
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-            }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10000, padding: 20 }} onClick={() => { setLinkedInDm(null); setLinkedInLoading(false); }}>
+          <div style={{ background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 18, maxWidth: 500, width: "100%", padding: 0, overflow: "hidden", animation: "or-fadeUp 200ms ease" }} onClick={e => e.stopPropagation()}>
+            <div style={{ padding: "18px 22px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: G.text, letterSpacing: "-0.01em" }}>
-                  LinkedIn DM Script
-                </div>
-                {linkedInDm && (
-                  <div style={{ fontSize: 12, color: G.textMuted, marginTop: 2 }}>
-                    {linkedInDm.prospectName} · {linkedInDm.prospectCompany}
-                  </div>
-                )}
+                <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>LinkedIn DM script</div>
+                {linkedInDm && <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{linkedInDm.prospectName} · {linkedInDm.prospectCompany}</div>}
               </div>
-              <button onClick={() => { setLinkedInDm(null); setLinkedInLoading(false); }} style={{
-                background: "none", border: "none", color: G.textMuted, cursor: "pointer",
-                fontSize: 18, padding: "4px 8px",
-              }}>✕</button>
+              <button className="or-btn-icon" onClick={() => { setLinkedInDm(null); setLinkedInLoading(false); }} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 16, width: 28, height: 28 }}>✕</button>
             </div>
 
             {linkedInLoading ? (
-              <div style={{ padding: "40px 24px", textAlign: "center", color: G.textSec, fontSize: 13 }}>
-                Generating LinkedIn script...
-              </div>
+              <div style={{ padding: "36px 22px", textAlign: "center", color: C.textSec, fontSize: 13 }}>Generating LinkedIn script…</div>
             ) : linkedInDm && (
-              <div style={{ padding: "20px 24px 24px" }}>
-                {/* Connection Note */}
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: G.purple, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                    Connection Request Note
-                  </div>
-                  <div style={{
-                    padding: "12px 16px", borderRadius: 10,
-                    background: `linear-gradient(135deg, ${G.purple}10, ${G.purple}04)`,
-                    border: `0.5px solid ${G.purple}20`,
-                    color: G.textSec, fontSize: 13, lineHeight: 1.6,
-                  }}>
-                    {linkedInDm.connection_note}
-                  </div>
-                  <button className="or-btn" onClick={() => copyToClipboard(linkedInDm.connection_note)} style={{
-                    marginTop: 6, padding: "5px 12px", border: `0.5px solid ${G.glassBorder}`,
-                    background: G.glass, color: G.textMuted, fontSize: 11, fontWeight: 600,
-                  }}><span>Copy</span></button>
+              <div style={{ padding: "18px 22px 22px" }}>
+                <div style={{ marginBottom: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.purple, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Connection request note</div>
+                  <div style={{ padding: "11px 14px", borderRadius: 10, background: `${C.purple}0A`, border: `1px solid ${C.purple}20`, color: C.textSec, fontSize: 13, lineHeight: 1.6 }}>{linkedInDm.connection_note}</div>
+                  <button className="or-btn-outlined" onClick={() => copyToClipboard(linkedInDm.connection_note)} style={{ marginTop: 6, padding: "5px 12px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>Copy</button>
                 </div>
-
-                {/* Opening DM */}
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: G.accentSoft, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                    Opening DM
-                  </div>
-                  <div style={{
-                    padding: "12px 16px", borderRadius: 10,
-                    background: "rgba(255,255,255,0.02)",
-                    border: `0.5px solid ${G.glassBorder}`,
-                    color: G.textSec, fontSize: 13, lineHeight: 1.7, whiteSpace: "pre-wrap",
-                  }}>
-                    {linkedInDm.opening_dm}
-                  </div>
-                  <button className="or-btn" onClick={() => copyToClipboard(linkedInDm.opening_dm)} style={{
-                    marginTop: 6, padding: "5px 12px", border: `0.5px solid ${G.glassBorder}`,
-                    background: G.glass, color: G.textMuted, fontSize: 11, fontWeight: 600,
-                  }}><span>Copy</span></button>
+                <div style={{ marginBottom: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.accent, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Opening DM</div>
+                  <div style={{ padding: "11px 14px", borderRadius: 10, background: C.bgInput, border: `1px solid ${C.border}`, color: C.textSec, fontSize: 13, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{linkedInDm.opening_dm}</div>
+                  <button className="or-btn-outlined" onClick={() => copyToClipboard(linkedInDm.opening_dm)} style={{ marginTop: 6, padding: "5px 12px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>Copy</button>
                 </div>
-
-                {/* Follow-up DM */}
-                <div style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: G.amber, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-                    Follow-up DM (5 days later)
-                  </div>
-                  <div style={{
-                    padding: "12px 16px", borderRadius: 10,
-                    background: `linear-gradient(135deg, ${G.amber}08, ${G.amber}02)`,
-                    border: `0.5px solid ${G.amber}15`,
-                    color: G.textSec, fontSize: 13, lineHeight: 1.7, whiteSpace: "pre-wrap",
-                  }}>
-                    {linkedInDm.follow_up_dm}
-                  </div>
-                  <button className="or-btn" onClick={() => copyToClipboard(linkedInDm.follow_up_dm)} style={{
-                    marginTop: 6, padding: "5px 12px", border: `0.5px solid ${G.glassBorder}`,
-                    background: G.glass, color: G.textMuted, fontSize: 11, fontWeight: 600,
-                  }}><span>Copy</span></button>
+                <div style={{ marginBottom: linkedInDm.profile_tip ? 18 : 0 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: C.amber, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Follow-up DM (5 days later)</div>
+                  <div style={{ padding: "11px 14px", borderRadius: 10, background: `${C.amber}08`, border: `1px solid ${C.amber}18`, color: C.textSec, fontSize: 13, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{linkedInDm.follow_up_dm}</div>
+                  <button className="or-btn-outlined" onClick={() => copyToClipboard(linkedInDm.follow_up_dm)} style={{ marginTop: 6, padding: "5px 12px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>Copy</button>
                 </div>
-
-                {/* Profile tip */}
                 {linkedInDm.profile_tip && (
-                  <div style={{
-                    padding: "10px 14px", borderRadius: 8,
-                    background: "rgba(255,255,255,0.02)", border: `0.5px solid ${G.glassBorder}`,
-                    fontSize: 12, color: G.textMuted, lineHeight: 1.6,
-                  }}>
-                    💡 {linkedInDm.profile_tip}
-                  </div>
+                  <div style={{ padding: "10px 14px", borderRadius: 10, background: C.bgInput, border: `1px solid ${C.border}`, fontSize: 12, color: C.textMuted, lineHeight: 1.6 }}>💡 {linkedInDm.profile_tip}</div>
                 )}
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Email Finder Result Modal */}
-      {emailFinderResult && (
-        <div style={{
-          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-          background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          zIndex: 10000, padding: 20,
-        }} onClick={() => setEmailFinderResult(null)}>
-          <div style={{
-            ...liquidGlass, maxWidth: 460, width: "100%", padding: 0, overflow: "hidden",
-            animation: `or-fadeUp 300ms ${EASE}`,
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{
-              padding: "20px 24px", borderBottom: `1px solid ${G.glassBorder}`,
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-            }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: G.text }}>Email finder</div>
-              <button onClick={() => setEmailFinderResult(null)} style={{
-                background: "none", border: "none", color: G.textMuted, cursor: "pointer", fontSize: 18,
-              }}>✕</button>
-            </div>
-            <div style={{ padding: "20px 24px" }}>
-              {emailFinderResult.found ? (
-                <>
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 12, marginBottom: 16,
-                    padding: "14px 18px", borderRadius: 14,
-                    background: `${G.green}08`, border: `0.5px solid ${G.green}20`,
-                  }}>
-                    <div style={{ width: 10, height: 10, borderRadius: 999, background: G.green, boxShadow: `0 0 8px ${G.green}50` }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: G.text, fontFamily: "monospace" }}>{emailFinderResult.email}</div>
-                      <div style={{ fontSize: 11, color: G.textMuted, marginTop: 2 }}>
-                        {emailFinderResult.confidence} confidence · {emailFinderResult.source}
-                      </div>
-                    </div>
-                    <button onClick={() => copyToClipboard(emailFinderResult.email)} style={{
-                      padding: "5px 12px", borderRadius: 8, border: `0.5px solid ${G.glassBorder}`,
-                      background: G.glass, color: G.textSec, fontSize: 11, fontWeight: 600, cursor: "pointer",
-                    }}>Copy</button>
-                  </div>
-                  {emailFinderResult.alternatives?.length > 0 && (
-                    <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: G.textMuted, textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Alternatives</div>
-                      {emailFinderResult.alternatives.map((alt: string, i: number) => (
-                        <div key={i} style={{ fontSize: 12, color: G.textSec, padding: "3px 0", fontFamily: "monospace" }}>{alt}</div>
-                      ))}
-                    </div>
-                  )}
-                  {emailFinderResult.email_pattern && (
-                    <div style={{ fontSize: 11, color: G.textMuted, marginBottom: 8 }}>
-                      Pattern: <span style={{ color: G.accent, fontFamily: "monospace" }}>{emailFinderResult.email_pattern}</span>
-                    </div>
-                  )}
-                  <div style={{ fontSize: 11, color: G.green }}>
-                    ✓ Email saved to prospect. You can now generate an email for them.
-                  </div>
-                </>
-              ) : (
-                <div style={{ textAlign: "center", padding: 16 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: G.text, marginBottom: 8 }}>No email found</div>
-                  <div style={{ fontSize: 12, color: G.textSec, lineHeight: 1.6 }}>
-                    Try checking their website's contact page manually, or use LinkedIn to send a connection request instead.
-                  </div>
-                  {emailFinderResult.contact_page_url && (
-                    <a href={emailFinderResult.contact_page_url} target="_blank" rel="noopener noreferrer" style={{
-                      display: "inline-block", marginTop: 12, padding: "8px 16px", borderRadius: 10,
-                      border: `0.5px solid ${G.glassBorder}`, color: G.accent, fontSize: 12, fontWeight: 600,
-                      textDecoration: "none",
-                    }}>Visit contact page ↗</a>
-                  )}
-                </div>
-              )}
-            </div>
           </div>
         </div>
       )}
