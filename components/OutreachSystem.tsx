@@ -8,6 +8,7 @@ interface Prospect {
   company: string;
   platform: string;
   platform_url: string;
+  source_url?: string;
   relevance_reason: string;
   status: string;
   email?: string;
@@ -69,10 +70,30 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
   const [linkedInDm, setLinkedInDm] = useState<any>(null);
   const [linkedInLoading, setLinkedInLoading] = useState(false);
   const [abTesting, setAbTesting] = useState(false);
+  // Shared progress tracking for AI-generation actions (write email, A/B
+  // test) so the button can show elapsed time and a real cancel, instead of
+  // just flipping its label with no way to back out.
+  const [genElapsed, setGenElapsed] = useState(0);
+  const genAbortRef = React.useRef<AbortController | null>(null);
+  const genTimerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const startGenTimer = () => {
+    setGenElapsed(0);
+    if (genTimerRef.current) clearInterval(genTimerRef.current);
+    genTimerRef.current = setInterval(() => setGenElapsed((e) => e + 1), 1000);
+  };
+  const stopGenTimer = () => { if (genTimerRef.current) { clearInterval(genTimerRef.current); genTimerRef.current = null; } };
+  const cancelGenerating = () => {
+    genAbortRef.current?.abort();
+    genAbortRef.current = null;
+    stopGenTimer();
+    setGenerating(false);
+    setAbTesting(false);
+  };
 
   const [formTone, setFormTone] = useState("professional");
 
   useEffect(() => { requestAnimationFrame(() => setMounted(true)); }, []);
+  useEffect(() => () => { genAbortRef.current?.abort(); if (genTimerRef.current) clearInterval(genTimerRef.current); }, []);
 
   const api = async (action: string, extra: any = {}) => {
     const res = await fetch("/api/z/outreach", {
@@ -115,14 +136,29 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
 
   const generateEmails = async (prospectIds?: string[]) => {
     setGenerating(true);
-    const data = await api("generate", { prospectIds });
-    if (data.emails) {
-      const listRes = await api("list", { status: "all" });
-      setProspects(listRes.prospects || []);
+    startGenTimer();
+    const ctrl = new AbortController();
+    genAbortRef.current = ctrl;
+    try {
+      const res = await fetch("/api/z/outreach", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        signal: ctrl.signal,
+        body: JSON.stringify({ action: "generate", userId, prospectIds }),
+      });
+      const data = await res.json();
+      if (data.emails) {
+        const listRes = await api("list", { status: "all" });
+        setProspects(listRes.prospects || []);
+      }
+      const s = await api("stats");
+      setStats(s);
+    } catch (e: any) {
+      if (e?.name !== "AbortError") console.error("[Outreach] Generate error:", e);
+    } finally {
+      genAbortRef.current = null;
+      stopGenTimer();
+      setGenerating(false);
     }
-    const s = await api("stats");
-    setStats(s);
-    setGenerating(false);
   };
 
   const markSent = async (emailId: string) => {
@@ -201,10 +237,14 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
 
   const generateABTest = async (prospectId: string) => {
     setAbTesting(true);
+    startGenTimer();
+    const ctrl = new AbortController();
+    genAbortRef.current = ctrl;
     try {
       const res = await fetch("/api/z/outreach", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: ctrl.signal,
         body: JSON.stringify({ action: "ab-generate", userId, prospectId }),
       });
       const data = await res.json();
@@ -217,15 +257,23 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
         setProspects(listData.prospects || []);
         loadStats();
       }
-    } catch (e) {
-      console.error("[Outreach] A/B test error:", e);
+    } catch (e: any) {
+      if (e?.name !== "AbortError") console.error("[Outreach] A/B test error:", e);
     } finally {
+      genAbortRef.current = null;
+      stopGenTimer();
       setAbTesting(false);
     }
   };
 
-  const queueProspects = prospects.filter((p) => ["discovered", "queued"].includes(p.status));
-  const sentProspects = prospects.filter((p) => ["sent", "replied"].includes(p.status));
+  // Only ever show prospects added through the manual-entry form. Anything
+  // else is a leftover from the automated-discovery feature that's been
+  // removed — those still exist in the database from before, but showing
+  // them here would mean surfacing cold-pitch analysis of strangers inside
+  // a tool that's now specifically about people you already know.
+  const knownProspects = prospects.filter((p) => p.source_url === "manual");
+  const queueProspects = knownProspects.filter((p) => ["discovered", "queued"].includes(p.status));
+  const sentProspects = knownProspects.filter((p) => ["sent", "replied"].includes(p.status));
 
   const platformColor = (p: string) => {
     const colors: Record<string, string> = { youtube: "#FF0000", instagram: "#E1306C", linkedin: "#0A66C2", website: C.accent, other: C.textMuted };
@@ -233,9 +281,16 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
   };
 
   const statusColor = (s: string) => {
-    const colors: Record<string, string> = { discovered: C.amber, queued: C.accent, sent: C.purple, replied: C.green, archived: C.textMuted };
+    const colors: Record<string, string> = { discovered: C.accent, queued: C.accent, sent: C.purple, replied: C.green, archived: C.textMuted };
     return colors[s] || C.textMuted;
   };
+
+  // "Discovered" is the backend's default status for a just-added prospect —
+  // a holdover name from when it meant "found by automated search." For a
+  // manually-added contact it just means "not yet contacted," so it's
+  // relabeled here without touching the underlying value anything else
+  // filters on.
+  const statusLabel = (s: string) => (s === "discovered" ? "New" : s);
 
   return (
     <div style={{
@@ -411,12 +466,6 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                 padding: "9px 20px", borderRadius: 999, border: "none",
                 background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600,
               }}>{showManualAdd ? "Cancel" : "+ Add a prospect"}</button>
-              {queueProspects.some((p) => !p.outreach_emails?.length) && (
-                <button className="or-btn-outlined" onClick={() => generateEmails()} disabled={generating} style={{
-                  padding: "9px 20px", borderRadius: 999, border: `1px solid ${C.border}`,
-                  background: "none", color: C.textSec, fontSize: 13, fontWeight: 600,
-                }}>{generating ? "Writing emails…" : "Generate emails"}</button>
-              )}
             </div>
 
             {showManualAdd && (
@@ -463,7 +512,10 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                             <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1 }}>{p.company || "—"}{p.platform ? ` · ${p.platform}` : ""}</div>
                           </div>
                         </div>
-                        <div style={{ padding: "3px 10px", borderRadius: 999, background: `${statusColor(p.status)}15`, border: `1px solid ${statusColor(p.status)}25`, fontSize: 11, fontWeight: 600, color: statusColor(p.status), textTransform: "capitalize" }}>{p.status}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <div style={{ padding: "3px 10px", borderRadius: 999, background: `${statusColor(p.status)}15`, border: `1px solid ${statusColor(p.status)}25`, fontSize: 11, fontWeight: 600, color: statusColor(p.status), textTransform: "capitalize" }}>{statusLabel(p.status)}</div>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: C.textMuted, transition: "transform 200ms ease", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </div>
                       </div>
 
                       {p.relevance_reason && <div style={{ fontSize: 12, color: C.textSec, marginTop: 10, lineHeight: 1.6 }}>{p.relevance_reason}</div>}
@@ -491,9 +543,23 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                       )}
 
                       {isExpanded && !email && (
-                        <div style={{ marginTop: 14, display: "flex", gap: 8, justifyContent: "center" }} onClick={(e) => e.stopPropagation()}>
-                          <button className="or-btn-accent" onClick={() => generateEmails([p.id])} disabled={generating || abTesting} style={{ padding: "8px 18px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 12, fontWeight: 600 }}>{generating ? "Writing…" : "Write email"}</button>
-                          <button className="or-btn-outlined" onClick={() => generateABTest(p.id)} disabled={generating || abTesting} style={{ padding: "8px 18px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.amber, fontSize: 12, fontWeight: 600 }}>{abTesting ? "Testing…" : "A/B test"}</button>
+                        <div style={{ marginTop: 14, display: "flex", gap: 8, justifyContent: "center", alignItems: "center" }} onClick={(e) => e.stopPropagation()}>
+                          {generating || abTesting ? (
+                            <>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 16px", borderRadius: 999, background: C.bgInput, border: `1px solid ${C.border}` }}>
+                                <div style={{ width: 12, height: 12, borderRadius: 999, border: `2px solid ${C.border}`, borderTopColor: C.accent, animation: "or-spin 0.7s linear infinite" }} />
+                                <span style={{ fontSize: 12, color: C.textSec, fontVariantNumeric: "tabular-nums" }}>
+                                  {abTesting ? "Writing variants…" : "Writing…"} {genElapsed}s
+                                </span>
+                              </div>
+                              <button className="or-btn-outlined" onClick={cancelGenerating} style={{ padding: "8px 16px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textMuted, fontSize: 12, fontWeight: 600 }}>Cancel</button>
+                            </>
+                          ) : (
+                            <>
+                              <button className="or-btn-accent" onClick={() => generateEmails([p.id])} style={{ padding: "8px 18px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 12, fontWeight: 600 }}>Write email</button>
+                              <button className="or-btn-outlined" onClick={() => generateABTest(p.id)} style={{ padding: "8px 18px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.amber, fontSize: 12, fontWeight: 600 }}>A/B test</button>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
@@ -528,7 +594,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{email?.subject || "No subject"}</div>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ padding: "3px 10px", borderRadius: 999, background: `${statusColor(p.status)}15`, border: `1px solid ${statusColor(p.status)}25`, fontSize: 11, fontWeight: 600, color: statusColor(p.status), textTransform: "capitalize" }}>{p.status}</div>
+                          <div style={{ padding: "3px 10px", borderRadius: 999, background: `${statusColor(p.status)}15`, border: `1px solid ${statusColor(p.status)}25`, fontSize: 11, fontWeight: 600, color: statusColor(p.status), textTransform: "capitalize" }}>{statusLabel(p.status)}</div>
                           {p.status === "sent" && email && (
                             <button className="or-btn-outlined" onClick={() => markReplied(email.id, p.id)} style={{ padding: "5px 12px", borderRadius: 999, border: `1px solid ${C.green}30`, background: `${C.green}12`, color: C.green, fontSize: 11, fontWeight: 600 }}>Mark replied</button>
                           )}
