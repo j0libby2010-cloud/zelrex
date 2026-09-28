@@ -55,6 +55,25 @@ const C = {
   green: "#10B981", purple: "#8B5CF6", amber: "#F59E0B", red: "#EF4444",
 };
 
+/* Icons drawn to match the main interface's set (1.5 stroke, round caps) —
+   typed glyphs like ✕ ↗ ✓ and emoji were standing in for real icons here,
+   which is one of the more obvious tells of a template. */
+const XIcon = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+);
+const PlusIcon = ({ size = 14 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+);
+const ArrowUpRightIcon = ({ size = 12 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M7 17L17 7M9 7h8v8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+);
+const CheckIcon = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+);
+const ChevronDownIcon = ({ size = 14 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+);
+
 export function OutreachSystem({ userId, onClose }: { userId: string; onClose: () => void }) {
   const [tab, setTab] = useState<"queue" | "sent" | "settings">("queue");
   const [prospects, setProspects] = useState<Prospect[]>([]);
@@ -348,8 +367,16 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
         .or-card{transition:border-color 150ms cubic-bezier(0.22,1,0.36,1),background-color 150ms cubic-bezier(0.22,1,0.36,1)}
         .or-card:hover{border-color:${C.borderHover}!important;background:${C.bgElevated}!important}
 
-        .or-tab{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1);cursor:pointer}
-        .or-tab:hover{background:rgba(255,255,255,0.04)!important}
+        .or-tab{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1);cursor:pointer;background:transparent}
+        .or-tab:hover{background:rgba(255,255,255,0.04)}
+        .or-tab.or-tab-active,.or-tab.or-tab-active:hover{background:rgba(255,255,255,0.07)}
+
+        /* Same height and rule as the main interface's top bar. Grid (1fr auto 1fr)
+           puts the tabs on the true center of the page — flex space-between was
+           centering them between unequal neighbors, which pushed them off-center. */
+        .or-header{height:52px;padding:0 14px 0 20px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;border-bottom:1px solid ${C.border}}
+        .or-header-title{display:flex;align-items:center;gap:8px}
+        .or-close{justify-self:end}
 
         .or-gs::-webkit-scrollbar { width: 5px; }
         .or-gs::-webkit-scrollbar-track { background: transparent; }
@@ -360,9 +387,10 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
         .or-input:focus { border-color: ${C.accent} !important; outline: none; }
 
         @media (max-width: 768px) {
-          .or-header { flex-direction: column !important; gap: 10px !important; padding: 14px 16px !important; position: relative !important; }
-          .or-header > div:first-child { width: 100%; }
-          .or-header .or-close { position: absolute !important; right: 14px !important; top: 14px !important; }
+          .or-header { height: auto; padding: 10px 10px 10px 16px; grid-template-columns: 1fr auto; grid-template-areas: "title close" "tabs tabs"; row-gap: 8px; }
+          .or-header-title { grid-area: title; }
+          .or-close { grid-area: close; }
+          .or-tabs { grid-area: tabs; justify-self: start; }
           .or-stats-bar { padding: 10px 14px !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
           .or-stats-bar::-webkit-scrollbar { display: none; }
           .or-content { padding: 14px !important; }
@@ -376,40 +404,28 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
         }
       `}</style>
 
-      <div className="or-header" style={{
-        padding: "16px 24px", display: "flex", alignItems: "center", justifyContent: "space-between",
-        borderBottom: `1px solid ${C.border}`,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: `${C.amber}15`, border: `1px solid ${C.amber}25`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="17" r="2" stroke={C.amber} strokeWidth="1.5" /><circle cx="19" cy="7" r="2" stroke={C.amber} strokeWidth="1.5" /><path d="M6.8 15.3 17.2 8.7" stroke={C.amber} strokeWidth="1.5" strokeLinecap="round" /><path d="M14 7.5h5.2V12.7" stroke={C.amber} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-          </div>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Outreach</div>
-            <div style={{ fontSize: 12, color: C.textMuted }}>Reach out to people you know</div>
-          </div>
+      <div className="or-header">
+        {/* Bare icon + label, same as the Outreach item in the sidebar —
+            no tinted box, no subtitle (the main top bar has neither). */}
+        <div className="or-header-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="17" r="2" stroke={C.amber} strokeWidth="1.5" /><circle cx="19" cy="7" r="2" stroke={C.amber} strokeWidth="1.5" /><path d="M6.8 15.3 17.2 8.7" stroke={C.amber} strokeWidth="1.5" strokeLinecap="round" /><path d="M14 7.5h5.2V12.7" stroke={C.amber} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <span style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Outreach</span>
         </div>
 
-        <div style={{ display: "flex", gap: 2, padding: 3, borderRadius: 999, background: C.bgInput, border: `1px solid ${C.border}` }}>
+        <div className="or-tabs" style={{ display: "flex", gap: 2 }}>
           {(["queue", "sent", "settings"] as const).map((t) => (
-            <button key={t} className="or-tab" onClick={() => { setTab(t); setSetupMode(false); }} style={{
-              padding: "6px 16px", border: "none", fontSize: 12, fontWeight: 600, textTransform: "capitalize",
+            <button key={t} className={tab === t ? "or-tab or-tab-active" : "or-tab"} onClick={() => { setTab(t); setSetupMode(false); }} style={{
+              padding: "6px 14px", border: "none", fontSize: 13, fontWeight: 500, textTransform: "capitalize",
               borderRadius: 999,
-              background: tab === t ? C.accentSoft : "transparent",
-              color: tab === t ? C.accent : C.textSec,
+              color: tab === t ? C.text : C.textSec,
             }}>{t}</button>
           ))}
         </div>
 
-        <button className="or-btn-icon or-close" onClick={onClose} style={{
-          width: 32, height: 32,
-          border: `1px solid ${C.border}`, background: "none", color: C.textSec,
-          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14,
-        }}>✕</button>
+        <button className="or-btn-icon or-close" onClick={onClose} aria-label="Close" style={{
+          width: 32, height: 32, border: "none", background: "none", color: C.textSec,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}><XIcon size={17} /></button>
       </div>
 
       {stats && !setupMode && knownProspects.length > 0 && (
@@ -449,41 +465,38 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
             <div style={{ width: 36, height: 36, borderRadius: 999, border: `2px solid ${C.border}`, borderTopColor: C.accent, animation: "or-spin 0.8s linear infinite" }} />
           </div>
         ) : setupMode || tab === "settings" ? (
+          /* No card around this — same as the main welcome screen, the
+             content sits directly on the page. One heading, one control,
+             one button. */
           <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ maxWidth: 440, width: "100%", animation: "or-fadeUp 300ms ease 80ms both" }}>
-              <div style={{ background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 16, padding: 28 }}>
-                <div style={{ fontSize: 18, fontWeight: 600, color: C.text, marginBottom: 6, letterSpacing: "-0.01em" }}>
-                  {settings ? "Outreach Settings" : "Set Up Outreach"}
-                </div>
-                <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 24, lineHeight: 1.6 }}>
-                  What tone should Zelrex use when writing your outreach messages?
-                </div>
+            <div style={{ maxWidth: 420, width: "100%", textAlign: "center", animation: "or-fadeUp 300ms ease 80ms both" }}>
+              <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.15, color: C.text }}>
+                {settings ? "How should it sound?" : "Set up outreach"}
+              </h1>
+              <p style={{ margin: "10px auto 28px", fontSize: 14, lineHeight: 1.6, color: C.textSec, maxWidth: 340 }}>
+                Choose the tone Zelrex uses when it drafts messages for you. You can always edit before sending.
+              </p>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 8, display: "block" }}>Email tone</label>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      {["professional", "casual", "bold"].map((t) => (
-                        <button key={t} className={formTone === t ? "or-btn-accent" : "or-btn-outlined"} onClick={() => setFormTone(t)} style={{
-                          padding: "8px 18px", borderRadius: 999, fontSize: 12, fontWeight: 600, textTransform: "capitalize",
-                          border: `1px solid ${formTone === t ? "transparent" : C.border}`,
-                          background: formTone === t ? C.accent : "none",
-                          color: formTone === t ? "#fff" : C.textSec,
-                        }}>{t}</button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <button className="or-btn-accent" onClick={handleSaveSettings} disabled={savingSettings} style={{
-                    padding: "11px 24px", borderRadius: 999, border: "none", marginTop: 6,
-                    background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600,
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  }}>
-                    {savingSettings && <div style={{ width: 12, height: 12, borderRadius: 999, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", animation: "or-spin 0.7s linear infinite" }} />}
-                    {savingSettings ? "Saving…" : settingsSaved ? "Saved ✓" : settings ? "Save Settings" : "Get Started"}
-                  </button>
-                </div>
+              <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 28 }}>
+                {["professional", "casual", "bold"].map((t) => (
+                  <button key={t} className="or-btn-outlined" onClick={() => setFormTone(t)} style={{
+                    padding: "8px 18px", borderRadius: 999, fontSize: 13, fontWeight: 500, textTransform: "capitalize",
+                    border: `1px solid ${formTone === t ? C.accent + "55" : C.border}`,
+                    background: formTone === t ? C.accentSoft : "none",
+                    color: formTone === t ? C.accent : C.textSec,
+                  }}>{t}</button>
+                ))}
               </div>
+
+              <button className="or-btn-accent" onClick={handleSaveSettings} disabled={savingSettings} style={{
+                padding: "10px 24px", borderRadius: 999, border: "none",
+                background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600,
+                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8,
+              }}>
+                {savingSettings && <div style={{ width: 12, height: 12, borderRadius: 999, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", animation: "or-spin 0.7s linear infinite" }} />}
+                {settingsSaved && <CheckIcon />}
+                {savingSettings ? "Saving…" : settingsSaved ? "Saved" : settings ? "Save" : "Get started"}
+              </button>
             </div>
           </div>
         ) : tab === "queue" ? (
@@ -496,8 +509,8 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
               <div style={{ maxWidth: 480, width: "100%", animation: "or-fadeUp 200ms ease" }}>
                 <div style={{ background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                    <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Add a prospect</div>
-                    <button className="or-btn-icon" onClick={() => setShowManualAdd(false)} style={{ width: 26, height: 26, border: "none", background: "none", color: C.textMuted, fontSize: 13 }}>✕</button>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Add someone</div>
+                    <button className="or-btn-icon" onClick={() => setShowManualAdd(false)} aria-label="Close" style={{ width: 28, height: 28, border: "none", background: "none", color: C.textMuted, display: "flex", alignItems: "center", justifyContent: "center" }}><XIcon size={15} /></button>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
                     <input className="or-input" placeholder="Name *" value={manualForm.name} onChange={e => setManualForm(f => ({ ...f, name: e.target.value }))} style={{ padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontSize: 13, outline: "none" }} />
@@ -517,27 +530,24 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
               </div>
             </div>
           ) : queueProspects.length === 0 ? (
-            /* Empty state carries its own call to action — there's no
-               separate floating button above an unrelated message. */
+            /* Same shape as the main welcome screen: a big heading, one
+               quiet line, one action. No icon box, no card. */
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <div style={{ textAlign: "center", animation: "or-fadeUp 300ms ease 80ms both" }}>
-                <div style={{ width: 56, height: 56, borderRadius: 16, margin: "0 auto 20px", background: C.bgInput, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="17" r="2" stroke={C.textMuted} strokeWidth="1.5" /><circle cx="19" cy="7" r="2" stroke={C.textMuted} strokeWidth="1.5" /><path d="M6.8 15.3 17.2 8.7" stroke={C.textMuted} strokeWidth="1.5" strokeLinecap="round" /></svg>
-                </div>
-                <div style={{ fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 8 }}>No prospects yet</div>
-                <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, maxWidth: 340, margin: "0 auto 20px" }}>
-                  Add someone you'd like to reach out to — a referral, a past client, someone who already knows your work.
-                </div>
-                <button className="or-btn-accent" onClick={() => setShowManualAdd(true)} style={{ padding: "9px 20px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600 }}>+ Add a prospect</button>
+                <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.15, color: C.text }}>Who do you want to reach out to?</h1>
+                <p style={{ margin: "10px auto 26px", fontSize: 14, lineHeight: 1.6, color: C.textSec, maxWidth: 360 }}>
+                  Add someone you already know — a referral, a past client, someone familiar with your work.
+                </p>
+                <button className="or-btn-accent" onClick={() => setShowManualAdd(true)} style={{ padding: "10px 20px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}><PlusIcon size={14} />Add someone</button>
               </div>
             </div>
           ) : (
             <div style={{ maxWidth: 780, margin: "0 auto", width: "100%" }}>
               <div className="or-actions" style={{ display: "flex", gap: 10, marginBottom: 16, animation: "or-fadeUp 300ms ease 60ms both" }}>
                 <button className="or-btn-accent" onClick={() => setShowManualAdd(true)} style={{
-                  padding: "9px 20px", borderRadius: 999, border: "none",
-                  background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600,
-                }}>+ Add a prospect</button>
+                  padding: "9px 18px", borderRadius: 999, border: "none",
+                  background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6,
+                }}><PlusIcon size={14} />Add someone</button>
               </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -559,7 +569,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                             <div style={{ width: 5, height: 5, borderRadius: 999, background: statusColor(p.status) }} />
                             <span style={{ fontSize: 11, fontWeight: 500, color: C.textMuted }}>{statusLabel(p.status)}</span>
                           </div>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ color: C.textMuted, transition: "transform 200ms ease", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                          <span style={{ display: "inline-flex", color: C.textMuted, transition: "transform 200ms ease", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}><ChevronDownIcon size={14} /></span>
                         </div>
                       </div>
 
@@ -568,7 +578,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                       {p.platform_url && (
                         <div style={{ marginTop: 8 }}>
                           <a href={p.platform_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="or-btn" style={{ fontSize: 11, fontWeight: 500, color: C.textSec, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 4 }}>
-                            Visit website ↗
+                            Visit website<ArrowUpRightIcon size={11} />
                           </a>
                         </div>
                       )}
@@ -578,7 +588,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                           <div style={{ fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 6 }}>Subject: {email.subject}</div>
                           <div style={{ fontSize: 13, color: C.textSec, lineHeight: 1.7, whiteSpace: "pre-wrap", marginBottom: 14 }}>{email.body}</div>
                           <div className="or-email-actions" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                            <button className="or-btn-accent" onClick={() => { openInEmail(email, p); markSent(email.id); }} style={{ padding: "8px 16px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 12, fontWeight: 600 }}>Open in email ↗</button>
+                            <button className="or-btn-accent" onClick={() => { openInEmail(email, p); markSent(email.id); }} style={{ padding: "8px 16px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 12, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>Open in email<ArrowUpRightIcon size={12} /></button>
                             <button className="or-btn" onClick={() => copyEmail(email)} style={{ padding: "8px 12px", borderRadius: 999, border: "none", background: "none", color: C.textMuted, fontSize: 12, fontWeight: 500 }}>Copy</button>
                             <button className="or-btn" onClick={() => regenerateEmail(p.id)} style={{ padding: "8px 12px", borderRadius: 999, border: "none", background: "none", color: C.textMuted, fontSize: 12, fontWeight: 500 }}>Rewrite</button>
                             <button className="or-btn" onClick={() => generateLinkedInDM(p.id)} style={{ padding: "8px 12px", borderRadius: 999, border: "none", background: "none", color: C.textMuted, fontSize: 12, fontWeight: 500 }}>LinkedIn DM</button>
@@ -618,11 +628,10 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
           <div style={{ maxWidth: 780, margin: "0 auto", width: "100%", flex: sentProspects.length === 0 ? 1 : undefined, display: sentProspects.length === 0 ? "flex" : "block", alignItems: sentProspects.length === 0 ? "center" : undefined, justifyContent: sentProspects.length === 0 ? "center" : undefined }}>
             {sentProspects.length === 0 ? (
               <div style={{ textAlign: "center", animation: "or-fadeUp 300ms ease 80ms both" }}>
-                <div style={{ width: 56, height: 56, borderRadius: 16, margin: "0 auto 20px", background: C.bgInput, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10z" stroke={C.textMuted} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                </div>
-                <div style={{ fontSize: 16, fontWeight: 600, color: C.text, marginBottom: 8 }}>No sent emails yet</div>
-                <div style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.6, maxWidth: 340, margin: "0 auto" }}>Add a prospect and send your first outreach email.</div>
+                <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.15, color: C.text }}>Nothing sent yet</h1>
+                <p style={{ margin: "10px auto 0", fontSize: 14, lineHeight: 1.6, color: C.textSec, maxWidth: 340 }}>
+                  Once you send an email from here, it shows up so you can track replies.
+                </p>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -672,7 +681,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                 <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>LinkedIn DM script</div>
                 {linkedInDm && <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{linkedInDm.prospectName} · {linkedInDm.prospectCompany}</div>}
               </div>
-              <button className="or-btn-icon" onClick={() => { setLinkedInDm(null); setLinkedInLoading(false); }} style={{ background: "none", border: "none", color: C.textMuted, fontSize: 16, width: 28, height: 28 }}>✕</button>
+              <button className="or-btn-icon" onClick={() => { setLinkedInDm(null); setLinkedInLoading(false); }} aria-label="Close" style={{ background: "none", border: "none", color: C.textMuted, width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}><XIcon size={15} /></button>
             </div>
 
             {linkedInLoading ? (
@@ -695,7 +704,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                   <button className="or-btn" onClick={() => copyToClipboard(linkedInDm.follow_up_dm)} style={{ marginTop: 6, padding: "5px 10px", borderRadius: 999, border: "none", background: "none", color: C.textMuted, fontSize: 11, fontWeight: 600 }}>Copy</button>
                 </div>
                 {linkedInDm.profile_tip && (
-                  <div style={{ padding: "10px 14px", borderRadius: 10, background: C.bgInput, border: `1px solid ${C.border}`, fontSize: 12, color: C.textMuted, lineHeight: 1.6 }}>💡 {linkedInDm.profile_tip}</div>
+                  <div style={{ padding: "10px 14px", borderRadius: 10, background: C.bgInput, border: `1px solid ${C.border}`, fontSize: 12, color: C.textMuted, lineHeight: 1.6 }}><span style={{ fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", fontSize: 11, marginRight: 8 }}>Tip</span>{linkedInDm.profile_tip}</div>
                 )}
               </div>
             )}
