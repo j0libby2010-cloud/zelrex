@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 // Types
 interface Client { id: string; name: string; email: string; company: string; phone: string; source: string; status: string; value_cents: number; notes: string; tags: string[]; last_contacted_at: string | null; created_at: string; crm_invoices?: any[]; crm_contracts?: any[]; crm_followups?: any[]; }
 interface Invoice { id: string; client_id: string; invoice_number: string; status: string; amount_cents: number; currency: string; due_date: string | null; paid_date: string | null; items: any[]; notes: string; sent_at: string | null; reminder_count: number; created_at: string; crm_clients?: { name: string; email: string; company: string }; }
-interface Contract { id: string; client_id: string; title: string; status: string; type: string; content: string; amount_cents: number; created_at: string; crm_clients?: { name: string; email: string }; }
 interface DashStats { totalClients: number; activeClients: number; totalRevenue: number; totalOutstanding: number; totalPending: number; totalInvoices: number; paidInvoices: number; overdueInvoices: number; activeContracts: number; estimatedMRR: number; activeProjects?: number; recentPaidInvoices?: number; revenueMilestones?: { reached: string[]; next: { label: string; progress: number } | null }; avgClientValue?: number; avgInvoiceSize?: number; }
 
 /* Zelrex design tokens — mirrors the C object in ChatPageClient.tsx. Same
@@ -59,10 +58,9 @@ const Btn = ({ children, variant = "ghost", ...props }: any) => {
 const Input = ({ style, ...props }: any) => <input {...props} className="cr-input" style={{ width: "100%", ...style }} />;
 
 export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => void }) {
-  const [tab, setTab] = useState<"dashboard" | "clients" | "invoices" | "contracts" | "projects">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "clients" | "invoices" | "projects">("dashboard");
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [contracts, setContracts] = useState<Contract[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [stats, setStats] = useState<DashStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,10 +68,8 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [showAddClient, setShowAddClient] = useState(false);
   const [showAddInvoice, setShowAddInvoice] = useState(false);
-  const [showAddContract, setShowAddContract] = useState(false);
   const [showAddProject, setShowAddProject] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [viewContract, setViewContract] = useState<Contract | null>(null);
 
   useEffect(() => { requestAnimationFrame(() => setMounted(true)); }, []);
 
@@ -101,8 +97,6 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
   const [screenHistory, setScreenHistory] = useState<any[]>([]);
   // Project form
   const [projName, setProjName] = useState(""); const [projDesc, setProjDesc] = useState(""); const [projClientId, setProjClientId] = useState(""); const [projValue, setProjValue] = useState(""); const [projDue, setProjDue] = useState("");
-  // Contract form (manual entry — Zelrex no longer writes contract text itself)
-  const [contractTitle, setContractTitle] = useState(""); const [contractType, setContractType] = useState("contract"); const [contractClientId, setContractClientId] = useState(""); const [contractAmount, setContractAmount] = useState(""); const [contractContent, setContractContent] = useState(""); const [savingContract, setSavingContract] = useState(false);
 
   const api = async (action: string, extra: any = {}) => {
     const res = await fetch("/api/z/crm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, userId, ...extra }) });
@@ -111,13 +105,13 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
 
   const loadAll = useCallback(async () => {
     setLoading(true);
-    const [cl, inv, con, dash, proj, trend, outcomeRes] = await Promise.all([
-      api("clients-list"), api("invoices-list"), api("contracts-list"),
+    const [cl, inv, dash, proj, trend, outcomeRes] = await Promise.all([
+      api("clients-list"), api("invoices-list"),
       api("dashboard"), api("projects-list"),
       api("revenue-trend", { months: 12 }).catch(() => null),
       api("outcome-list").catch(() => ({ outcomes: [] })),
     ]);
-    setClients(cl.clients || []); setInvoices(inv.invoices || []); setContracts(con.contracts || []); setStats(dash); setProjects(proj.projects || []);
+    setClients(cl.clients || []); setInvoices(inv.invoices || []); setStats(dash); setProjects(proj.projects || []);
     if (trend && !trend.error) setRevenueTrend(trend);
     setOutcomes(outcomeRes.outcomes || []);
     api("invoices-process-recurring").catch(() => {});
@@ -146,9 +140,6 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
   const deleteInvoice = async (id: string) => { if (confirm("Delete this invoice?")) { await api("invoices-update", { invoiceId: id, status: "cancelled" }); loadAll(); } };
   const markInvoiceUnpaid = async (id: string) => { await api("invoices-update", { invoiceId: id, status: "sent", paid_date: null }); loadAll(); };
 
-  const deleteContract = async (id: string) => { if (confirm("Delete this contract?")) { await api("contracts-update", { contractId: id, status: "expired" }); loadAll(); } };
-  const markContractNotAccepted = async (id: string) => { await api("contracts-update", { contractId: id, status: "draft", accepted_at: null }); loadAll(); };
-
   const createInvoice = async () => {
     if (!invClientId || invItems.every(i => !i.description)) return;
     const items = invItems.map(i => ({ ...i, amount_cents: i.qty * i.rate_cents }));
@@ -168,35 +159,12 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
     }
   };
 
-  // FIXED: generateContract() previously called an API that had Zelrex
-  // write actual legal contract/proposal text with AI, then emailed it
-  // straight to the client. Cut entirely — same reasoning as the automated
-  // outreach features removed earlier: a contract is a binding document,
-  // and "good enough" AI-written legal text is a real liability for
-  // whoever's business is relying on it. Replaced with manual entry below:
-  // Zelrex tracks a contract's status, it doesn't write the contract.
-  const addContract = async () => {
-    if (!contractTitle.trim() || !contractClientId) return;
-    setSavingContract(true);
-    try {
-      await api("contracts-create", {
-        clientId: contractClientId, title: contractTitle, type: contractType,
-        content: contractContent, amountCents: contractAmount ? Math.round(parseFloat(contractAmount) * 100) : 0,
-      });
-      setContractTitle(""); setContractClientId(""); setContractAmount(""); setContractContent(""); setShowAddContract(false);
-      loadAll();
-    } finally {
-      setSavingContract(false);
-    }
-  };
-
-  const sendContractEmail = async (contract: Contract) => {
-    const client = clients.find(c => c.id === contract.client_id);
-    const mailto = `mailto:${client?.email || ""}?subject=${encodeURIComponent(contract.title)}&body=${encodeURIComponent(contract.content.slice(0, 2000))}`;
-    window.open(mailto, "_blank");
-    await api("contracts-update", { contractId: contract.id, status: "sent", sent_at: new Date().toISOString() });
-    loadAll();
-  };
+  // FIXED: Contracts are gone as a feature entirely now, not just AI
+  // generation. An earlier pass kept a manual-tracking replacement (title,
+  // status, paste-your-own-text) reasoning it was lower-risk than
+  // AI-written content — but that wasn't asked for, so it's removed too.
+  // If contract tracking is wanted later, it can be added back deliberately
+  // rather than carried over by default.
 
   const screenClient = async () => {
     if (!screenText.trim()) return;
@@ -212,7 +180,6 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
     { id: "dashboard", label: "Dashboard" },
     { id: "clients", label: "Clients" },
     { id: "invoices", label: "Invoices" },
-    { id: "contracts", label: "Contracts" },
     { id: "projects", label: "Projects" },
   ];
 
@@ -658,7 +625,6 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <Btn variant="outlined" onClick={() => setEditingClient(editingClient?.id === c.id ? null : { ...c })}>{editingClient?.id === c.id ? "Cancel Edit" : "Edit Info"}</Btn>
                       <Btn variant="outlined" onClick={() => { setInvClientId(c.id); setShowAddInvoice(true); setTab("invoices"); }}>Create Invoice</Btn>
-                      <Btn variant="outlined" onClick={() => { setContractClientId(c.id); setShowAddContract(true); setTab("contracts"); }}>Add Contract</Btn>
                       <Btn variant="danger" onClick={() => deleteClient(c.id)}>Delete</Btn>
                     </div>
                     {editingClient?.id === c.id && (
@@ -739,69 +705,6 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
                   {(inv.status === "sent" || inv.status === "overdue") && <Btn variant="outlined" onClick={() => sendInvoiceReminder(inv)}>Send Reminder</Btn>}
                   <Btn variant="danger" onClick={() => deleteInvoice(inv.id)}>Delete</Btn>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : tab === "contracts" ? (
-          <div style={{ maxWidth: 860, margin: "0 auto" }}>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 20 }}>
-              <Btn variant="accent" onClick={() => setShowAddContract(!showAddContract)}>{showAddContract ? "Cancel" : "+ Add Contract"}</Btn>
-              {contracts.length > 0 && <span style={{ fontSize: 12, color: C.textMuted }}>{contracts.length} contract{contracts.length !== 1 ? "s" : ""}</span>}
-            </div>
-
-            {/* Manual entry — Zelrex tracks a contract's status, it doesn't
-                write the contract. Paste in text from your own template or
-                lawyer, or just track the status with no content at all. */}
-            {showAddContract && (
-              <div style={{ background: C.bgElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: 20, marginBottom: 16, animation: "cr-fadeUp 200ms ease" }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 14 }}>Add a contract</div>
-                <div className="cr-new-form" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
-                  <Input placeholder="Title *" value={contractTitle} onChange={(e: any) => setContractTitle(e.target.value)} />
-                  <select className="cr-input" value={contractClientId} onChange={(e: any) => setContractClientId(e.target.value)}>
-                    <option value="">Select client *</option>
-                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}{c.company ? ` (${c.company})` : ""}</option>)}
-                  </select>
-                  <select className="cr-input" value={contractType} onChange={(e: any) => setContractType(e.target.value)}>
-                    <option value="contract">Contract</option>
-                    <option value="proposal">Proposal</option>
-                  </select>
-                  <Input placeholder="Amount ($)" type="number" value={contractAmount} onChange={(e: any) => setContractAmount(e.target.value)} />
-                </div>
-                <textarea className="cr-input" placeholder="Paste the contract text here if you have it (optional) — Zelrex just keeps a copy and tracks its status, it won't write this for you" value={contractContent} onChange={e => setContractContent(e.target.value)} style={{ width: "100%", minHeight: 100, resize: "vertical", marginBottom: 12 }} />
-                <Btn variant="accent" onClick={addContract} disabled={savingContract || !contractTitle.trim() || !contractClientId} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                  {savingContract && <div style={{ width: 12, height: 12, borderRadius: 999, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", animation: "cr-spin 0.7s linear infinite" }} />}
-                  {savingContract ? "Saving…" : "Save"}
-                </Btn>
-              </div>
-            )}
-
-            {contracts.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "56px 20px" }}>
-                <h1 style={{ margin: 0, fontSize: 26, fontWeight: 600, letterSpacing: "-0.03em", color: C.text }}>No contracts yet</h1>
-                <p style={{ margin: "8px auto 0", fontSize: 13, color: C.textSec, maxWidth: 340 }}>Add one once you've sent it, or paste in your own template to keep a copy and track its status here.</p>
-              </div>
-            ) : contracts.map((con, i) => (
-              <div key={con.id} className="cr-card" style={{ background: C.bgElevated, border: `1px solid ${C.border}`, borderLeft: `2px solid ${statusColor(con.status)}`, borderRadius: 14, padding: 18, marginBottom: 8, animation: `cr-fadeUp 250ms ${EASE} ${i * 30}ms both` }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{con.title}</div>
-                    <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{con.crm_clients?.name || "Unknown"} · <span style={{ textTransform: "capitalize" }}>{con.type}</span>{con.amount_cents > 0 ? ` · ${fmt(con.amount_cents)}` : ""}</div>
-                  </div>
-                  <StatusBadge status={con.status} />
-                </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-                  {con.content && <Btn variant="outlined" onClick={() => setViewContract(viewContract?.id === con.id ? null : con)}>{viewContract?.id === con.id ? "Hide" : "View"}</Btn>}
-                  {con.status === "draft" && con.content && <Btn variant="outlined" onClick={() => sendContractEmail(con)}>Send to Client</Btn>}
-                  {con.content && <Btn onClick={() => navigator.clipboard.writeText(con.content)}>Copy</Btn>}
-                  {con.status === "sent" && <Btn variant="outlined" onClick={() => api("contracts-update", { contractId: con.id, status: "accepted", accepted_at: new Date().toISOString() }).then(loadAll)}>Mark Accepted</Btn>}
-                  {con.status === "accepted" && <Btn variant="outlined" onClick={() => markContractNotAccepted(con.id)}>Mark Not Accepted</Btn>}
-                  <Btn variant="danger" onClick={() => deleteContract(con.id)}>Delete</Btn>
-                </div>
-                {viewContract?.id === con.id && (
-                  <div style={{ marginTop: 12, padding: 16, borderRadius: 10, background: C.bgInput, border: `1px solid ${C.border}`, maxHeight: 360, overflowY: "auto" }}>
-                    <pre style={{ fontSize: 12, color: C.textSec, lineHeight: 1.7, whiteSpace: "pre-wrap", wordWrap: "break-word", fontFamily: "inherit", margin: 0 }}>{con.content}</pre>
-                  </div>
-                )}
               </div>
             ))}
           </div>
