@@ -408,7 +408,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
         {/* Bare icon + label, same as the Outreach item in the sidebar —
             no tinted box, no subtitle (the main top bar has neither). */}
         <div className="or-header-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="17" r="2" stroke={C.amber} strokeWidth="1.5" /><circle cx="19" cy="7" r="2" stroke={C.amber} strokeWidth="1.5" /><path d="M6.8 15.3 17.2 8.7" stroke={C.amber} strokeWidth="1.5" strokeLinecap="round" /><path d="M14 7.5h5.2V12.7" stroke={C.amber} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="5" cy="17" r="2" stroke={"#FBBF24"} strokeWidth="1.5" /><circle cx="19" cy="7" r="2" stroke={"#FBBF24"} strokeWidth="1.5" /><path d="M6.8 15.3 17.2 8.7" stroke={"#FBBF24"} strokeWidth="1.5" strokeLinecap="round" /><path d="M14 7.5h5.2V12.7" stroke={"#FBBF24"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
           <span style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Outreach</span>
         </div>
 

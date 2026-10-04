@@ -54,7 +54,7 @@ const XIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
 );
 const ChartIcon = ({ size = 16, color = C.textMuted }: { size?: number; color?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M4 20V15M9.5 20V11M15 20V7M20 20V4" stroke={color} strokeWidth="1.6" strokeLinecap="round" /></svg>
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M4 20V15M9.5 20V11M15 20V7M20 20V4" stroke={color} strokeWidth="1.6" strokeLinecap="round" /><circle cx="20" cy="4" r="1.15" fill={color} /></svg>
 );
 const ClockIcon = ({ size = 18, color = C.textMuted }: { size?: number; color?: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke={color} strokeWidth="1.5" /><path d="M12 7v5l3.5 2" stroke={color} strokeWidth="1.5" strokeLinecap="round" /></svg>
@@ -195,7 +195,7 @@ export function AnalyticsDashboard({ userId, onClose, deployed = false }: { user
           the main top bar and the sidebar's own Analytics item. */}
       <div className="an-header">
         <div className="an-header-title">
-          <ChartIcon size={16} color={C.accent} />
+          <ChartIcon size={16} color="#8B5CF6" />
           <span style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Analytics</span>
         </div>
 

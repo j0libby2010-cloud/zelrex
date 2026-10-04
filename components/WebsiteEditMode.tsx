@@ -2,12 +2,68 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
-const G = {
-  bg: "#050709", glass: "rgba(255,255,255,0.025)", glassBorder: "rgba(255,255,255,0.055)",
-  text: "rgba(255,255,255,0.92)", textSec: "rgba(255,255,255,0.52)", textMuted: "rgba(255,255,255,0.26)",
-  accent: "#3B82F6", green: "#34D399", amber: "#FBBF24", red: "#F87171",
+/* Zelrex design tokens: same values as the C object in ChatPageClient.tsx. */
+const C = {
+  bg: "#06090F", bgElevated: "#0D1320", bgInput: "#080D17",
+  border: "rgba(255,255,255,0.07)", borderHover: "rgba(255,255,255,0.14)",
+  accent: "#4A90FF", accentSoft: "rgba(74,144,255,0.08)",
+  text: "rgba(255,255,255,0.88)", textSec: "rgba(255,255,255,0.50)", textMuted: "rgba(255,255,255,0.30)",
+  green: "#10B981", red: "#EF4444",
 };
 const EASE = "cubic-bezier(0.22,1,0.36,1)";
+
+/* Drawn icons: 1.5 stroke, round caps, same as the rest of the app. */
+const XIcon = ({ size = 17 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+);
+const PencilIcon = ({ size = 16, color = C.accent }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M4 20l1-4.5L16.2 4.3a1.5 1.5 0 012.1 0l1.4 1.4a1.5 1.5 0 010 2.1L8.5 19 4 20z" stroke={color} strokeWidth="1.5" strokeLinejoin="round" /><path d="M14 6.5l3.5 3.5" stroke={color} strokeWidth="1.5" strokeLinecap="round" /></svg>
+);
+const CheckIcon = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+);
+
+const WE_STYLES = `
+  @keyframes weFadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes weSpin{to{transform:rotate(360deg)}}
+
+  .we-btn{transition:background-color 150ms ${EASE},color 150ms ${EASE};cursor:pointer;background:transparent;border:none}
+  .we-btn:hover{background:rgba(255,255,255,0.05);color:${C.text}!important}
+  .we-btn-accent{transition:filter 150ms ${EASE},transform 100ms ${EASE}}
+  .we-btn-accent:not(:disabled){cursor:pointer}
+  .we-btn-accent:not(:disabled):hover{filter:brightness(1.1)}
+  .we-btn-accent:not(:disabled):active{transform:scale(0.98)}
+  .we-btn-icon{transition:background-color 150ms ${EASE},color 150ms ${EASE};cursor:pointer;border-radius:999px}
+  .we-btn-icon:hover{background:rgba(255,255,255,0.06)!important;color:${C.text}!important}
+
+  .we-navitem{transition:background-color 150ms ${EASE},color 150ms ${EASE};cursor:pointer;background:transparent;border:none;width:100%;text-align:left;font-family:inherit}
+  .we-navitem:hover{background:rgba(255,255,255,0.04)}
+  .we-navitem.we-navitem-active,.we-navitem.we-navitem-active:hover{background:rgba(255,255,255,0.07)}
+
+  .we-input{width:100%;padding:10px 14px;border-radius:10px;border:1px solid ${C.border};background:${C.bgInput};color:${C.text};font-size:13px;font-family:inherit;outline:none;transition:border-color 150ms ${EASE}}
+  .we-input:focus{border-color:${C.accent}}
+  .we-input::placeholder{color:${C.textMuted}}
+  .we-textarea{resize:vertical;min-height:76px;line-height:1.6}
+  select.we-input{cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.35)' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+  select.we-input option,select.we-input optgroup{background:${C.bgElevated};color:${C.text}}
+  .we-group{padding:18px;border-radius:14px;background:${C.bgElevated};border:1px solid ${C.border};margin-bottom:16px}
+
+  .we-gs::-webkit-scrollbar{width:5px}
+  .we-gs::-webkit-scrollbar-track{background:transparent}
+  .we-gs::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08);border-radius:999px}
+  .we-gs::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.14)}
+
+  /* Same top bar as every other panel: 52px with a hairline. */
+  .we-header{height:52px;padding:0 14px 0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid ${C.border};flex-shrink:0}
+
+  @media(max-width:768px){
+    .we-nav{display:none!important}
+    .we-mobile-nav{display:block!important}
+    .we-main{padding:20px 16px!important}
+    .we-input{font-size:16px}
+  }
+  @media(max-width:520px){ .we-status{display:none!important} }
+`;
 
 interface EditableField {
   id: string;
@@ -211,6 +267,8 @@ export function WebsiteEditMode({ websiteData, onSave, onClose }: {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { requestAnimationFrame(() => setMounted(true)); }, []);
 
   // FIXED: Capture original data so Discard always returns to it
   const originalDataRef = useRef<any>(null);
@@ -316,11 +374,30 @@ export function WebsiteEditMode({ websiteData, onSave, onClose }: {
 
   if (!websiteData) {
     return (
-      <div style={{ position: "fixed", inset: 0, zIndex: 9700, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center" }} onClick={onClose}>
-        <div style={{ color: G.textSec, fontSize: 14 }}>No website data to edit. Build a website first.</div>
+      <div style={{ position: "fixed", inset: 0, zIndex: 9700, background: C.bg, display: "flex", flexDirection: "column", opacity: mounted ? 1 : 0, transition: `opacity 300ms ${EASE}` }}>
+        <style>{WE_STYLES}</style>
+        <div className="we-header">
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <PencilIcon />
+            <span style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Edit website</span>
+          </div>
+          <button className="we-btn-icon" onClick={onClose} aria-label="Close" title="Close (Esc)" style={{ width: 32, height: 32, border: "none", background: "none", color: C.textSec, display: "flex", alignItems: "center", justifyContent: "center" }}><XIcon /></button>
+        </div>
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
+          <div style={{ textAlign: "center", maxWidth: 360, animation: "weFadeUp 300ms ease 80ms both" }}>
+            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.15, color: C.text }}>Nothing to edit yet</h1>
+            <p style={{ margin: "10px auto 0", fontSize: 14, lineHeight: 1.6, color: C.textSec }}>Build a website first, then come back to change its text.</p>
+          </div>
+        </div>
       </div>
     );
   }
+
+  // Closing from the X behaves like Esc: ask first if there are unsaved edits.
+  const requestClose = () => {
+    if (hasChanges && !confirm("You have unsaved changes. Close anyway?")) return;
+    onClose();
+  };
 
   const visibleFields = fields.filter(f => f.section === activeSection);
   const grouped: Record<string, EditableField[]> = {};
@@ -330,97 +407,116 @@ export function WebsiteEditMode({ websiteData, onSave, onClose }: {
     else ungrouped.push(f);
   });
 
-  return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9700, background: "rgb(3,5,8)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <style>{`
-        @keyframes weFadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-        .we-input{width:100%;padding:10px 14px;border-radius:10px;border:1px solid ${G.glassBorder};background:rgba(255,255,255,0.03);color:${G.text};font-size:13px;font-family:inherit;outline:none;transition:border-color 200ms}
-        .we-input:focus{border-color:${G.accent}}
-        .we-textarea{resize:vertical;min-height:60px;line-height:1.6}
-        .we-group{padding:14px;border-radius:12px;background:rgba(255,255,255,0.015);border:1px solid ${G.glassBorder};margin-bottom:16px}
-      `}</style>
+  // Section names look like "Home — Benefits": group them by page for the nav.
+  const navGroups: { page: string; items: { key: string; label: string }[] }[] = [];
+  sections.forEach(s => {
+    const [page, sub] = s.split(" — ");
+    let g = navGroups.find(x => x.page === page);
+    if (!g) { g = { page, items: [] }; navGroups.push(g); }
+    g.items.push({ key: s, label: sub ?? page });
+  });
+  const [activePage, activeSub] = activeSection.split(" — ");
 
-      {/* Header */}
-      <div style={{ padding: "16px 24px", borderBottom: `1px solid ${G.glassBorder}`, display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button onClick={onClose} title="Close (Esc)" style={{ background: "none", border: "none", color: G.textMuted, cursor: "pointer", fontSize: 18, padding: 4 }}>←</button>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: G.text, letterSpacing: "-0.02em" }}>Edit website</div>
-            <div style={{ fontSize: 11, color: G.textMuted, marginTop: 2 }}>
-              {fields.length} editable fields · {hasChanges ? "Unsaved changes" : "All saved"}
-              {draftRestored && <span style={{ color: G.amber, marginLeft: 8 }}>· Draft restored</span>}
-            </div>
-          </div>
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 9700, background: C.bg, display: "flex", flexDirection: "column", overflow: "hidden", opacity: mounted ? 1 : 0, transition: `opacity 300ms ${EASE}` }}>
+      <style>{WE_STYLES}</style>
+
+      {/* Top bar */}
+      <div className="we-header">
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <PencilIcon />
+          <span style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Edit website</span>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          {saveSuccess && <span style={{ fontSize: 12, color: G.green }}>✓ Saved</span>}
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div className="we-status" style={{ display: "flex", alignItems: "center", gap: 12, marginRight: 4 }}>
+            {draftRestored && <span style={{ fontSize: 12, color: C.textMuted }}>Draft restored</span>}
+            {saveSuccess ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: C.green }}><CheckIcon />Saved</span>
+            ) : hasChanges ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: C.textSec }}><span style={{ width: 5, height: 5, borderRadius: 999, background: C.accent }} />Unsaved changes</span>
+            ) : null}
+          </div>
           {hasChanges && (
-            <button onClick={handleDiscard} title="Discard all changes" style={{ padding: "8px 16px", borderRadius: 10, border: `1px solid ${G.glassBorder}`, background: "none", color: G.textMuted, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
-              Discard
-            </button>
+            <button className="we-btn" onClick={handleDiscard} title="Discard all changes" style={{ padding: "7px 14px", borderRadius: 999, color: C.textSec, fontSize: 12, fontWeight: 500 }}>Discard</button>
           )}
-          <button onClick={handleSave} disabled={!hasChanges || saving} title="Save (⌘S)" style={{
-            padding: "8px 20px", borderRadius: 10, border: "none",
-            background: hasChanges ? G.accent : "rgba(255,255,255,0.06)",
-            color: hasChanges ? "#fff" : G.textMuted,
-            fontSize: 13, fontWeight: 600, cursor: hasChanges ? "pointer" : "default",
-            opacity: saving ? 0.6 : 1,
+          <button className="we-btn-accent" onClick={handleSave} disabled={!hasChanges || saving} title="Save (⌘S)" style={{
+            padding: "7px 16px", borderRadius: 999, border: "none",
+            background: hasChanges ? C.accent : C.bgInput,
+            color: hasChanges ? "#fff" : C.textMuted,
+            fontSize: 12, fontWeight: 600, cursor: hasChanges ? "pointer" : "default",
+            opacity: saving ? 0.7 : 1, display: "inline-flex", alignItems: "center", gap: 8,
           }}>
-            {saving ? "Saving..." : "Save & rebuild"}
+            {saving && <span style={{ width: 11, height: 11, borderRadius: 999, border: "2px solid rgba(255,255,255,0.3)", borderTopColor: "#fff", animation: "weSpin 0.7s linear infinite" }} />}
+            {saving ? "Saving…" : "Save & rebuild"}
           </button>
+          <button className="we-btn-icon" onClick={requestClose} aria-label="Close" title="Close (Esc)" style={{ width: 32, height: 32, border: "none", background: "none", color: C.textSec, display: "flex", alignItems: "center", justifyContent: "center" }}><XIcon /></button>
         </div>
       </div>
 
       {/* Save error banner */}
       {saveError && (
-        <div style={{ padding: "10px 24px", background: "rgba(248,113,113,0.08)", borderBottom: `1px solid rgba(248,113,113,0.2)`, fontSize: 12, color: G.red, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
+        <div style={{ padding: "10px 20px", background: "rgba(239,68,68,0.08)", borderBottom: "1px solid rgba(239,68,68,0.2)", fontSize: 12, color: C.red, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexShrink: 0 }}>
           <span>{saveError}</span>
-          <button onClick={() => setSaveError(null)} style={{ background: "none", border: "none", color: G.red, cursor: "pointer", fontSize: 14 }}>×</button>
+          <button className="we-btn-icon" onClick={() => setSaveError(null)} aria-label="Dismiss" style={{ width: 24, height: 24, border: "none", background: "none", color: C.red, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><XIcon size={14} /></button>
         </div>
       )}
 
-      {/* Section tabs */}
-      <div style={{ padding: "12px 24px", borderBottom: `1px solid ${G.glassBorder}`, display: "flex", gap: 6, overflowX: "auto", flexShrink: 0 }}>
-        {sections.map(s => (
-          <button key={s} onClick={() => setActiveSection(s)} style={{
-            padding: "6px 14px", borderRadius: 999, border: `0.5px solid ${activeSection === s ? G.accent + "40" : G.glassBorder}`,
-            background: activeSection === s ? G.accent + "12" : "transparent",
-            color: activeSection === s ? G.accent : G.textMuted,
-            fontSize: 12, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
-          }}>
-            {s}
-          </button>
-        ))}
-      </div>
-
-      {/* Fields */}
-      <div style={{ flex: 1, overflow: "auto", padding: 24 }}>
-        <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          {ungrouped.map((field, i) => (
-            <FieldRow key={field.id} field={field} index={i} onChange={updateField} />
-          ))}
-          {Object.entries(grouped).map(([groupName, groupFields]) => (
-            <div key={groupName} className="we-group">
-              <div style={{ fontSize: 11, fontWeight: 700, color: G.text, marginBottom: 12, letterSpacing: "0.04em", textTransform: "uppercase" }}>
-                {groupName}
+      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+        {/* Section nav: grouped by page, same style as the main sidebar. */}
+        <nav className="we-nav we-gs" style={{ width: 232, flexShrink: 0, overflowY: "auto", borderRight: `1px solid ${C.border}`, padding: "10px 10px 20px" }}>
+          {navGroups.map(g => {
+            const solo = g.items.length === 1 && g.items[0].label === g.page;
+            return (
+              <div key={g.page}>
+                {!solo && <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: C.textMuted, padding: "16px 12px 6px" }}>{g.page}</div>}
+                {g.items.map(it => (
+                  <button key={it.key} className={activeSection === it.key ? "we-navitem we-navitem-active" : "we-navitem"} onClick={() => setActiveSection(it.key)} style={{ display: "block", padding: "7px 12px", marginTop: solo ? 6 : 0, borderRadius: 8, fontSize: 13, fontWeight: 500, color: activeSection === it.key ? C.text : C.textSec }}>{it.label}</button>
+                ))}
               </div>
-              {groupFields.map((field, i) => (
-                <FieldRow key={field.id} field={field} index={i} onChange={updateField} />
-              ))}
-            </div>
-          ))}
+            );
+          })}
+        </nav>
 
-          {visibleFields.length === 0 && (
-            <div style={{ textAlign: "center", padding: 40, color: G.textMuted, fontSize: 13 }}>
-              No editable fields in this section.
+        {/* Fields */}
+        <div className="we-main we-gs" style={{ flex: 1, overflow: "auto", padding: "28px 36px" }}>
+          <div style={{ maxWidth: 680, margin: "0 auto" }}>
+            {/* Phones get a picker instead of the side nav. */}
+            <select className="we-input we-mobile-nav" value={activeSection} onChange={e => setActiveSection(e.target.value)} aria-label="Section" style={{ display: "none", marginBottom: 20 }}>
+              {navGroups.map(g => (
+                <optgroup key={g.page} label={g.page}>
+                  {g.items.map(it => <option key={it.key} value={it.key}>{it.label}</option>)}
+                </optgroup>
+              ))}
+            </select>
+
+            <div style={{ marginBottom: 24 }}>
+              {activeSub !== undefined && <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 4 }}>{activePage}</div>}
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.2, color: C.text }}>{activeSub ?? activePage}</h1>
             </div>
-          )}
+
+            {ungrouped.map((field, i) => (
+              <FieldRow key={field.id} field={field} index={i} onChange={updateField} />
+            ))}
+            {Object.entries(grouped).map(([groupName, groupFields]) => (
+              <div key={groupName} className="we-group">
+                <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 14 }}>{groupName}</div>
+                {groupFields.map((field, i) => (
+                  <FieldRow key={field.id} field={field} index={i} onChange={updateField} />
+                ))}
+              </div>
+            ))}
+
+            {visibleFields.length === 0 && (
+              <div style={{ textAlign: "center", padding: 40, color: C.textMuted, fontSize: 13 }}>No editable fields in this section.</div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Bottom info */}
-      <div style={{ padding: "12px 24px", borderTop: `1px solid ${G.glassBorder}`, fontSize: 11, color: G.textMuted, textAlign: "center", flexShrink: 0 }}>
-        ⌘S to save · Esc to close · Drafts auto-saved · Redeploy after saving to push changes live
+      {/* One quiet line, same place and style as the main chat's disclaimer.
+          Shortcuts live in the button tooltips instead of a footer. */}
+      <div style={{ padding: "8px 16px 14px", textAlign: "center", fontSize: 12, fontWeight: 500, color: C.textSec, flexShrink: 0 }}>
+        Changes go live when you redeploy.
       </div>
     </div>
   );
@@ -429,7 +525,7 @@ export function WebsiteEditMode({ websiteData, onSave, onClose }: {
 function FieldRow({ field, index, onChange }: { field: EditableField; index: number; onChange: (f: EditableField, v: string) => void }) {
   return (
     <div style={{ marginBottom: 18, animation: `weFadeUp 200ms ${EASE} ${index * 20}ms both` }}>
-      <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: G.textSec, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+      <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.textSec, margin: "0 0 6px 2px" }}>
         {field.label}
       </label>
       {field.type === "textarea" ? (

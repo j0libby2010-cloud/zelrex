@@ -34,8 +34,8 @@ const statusColor = (s: string) => ({
 const XIcon = ({ size = 14 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
 );
-const UsersIcon = ({ size = 16, color = C.accent }: { size?: number; color?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke={color} strokeWidth="1.5" strokeLinecap="round" /><circle cx="9" cy="7" r="4" stroke={color} strokeWidth="1.5" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke={color} strokeWidth="1.5" strokeLinecap="round" /></svg>
+const ClientsIcon = ({ size = 16, color = C.accent }: { size?: number; color?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke={color} strokeWidth="1.5" /><circle cx="8" cy="11" r="2" stroke={color} strokeWidth="1.5" /><path d="M13 9.5h5M13 12.5h3.5" stroke={color} strokeWidth="1.5" strokeLinecap="round" /><path d="M5.5 16c.6-1.4 1.7-2 2.5-2s1.9.6 2.5 2" stroke={color} strokeWidth="1.5" strokeLinecap="round" /></svg>
 );
 const SearchIcon = ({ size = 14, color = C.accent }: { size?: number; color?: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke={color} strokeWidth="1.5" /><path d="M21 21l-4.3-4.3" stroke={color} strokeWidth="1.5" strokeLinecap="round" /></svg>
@@ -244,7 +244,7 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
       {/* Header */}
       <div className="cr-header">
         <div className="cr-header-title">
-          <UsersIcon size={16} color={C.accent} />
+          <ClientsIcon size={16} color="#3B82F6" />
           <span style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Clients</span>
         </div>
         <div className="cr-tabs" style={{ display: "flex", gap: 2 }}>

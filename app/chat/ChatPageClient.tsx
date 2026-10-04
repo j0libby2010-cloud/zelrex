@@ -754,6 +754,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     setGoalClosing(true);
     setTimeout(() => { setGoalModalOpen(false); setGoalClosing(false); }, 300);
   };
+  const saveGoal = async () => {
+    if (!goalDraft.text.trim()) return;
+    const g = { text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() };
+    setUserGoal(g);
+    await db.saveGoal(g);
+    setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]);
+    closeGoalModal();
+  };
   const openNotif = (e: React.MouseEvent) => {
     if (notifOpen) { closeNotif(); return; }
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -2731,6 +2739,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .z-modal-input{width:100%;padding:10px 14px;border-radius:10px;border:1px solid ${C.border};background:${C.bgInput};color:${C.text};font-size:13px;font-family:inherit;outline:none;transition:border-color 150ms cubic-bezier(0.22,1,0.36,1)}
         .z-modal-input:focus{border-color:${C.accent}}
         .z-modal-input::placeholder{color:${C.textMuted}}
+        .z-goal-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        @media(max-width:480px){.z-goal-row{grid-template-columns:1fr}}
         @keyframes loaderDot {
           0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
           40% { opacity: 1; transform: scale(1); }
@@ -4145,42 +4155,55 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         )}
 
         {(goalModalOpen || goalClosing) && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", background: C.bg, transformOrigin: goalOriginRef.current ? `${goalOriginRef.current.x}px ${goalOriginRef.current.y}px` : "center center", animation: `${goalClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: goalClosing ? "none" : undefined }}>
-            <div onClick={closeGoalModal} style={{ position: "absolute", inset: 0 }} />
-            <div style={{ position: "relative", width: 420, maxWidth: "90vw", borderRadius: 16, border: `1px solid ${C.border}`, background: C.bgElevated, padding: 0, overflow: "hidden" }}>
-              {/* Header — bare icon + label, no tinted box, matching every
-                  other panel's header in the app. */}
-              <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                  <Ic n="goal" style={{ width: 16, height: 16, color: C.accent }} />
-                  <div style={{ fontSize: 15, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>{userGoal ? "Edit your goal" : "Set your goal"}</div>
-                </div>
-                <div style={{ fontSize: 12, color: C.textMuted }}>Zelrex keeps this in mind with every recommendation</div>
+          <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", flexDirection: "column", background: C.bg, transformOrigin: goalOriginRef.current ? `${goalOriginRef.current.x}px ${goalOriginRef.current.y}px` : "center center", animation: `${goalClosing ? "vacuumOut" : "vacuumIn"} 300ms cubic-bezier(0.22,1,0.36,1) forwards`, pointerEvents: goalClosing ? "none" : undefined }}>
+            {/* Top bar: same shape as every other panel. Sidebar icon + color,
+                label, close. */}
+            <div style={{ height: 52, padding: "0 14px 0 20px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Ic n="goal" style={{ width: 16, height: 16, color: userGoal ? C.accent : "#F59E0B" }} />
+                <span style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Goal</span>
               </div>
-              {/* Body */}
-              <div style={{ padding: "20px 24px" }}>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>What's your main goal?</label>
-                  <input className="z-modal-input" value={goalDraft.text} onChange={(e) => setGoalDraft(d => ({ ...d, text: e.target.value }))} placeholder="e.g., Build a sustainable freelance business, Replace my 9-5 income" />
+              <button type="button" className="z-btn-icon" onClick={closeGoalModal} aria-label="Close" style={{ width: 32, height: 32, border: "none", background: "none", color: C.textSec, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Ic n="close" style={{ width: 17, height: 17 }} />
+              </button>
+            </div>
+
+            {/* No card: the content sits on the page, same as the welcome screen. */}
+            <div style={{ flex: 1, overflowY: "auto", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 24px 64px" }}>
+              <div style={{ width: 440, maxWidth: "100%", textAlign: "center" }}>
+                <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.15, color: C.text }}>{userGoal ? "Your goal" : "What are you working toward?"}</h1>
+                <p style={{ margin: "10px auto 28px", fontSize: 14, lineHeight: 1.6, color: C.textSec, maxWidth: 340 }}>Zelrex keeps this in mind with every recommendation.</p>
+
+                <input
+                  className="z-modal-input"
+                  autoFocus
+                  aria-label="Your main goal"
+                  value={goalDraft.text}
+                  onChange={(e) => setGoalDraft(d => ({ ...d, text: e.target.value }))}
+                  onKeyDown={(e) => { if (e.key === "Enter") saveGoal(); }}
+                  placeholder="Replace my 9-5 income"
+                  style={{ padding: "14px 18px", fontSize: 16, borderRadius: 12, textAlign: "left" }}
+                />
+
+                <div className="z-goal-row" style={{ marginTop: 12, textAlign: "left" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: 12, color: C.textMuted, margin: "0 0 6px 2px" }}>Revenue target <span style={{ opacity: 0.7 }}>· optional</span></label>
+                    <input className="z-modal-input" value={goalDraft.target} onChange={(e) => setGoalDraft(d => ({ ...d, target: e.target.value }))} onKeyDown={(e) => { if (e.key === "Enter") saveGoal(); }} placeholder="$5,000/month" />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: 12, color: C.textMuted, margin: "0 0 6px 2px" }}>Target date <span style={{ opacity: 0.7 }}>· optional</span></label>
+                    <input className="z-modal-input" value={goalDraft.deadline} onChange={(e) => setGoalDraft(d => ({ ...d, deadline: e.target.value }))} onKeyDown={(e) => { if (e.key === "Enter") saveGoal(); }} placeholder="June 2026" />
+                  </div>
                 </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>Revenue target (optional)</label>
-                  <input className="z-modal-input" value={goalDraft.target} onChange={(e) => setGoalDraft(d => ({ ...d, target: e.target.value }))} placeholder="e.g., $5,000/month, $100K/year" />
+
+                {/* One primary action. Cancel and Remove are quiet text buttons. */}
+                <div style={{ marginTop: 28, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                  <button type="button" className="z-btn-accent" onClick={saveGoal} disabled={!goalDraft.text.trim()} style={{ padding: "10px 26px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600, cursor: goalDraft.text.trim() ? "pointer" : "not-allowed", opacity: goalDraft.text.trim() ? 1 : 0.5 }}>Save goal</button>
+                  <button type="button" className="z-btn" onClick={closeGoalModal} style={{ padding: "10px 16px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>Cancel</button>
                 </div>
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: C.textSec, marginBottom: 6 }}>Target date (optional)</label>
-                  <input className="z-modal-input" value={goalDraft.deadline} onChange={(e) => setGoalDraft(d => ({ ...d, deadline: e.target.value }))} placeholder="e.g., June 2026, 6 months" />
-                </div>
-              </div>
-              {/* Footer — pill-shaped buttons, matching the rest of the app;
-                  the previous save button's glow is gone, same as every
-                  other primary action elsewhere. */}
-              <div style={{ padding: "0 24px 20px", display: "flex", gap: 8 }}>
                 {userGoal && (
-                  <button onClick={async () => { setUserGoal(null); setGoalDraft({ text: "", target: "", deadline: "" }); await db.deleteGoal(); closeGoalModal(); }} className="z-btn-danger" style={{ flex: 1, padding: "10px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Remove goal</button>
+                  <button type="button" className="z-btn-danger" onClick={async () => { setUserGoal(null); setGoalDraft({ text: "", target: "", deadline: "" }); await db.deleteGoal(); closeGoalModal(); }} style={{ marginTop: 18, padding: "6px 12px", borderRadius: 999, border: "none", background: "none", color: C.textMuted, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>Remove goal</button>
                 )}
-                <button onClick={closeGoalModal} className="z-btn-outlined" style={{ flex: 1, padding: "10px", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
-                <button onClick={async () => { if (goalDraft.text.trim()) { const g = { text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() }; setUserGoal(g); await db.saveGoal(g); setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]); } closeGoalModal(); }} className="z-btn-accent" style={{ flex: 1.5, padding: "10px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Save goal</button>
               </div>
             </div>
           </div>
