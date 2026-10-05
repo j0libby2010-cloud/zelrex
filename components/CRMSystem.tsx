@@ -689,7 +689,7 @@ export function CRMSystem({ userId, onClose }: { userId: string; onClose: () => 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{inv.invoice_number}</div>
-                      <span style={{ fontSize: 12, color: C.textMuted }}>—</span>
+                      <span style={{ fontSize: 12, color: C.textMuted }}>·</span>
                       <span style={{ fontSize: 13, color: C.textSec }}>{inv.crm_clients?.name || "Unknown"}</span>
                     </div>
                     <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{inv.due_date ? `Due ${inv.due_date}` : "No due date"} · {inv.items?.length || 0} item{(inv.items?.length || 0) !== 1 ? "s" : ""}</div>

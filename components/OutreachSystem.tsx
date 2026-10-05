@@ -536,7 +536,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
               <div style={{ textAlign: "center", animation: "or-fadeUp 300ms ease 80ms both" }}>
                 <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.15, color: C.text }}>Who do you want to reach out to?</h1>
                 <p style={{ margin: "10px auto 26px", fontSize: 14, lineHeight: 1.6, color: C.textSec, maxWidth: 360 }}>
-                  Add someone you already know — a referral, a past client, someone familiar with your work.
+                  Add someone you already know: a referral, a past client, someone familiar with your work.
                 </p>
                 <button className="or-btn-accent" onClick={() => setShowManualAdd(true)} style={{ padding: "10px 20px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}><PlusIcon size={14} />Add someone</button>
               </div>
@@ -562,7 +562,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.name}</div>
-                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1 }}>{p.company || "—"}{p.platform ? ` · ${p.platform}` : ""}</div>
+                          <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1 }}>{[p.company, p.platform].filter(Boolean).join(" · ") || "No company listed"}</div>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -645,7 +645,7 @@ export function OutreachSystem({ userId, onClose }: { userId: string; onClose: (
                     }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.name}{p.company ? ` — ${p.company}` : ""}</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{p.name}{p.company ? ` · ${p.company}` : ""}</div>
                           <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{email?.subject || "No subject"}</div>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>

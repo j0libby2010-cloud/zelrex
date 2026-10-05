@@ -759,7 +759,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
     const g = { text: goalDraft.text.trim(), target: goalDraft.target.trim(), deadline: goalDraft.deadline.trim() };
     setUserGoal(g);
     await db.saveGoal(g);
-    setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}" — Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]);
+    setNotifications(ns => [{ id: uid("n"), text: `Goal set: "${g.text}". Zelrex will track your progress and send updates.`, time: Date.now(), read: false }, ...ns]);
     closeGoalModal();
   };
   const openNotif = (e: React.MouseEvent) => {
@@ -2655,7 +2655,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .z-btn-outlined:active{background:rgba(255,255,255,0.06)!important;transition-duration:80ms!important}
 
         .z-btn-accent{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),box-shadow 150ms cubic-bezier(0.22,1,0.36,1),transform 100ms cubic-bezier(0.22,1,0.36,1)!important;cursor:pointer}
-        .z-btn-accent:hover{background:${C.accent}!important;filter:brightness(1.08)!important;box-shadow:0 2px 12px ${C.accentGlow}!important}
+        .z-btn-accent:hover{background:${C.accent}!important;filter:brightness(1.08)!important}
         .z-btn-accent:active{filter:brightness(0.95)!important;transform:scale(0.98)!important;transition-duration:80ms!important}
         .z-btn-accent:disabled{opacity:0.5!important;cursor:not-allowed!important;filter:none!important;box-shadow:none!important;transform:none!important}
 
@@ -2693,8 +2693,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         /* Plain-text suggestion links — shown only once, on a user's first
            ever visit. No border, no background, no card weight. Just a
            quiet hint at what's possible, then it's gone for good. */
-        .welcome-link{background:none;border:none;padding:6px 4px;color:${C.textSec};font-size:14px;font-weight:500;letter-spacing:-0.005em;cursor:pointer;transition:color 150ms cubic-bezier(0.22,1,0.36,1)}
-        .welcome-link:hover{color:${C.accent}}
+        .welcome-link{background:none;border:none;padding:6px 12px;border-radius:999px;color:${C.textSec};font-size:14px;font-weight:500;letter-spacing:-0.005em;cursor:pointer;transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1)}
+        .welcome-link:hover{background:rgba(255,255,255,0.04);color:${C.text}}
         /* One-time "Welcome to Zelrex" shine sweep — plays once on a user's
            very first visit, never again. Base color matches C.text so the
            text settles to a normal look once the sweep finishes. */
@@ -2753,7 +2753,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           .hide-mobile{display:none!important}
           .welcome-h1{font-size:28px!important}
           .welcome-sub{font-size:14px!important;max-width:360px!important}
-          .welcome-link{font-size:15px!important;padding:8px 4px!important}
+          .welcome-link{font-size:15px!important;padding:8px 14px!important}
           .msg-actions{opacity:1}
           .user-actions{opacity:1}
           .msg-act{width:36px!important;height:34px!important}

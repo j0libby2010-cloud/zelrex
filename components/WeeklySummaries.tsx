@@ -52,6 +52,11 @@ const ArrowUpIcon = ({ size = 10, color = C.green }: { size?: number; color?: st
 const ArrowDownIcon = ({ size = 10, color = C.red }: { size?: number; color?: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12l7 7 7-7" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
 );
+const InlineArrow = ({ dir }: { dir: "↑" | "↓" | "→" }) => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden style={{ display: "inline-block", verticalAlign: "-1px", margin: "0 1px", color: C.textSec }}>
+    <path d={dir === "↑" ? "M12 19V5M5 12l7-7 7 7" : dir === "↓" ? "M12 5v14M5 12l7 7 7-7" : "M5 12h14M12 5l7 7-7 7"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 const Spinner = ({ size = 12 }: { size?: number }) => (
   <div style={{ width: size, height: size, borderRadius: 999, border: "2px solid rgba(255,255,255,0.25)", borderTopColor: "#fff", animation: "zs-spin 0.7s linear infinite", flexShrink: 0 }} />
 );
@@ -108,7 +113,18 @@ function Typewriter({ text, speed = 6, onFinish, onTick }: { text: string; speed
   return <div>{formatMessage(text.slice(0, n))}</div>;
 }
 
-const SUGGESTIONS = ["How can I improve my click rate?", "What should I post this week?", "Why is my traffic low?"];
+/* Questions worth asking about THIS week's numbers, picked from the data
+   (no AI call). With very little traffic, the first one is the honest one. */
+function suggestionsFor(a: any): string[] {
+  const out: string[] = [];
+  const visitors = a?.visitors ?? 0, clicks = a?.ctaClicks ?? 0, prevClicks = a?.prevCtaClicks, revenue = a?.revenue ?? 0;
+  if (visitors < 30) out.push("Is this enough traffic to draw conclusions?");
+  if (typeof prevClicks === "number" && clicks > prevClicks) out.push("What might explain the extra clicks?");
+  else if (typeof prevClicks === "number" && clicks < prevClicks) out.push("Why might clicks have dropped?");
+  if (revenue === 0 && clicks > 0) out.push("What could be slowing down sales?");
+  out.push("What stands out most this week?", "What should I look at next week?");
+  return out.slice(0, 3);
+}
 
 export function WeeklySummaries({ userId, userName, userEmail, onClose }: { userId: string; userName?: string; userEmail?: string; onClose: () => void }) {
   const [tab, setTab] = useState<"summary" | "history" | "chat">("summary");
@@ -233,14 +249,23 @@ export function WeeklySummaries({ userId, userName, userEmail, onClose }: { user
           history: base.map((m) => ({ role: m.role, content: m.content })),
         }),
       });
-      const data = await res.json();
+      let data: any = null;
+      try { data = await res.json(); } catch {}
       if (reqIdRef.current !== myReq) return;
-      const reply = data.reply?.trim();
-      setChatMessages((prev) => [...prev, { id: uid(), role: "assistant", content: reply || "Something went wrong. Please try again.", createdAt: Date.now(), animate: !!reply }]);
+      const reply = typeof data?.reply === "string" ? data.reply.trim() : "";
+      if (!res.ok || !reply) {
+        // Keep the server's actual answer in the console so a failure can be diagnosed.
+        console.error("[Summaries] chat failed:", res.status, data);
+        const why = !res.ok ? `error ${res.status}` : "empty reply";
+        setChatMessages((prev) => [...prev, { id: uid(), role: "assistant", content: `Something went wrong (${why}). Try again.`, createdAt: Date.now() }]);
+        return;
+      }
+      setChatMessages((prev) => [...prev, { id: uid(), role: "assistant", content: reply, createdAt: Date.now(), animate: true }]);
     } catch (e: any) {
       if (reqIdRef.current !== myReq) return;
       const stopped = e?.name === "AbortError";
-      setChatMessages((prev) => [...prev, { id: uid(), role: "assistant", content: stopped ? "_Response stopped._" : "Something went wrong. Try again.", createdAt: Date.now() }]);
+      if (!stopped) console.error("[Summaries] chat request failed:", e);
+      setChatMessages((prev) => [...prev, { id: uid(), role: "assistant", content: stopped ? "_Response stopped._" : "Couldn't reach Zelrex. Check your connection and try again.", createdAt: Date.now() }]);
     } finally {
       if (reqIdRef.current === myReq) { chatAbortRef.current = null; setChatSending(false); }
     }
@@ -325,41 +350,82 @@ export function WeeklySummaries({ userId, userName, userEmail, onClose }: { user
 
   /* ── Summary rendering ───────────────────────────────────────────── */
   const formatDate = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  const formatWeek = (start: string, end: string) => `${formatDate(start)} — ${formatDate(end)}`;
+  const formatWeek = (start: string, end: string) => `${formatDate(start)} – ${formatDate(end)}`;
 
-  const renderInline = (text: string) =>
-    text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
-      part.startsWith("**") && part.endsWith("**")
-        ? <strong key={i} style={{ color: C.text, fontWeight: 600 }}>{part.slice(2, -2)}</strong>
-        : <span key={i}>{part}</span>
-    );
-
-  const renderText = (text: string) =>
-    text.split("\n").map((line, i) => {
-      const t = line.trim();
-      if (!t) return <div key={i} style={{ height: 8 }} />;
-      if (t.startsWith("**") && t.endsWith("**")) {
-        return <div key={i} style={{ fontWeight: 600, color: C.text, fontSize: 15, letterSpacing: "-0.01em", marginTop: i > 0 ? 22 : 0, marginBottom: 8 }}>{t.replace(/\*\*/g, "")}</div>;
-      }
-      if (t.startsWith("- ") || t.startsWith("• ")) {
-        return (
-          <div key={i} style={{ display: "flex", gap: 12, marginBottom: 6, paddingLeft: 2 }}>
-            <span style={{ width: 4, height: 4, borderRadius: 999, background: C.textMuted, marginTop: 10, flexShrink: 0 }} />
-            <span style={{ color: C.textSec, fontSize: 14, lineHeight: 1.7 }}>{renderInline(t.slice(2))}</span>
-          </div>
-        );
-      }
-      const num = t.match(/^(\d+)\.\s*(.*)/);
-      if (num) {
-        return (
-          <div key={i} style={{ display: "flex", gap: 10, marginBottom: 6, paddingLeft: 2 }}>
-            <span style={{ color: C.textMuted, fontWeight: 600, fontSize: 13, minWidth: 18, lineHeight: 1.85, flexShrink: 0 }}>{num[1]}.</span>
-            <span style={{ color: C.textSec, fontSize: 14, lineHeight: 1.7 }}>{renderInline(num[2])}</span>
-          </div>
-        );
-      }
-      return <p key={i} style={{ color: C.textSec, fontSize: 14, lineHeight: 1.7, margin: "0 0 6px" }}>{renderInline(t)}</p>;
+  // Inline pieces: **bold**, *italic*, `code`, and the arrows the model likes to
+  // type (↑ ↓ →), which become the same drawn arrows used everywhere else.
+  const renderInline = (text: string): React.ReactNode[] =>
+    text.split(/(\*\*[^*]+\*\*|`[^`]+`|\*[^*\s][^*]*\*|[↑↓→])/g).filter((p) => p !== "").map((part, i) => {
+      if (part.length > 4 && part.startsWith("**") && part.endsWith("**")) return <strong key={i} style={{ color: C.text, fontWeight: 600 }}>{part.slice(2, -2)}</strong>;
+      if (part.length > 2 && part.startsWith("`") && part.endsWith("`")) return <code key={i} style={{ fontFamily: "'JetBrains Mono','SF Mono',monospace", fontSize: "0.88em", background: "rgba(255,255,255,0.06)", padding: "1px 6px", borderRadius: 6 }}>{part.slice(1, -1)}</code>;
+      if (part.length > 2 && part.startsWith("*") && part.endsWith("*")) return <em key={i}>{part.slice(1, -1)}</em>;
+      if (part === "↑" || part === "↓" || part === "→") return <InlineArrow key={i} dir={part} />;
+      return <span key={i}>{part}</span>;
     });
+
+  // Decorative emoji the model adds to headings and bullets read as noise in a business document.
+  const stripEmoji = (t: string) => {
+    try { return t.replace(new RegExp("\\p{Extended_Pictographic}\\uFE0F?\\s*", "gu"), ""); } catch { return t; }
+  };
+
+  // The summary is markdown. Render headings, lists, quotes and rules properly
+  // so no stray # or ** ever shows. A leading "# Title" is dropped because the
+  // page heading above already says which week this is.
+  const renderText = (raw: string) => {
+    const lines = stripEmoji(raw).replace(/\r/g, "").split("\n");
+    let i = 0;
+    while (i < lines.length && !lines[i].trim()) i++;
+    if (i < lines.length && /^#\s+/.test(lines[i].trim())) i++;
+    const out: React.ReactNode[] = [];
+    let prev: "none" | "heading" | "list" | "para" = "none";
+    for (; i < lines.length; i++) {
+      const line = lines[i];
+      const t = line.trim();
+      if (!t) continue;
+      const key = `b${i}`;
+      if (/^([-*_])\1{2,}$/.test(t)) { out.push(<div key={key} style={{ height: 1, background: C.border, margin: "28px 0 4px" }} />); prev = "none"; continue; }
+      const h = t.match(/^(#{1,6})\s+(.*?)\s*#*$/);
+      const boldOnly = t.match(/^\*\*([^*]+)\*\*:?$/);
+      if (h || boldOnly) {
+        const level = h ? (h[1].length <= 2 ? 2 : 3) : 3;
+        const label = (h ? h[2] : boldOnly![1]).replace(/\*\*/g, "");
+        const first = out.length === 0;
+        out.push(level === 2
+          ? <h2 key={key} style={{ margin: `${first ? 0 : 36}px 0 12px`, fontSize: 17, fontWeight: 600, letterSpacing: "-0.02em", lineHeight: 1.3, color: C.text }}>{renderInline(label)}</h2>
+          : <h3 key={key} style={{ margin: `${first ? 0 : 24}px 0 8px`, fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", lineHeight: 1.4, color: C.text }}>{renderInline(label)}</h3>);
+        prev = "heading"; continue;
+      }
+      const bullet = line.match(/^(\s*)[-*•]\s+(.*)$/);
+      if (bullet) {
+        const nested = bullet[1].replace(/\t/g, "  ").length >= 2;
+        out.push(
+          <div key={key} style={{ display: "flex", gap: 12, margin: "0 0 7px", paddingLeft: nested ? 22 : 2 }}>
+            <span style={{ width: 4, height: 4, borderRadius: 999, background: C.textMuted, marginTop: 11, flexShrink: 0 }} />
+            <span style={{ color: C.text, fontSize: 15, lineHeight: 1.7, minWidth: 0, overflowWrap: "anywhere" }}>{renderInline(bullet[2])}</span>
+          </div>
+        );
+        prev = "list"; continue;
+      }
+      const num = t.match(/^(\d+)[.)]\s+(.*)$/);
+      if (num) {
+        out.push(
+          <div key={key} style={{ display: "flex", gap: 10, margin: "0 0 7px", paddingLeft: 2 }}>
+            <span style={{ color: C.textMuted, fontWeight: 600, fontSize: 14, minWidth: 20, lineHeight: 1.82, flexShrink: 0 }}>{num[1]}.</span>
+            <span style={{ color: C.text, fontSize: 15, lineHeight: 1.7, minWidth: 0, overflowWrap: "anywhere" }}>{renderInline(num[2])}</span>
+          </div>
+        );
+        prev = "list"; continue;
+      }
+      const quote = t.match(/^>\s?(.*)$/);
+      if (quote) {
+        out.push(<div key={key} style={{ margin: "0 0 14px", padding: "2px 0 2px 14px", borderLeft: `2px solid ${C.border}`, color: C.textSec, fontSize: 15, lineHeight: 1.7 }}>{renderInline(quote[1])}</div>);
+        prev = "para"; continue;
+      }
+      out.push(<p key={key} style={{ margin: `${prev === "list" ? 10 : 0}px 0 14px`, color: C.text, fontSize: 15, lineHeight: 1.7, overflowWrap: "anywhere" }}>{renderInline(t)}</p>);
+      prev = "para";
+    }
+    return out;
+  };
 
   const snap = activeSummary?.analytics_snapshot || {};
   const metrics: { label: string; value: string; raw?: number; prev?: number }[] = activeSummary ? [
@@ -370,9 +436,10 @@ export function WeeklySummaries({ userId, userName, userEmail, onClose }: { user
   ] : [];
 
   const delta = (raw?: number, prev?: number) => {
-    if (typeof raw !== "number" || typeof prev !== "number" || raw === prev) return null;
+    // No baseline (last week was 0) means "+16" just repeats the value, so show nothing.
+    if (typeof raw !== "number" || typeof prev !== "number" || prev === 0 || raw === prev) return null;
     const up = raw > prev;
-    const label = prev > 0 ? `${Math.round((Math.abs(raw - prev) / prev) * 100)}%` : `+${raw}`;
+    const label = `${Math.round((Math.abs(raw - prev) / prev) * 100)}%`;
     return { up, label };
   };
 
@@ -425,7 +492,7 @@ export function WeeklySummaries({ userId, userName, userEmail, onClose }: { user
         .zs-header{height:52px;padding:0 14px 0 20px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;border-bottom:1px solid ${C.border}}
         .zs-title{display:flex;align-items:center;gap:8px}
         .zs-actions{justify-self:end;display:flex;align-items:center;gap:6px}
-        .zs-chat{width:clamp(320px,34vw,400px);flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid ${C.border};min-height:0}
+        .zs-chat{width:clamp(280px,20vw,320px);flex-shrink:0;display:flex;flex-direction:column;border-right:1px solid ${C.border};min-height:0}
 
         /* ── Message actions: copied 1:1 from the main chat ── */
         .zs-msg-actions{display:flex;align-items:center;gap:2px;margin-top:6px;opacity:0.55;transition:opacity 400ms cubic-bezier(0.32,0.72,0,1)}
@@ -438,8 +505,8 @@ export function WeeklySummaries({ userId, userName, userEmail, onClose }: { user
         .zs-msg-act:active{transform:scale(0.92) translateY(0);transition-duration:120ms}
         .zs-msg-act svg{width:15px;height:15px}
         .zs-user-time{font-size:11px;color:rgba(255,255,255,0.7);font-weight:500;letter-spacing:0.01em}
-        .zs-welcome-link{background:none;border:none;padding:6px 4px;color:${C.textSec};font-size:14px;font-weight:500;letter-spacing:-0.005em;cursor:pointer;transition:color 150ms ${EASE};font-family:inherit}
-        .zs-welcome-link:hover{color:${C.accent}}
+        .zs-welcome-link{background:none;border:none;padding:6px 12px;border-radius:999px;color:${C.textSec};font-size:14px;font-weight:500;letter-spacing:-0.005em;cursor:pointer;transition:background-color 150ms ${EASE},color 150ms ${EASE};font-family:inherit;text-align:center}
+        .zs-welcome-link:hover{background:rgba(255,255,255,0.04);color:${C.text}}
 
         /* ── Input focus ring: same animation as the main input ── */
         .zs-input-focus-glow{animation:zsRingIn 600ms cubic-bezier(0.32,0.72,0,1) forwards,zsRingOut 600ms cubic-bezier(0.32,0.72,0,1) 500ms forwards}
@@ -522,7 +589,7 @@ export function WeeklySummaries({ userId, userName, userEmail, onClose }: { user
                   <div style={{ textAlign: "center", animation: "zs-fadeUp 300ms ease 60ms both" }}>
                     <div style={{ fontSize: 20, fontWeight: 600, letterSpacing: "-0.02em", color: C.text, marginBottom: 10 }}>Ask about this week</div>
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                      {SUGGESTIONS.map((q) => <button key={q} type="button" className="zs-welcome-link" onClick={() => ask(q, [])}>{q}</button>)}
+                      {suggestionsFor(snap).map((q) => <button key={q} type="button" className="zs-welcome-link" onClick={() => ask(q, [])}>{q}</button>)}
                     </div>
                   </div>
                 </div>
@@ -659,7 +726,7 @@ export function WeeklySummaries({ userId, userName, userEmail, onClose }: { user
                 </div>
               </div>
             ) : activeSummary ? (
-              <div style={{ maxWidth: 680, width: "100%", margin: "0 auto", animation: "zs-fadeUp 250ms ease both" }}>
+              <div style={{ maxWidth: 640, width: "100%", margin: "0 auto", animation: "zs-fadeUp 250ms ease both" }}>
                 <h1 style={{ margin: 0, fontSize: 24, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.2, color: C.text }}>{formatWeek(activeSummary.week_start, activeSummary.week_end)}</h1>
                 <div style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>
                   Generated {new Date(activeSummary.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}{activeSummary.auto_generated ? " · Auto" : ""}
