@@ -3399,6 +3399,8 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           }}>
             <WeeklySummaries
               userId={clerkUser?.id || ""}
+              userName={clerkUser?.fullName || undefined}
+              userEmail={clerkUser?.primaryEmailAddress?.emailAddress || undefined}
               onClose={() => {
                 setSummariesClosing(true);
                 setTimeout(() => { setSummariesOpen(false); setSummariesClosing(false); }, 300);
