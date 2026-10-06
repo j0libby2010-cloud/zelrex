@@ -56,7 +56,7 @@ export async function GET(req: Request) {
     try {
       // Use Claude with web search to find disruptions
       const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
+        model: process.env.ANTHROPIC_MODEL_SONNET || "claude-sonnet-5-5",
         max_tokens: 600,
         tools: [{ type: "web_search_20250305" as any, name: "web_search" }],
         messages: [{

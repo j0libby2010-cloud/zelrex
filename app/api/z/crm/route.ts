@@ -293,7 +293,7 @@ async function invoicesGenerate(supabase: SupabaseClient, userId: string, body: 
     : '\nNo past invoices on file. Do NOT invent rates — leave rate_cents at 0 and write "Confirm rate with client" in the description so the user fills it in.';
 
   const res = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514', max_tokens: 800,
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5', max_tokens: 800,
     messages: [{ role: 'user', content: `Generate invoice line items for a freelancer.
 
 CLIENT: ${client?.name} (${client?.company || 'Individual'})
@@ -372,7 +372,7 @@ ${(pastInvoices.data || []).map((inv: any) => `- Invoice: $${(inv.total_cents / 
   const isProposal = type === 'proposal';
 
   const res = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514', max_tokens: 2000,
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5', max_tokens: 2000,
     messages: [{ role: 'user', content: `${RELIABILITY_PROMPT}
 ${CONTRACT_PROMPT}
 
@@ -483,7 +483,7 @@ async function followupsGenerate(supabase: SupabaseClient, userId: string, body:
     : 'Write a friendly check-in message. Ask if they need anything or have upcoming projects.';
 
   const res = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514', max_tokens: 400,
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5', max_tokens: 400,
     messages: [{ role: 'user', content: `Write a follow-up email for a freelancer.
 
 CLIENT: ${client?.name} (${client?.email || ''})
@@ -1089,7 +1089,7 @@ async function outcomeCheck(supabase: SupabaseClient, userId: string, body: any)
 
   // AI analysis of progress
   const res = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514', max_tokens: 500,
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5', max_tokens: 500,
     messages: [{ role: 'user', content: `You are analyzing a freelancer's progress at their ${checkpointDay}-day check-in.
 
 GOAL: ${outcome.goal_description}

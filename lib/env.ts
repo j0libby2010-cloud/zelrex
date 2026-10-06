@@ -19,7 +19,7 @@ type EnvShape = {
   // Anthropic
   ANTHROPIC_API_KEY: string | null;
   ANTHROPIC_MODEL_OPUS: string;      // defaults to claude-opus-4-6
-  ANTHROPIC_MODEL_SONNET: string;    // defaults to claude-sonnet-4-20250514
+  ANTHROPIC_MODEL_SONNET: string;    // defaults to claude-sonnet-5-5
   ANTHROPIC_MODEL_HAIKU: string;     // defaults to claude-haiku-4-5-20251001
 
   // Supabase
@@ -65,7 +65,7 @@ function getEnv(key: string): string | null {
 export const env: EnvShape = {
   ANTHROPIC_API_KEY: getEnv('ANTHROPIC_API_KEY'),
   ANTHROPIC_MODEL_OPUS: getEnv('ANTHROPIC_MODEL_OPUS') || 'claude-opus-4-6',
-  ANTHROPIC_MODEL_SONNET: getEnv('ANTHROPIC_MODEL_SONNET') || 'claude-sonnet-4-20250514',
+  ANTHROPIC_MODEL_SONNET: getEnv('ANTHROPIC_MODEL_SONNET') || 'claude-sonnet-5-5',
   ANTHROPIC_MODEL_HAIKU: getEnv('ANTHROPIC_MODEL_HAIKU') || 'claude-haiku-4-5-20251001',
 
   NEXT_PUBLIC_SUPABASE_URL: getEnv('NEXT_PUBLIC_SUPABASE_URL'),

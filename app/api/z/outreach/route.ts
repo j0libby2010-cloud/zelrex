@@ -154,7 +154,7 @@ async function handleFind(supabase: SupabaseClient, userId: string) {
 
   // Use Claude with web search to find REAL businesses
   const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514',
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
     max_tokens: 3000,
     tools: [{ type: "web_search_20250305" as any, name: "web_search" }],
     messages: [{
@@ -393,7 +393,7 @@ async function handleGenerate(supabase: SupabaseClient, userId: string, prospect
 
   for (const prospect of prospects) {
     const response = await anthropic.messages.create({
-      model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514',
+      model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
       max_tokens: 800,
       messages: [{
         role: 'user',
@@ -632,7 +632,7 @@ async function handleLinkedInDM(supabase: SupabaseClient, userId: string, prospe
   const userVoice = allMsgs.filter((m: any) => m.role === 'user' && m.content.length > 20).map((m: any) => m.content).slice(0, 10).join('\n').slice(0, 1000);
 
   const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514',
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
     max_tokens: 600,
     messages: [{
       role: 'user',
@@ -730,7 +730,7 @@ async function handleFollowUp(supabase: SupabaseClient, userId: string, prospect
     const followUpNumber = (lastEmail?.follow_up_number || 1) + 1;
 
     const response = await anthropic.messages.create({
-      model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514',
+      model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
       max_tokens: 500,
       messages: [{
         role: 'user',
@@ -802,7 +802,7 @@ async function handleABGenerate(supabase: SupabaseClient, userId: string, prospe
   const userVoice = allMsgs.filter((m: any) => m.role === 'user' && m.content.length > 20).map((m: any) => m.content).slice(0, 15).join('\n').slice(0, 1500);
 
   const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514',
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
     max_tokens: 1200,
     messages: [{
       role: 'user',
@@ -918,7 +918,7 @@ async function handleFindEmail(supabase: SupabaseClient, userId: string, prospec
 
   // Use Claude with web search to find contact info
   const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-20250514',
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
     max_tokens: 800,
     tools: [{ type: "web_search_20250305" as any, name: "web_search" }],
     messages: [{

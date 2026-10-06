@@ -21,6 +21,7 @@ interface ChatMsg {
   content: string;
   createdAt: number;
   animate?: boolean; // only real replies get the typewriter, not errors or "stopped"
+  failed?: boolean; // error and "stopped" bubbles: shown to the user, never sent back to the model
 }
 
 /* Zelrex design tokens, same values as the C object in ChatPageClient.tsx. */
@@ -246,7 +247,7 @@ export function WeeklySummaries({ userId, userName, userEmail, onClose }: { user
         method: "POST", headers: { "Content-Type": "application/json" }, signal: ctrl.signal,
         body: JSON.stringify({
           action: "chat", userId, summaryId: activeSummary.id, message: text,
-          history: base.map((m) => ({ role: m.role, content: m.content })),
+          history: base.filter((m) => !m.failed).map((m) => ({ role: m.role, content: m.content })),
         }),
       });
       let data: any = null;
@@ -257,7 +258,7 @@ export function WeeklySummaries({ userId, userName, userEmail, onClose }: { user
         // Keep the server's actual answer in the console so a failure can be diagnosed.
         console.error("[Summaries] chat failed:", res.status, data);
         const why = !res.ok ? `error ${res.status}` : "empty reply";
-        setChatMessages((prev) => [...prev, { id: uid(), role: "assistant", content: `Something went wrong (${why}). Try again.`, createdAt: Date.now() }]);
+        setChatMessages((prev) => [...prev, { id: uid(), role: "assistant", content: `Something went wrong (${why}). Try again.`, createdAt: Date.now(), failed: true }]);
         return;
       }
       setChatMessages((prev) => [...prev, { id: uid(), role: "assistant", content: reply, createdAt: Date.now(), animate: true }]);
@@ -265,7 +266,7 @@ export function WeeklySummaries({ userId, userName, userEmail, onClose }: { user
       if (reqIdRef.current !== myReq) return;
       const stopped = e?.name === "AbortError";
       if (!stopped) console.error("[Summaries] chat request failed:", e);
-      setChatMessages((prev) => [...prev, { id: uid(), role: "assistant", content: stopped ? "_Response stopped._" : "Couldn't reach Zelrex. Check your connection and try again.", createdAt: Date.now() }]);
+      setChatMessages((prev) => [...prev, { id: uid(), role: "assistant", content: stopped ? "_Response stopped._" : "Couldn't reach Zelrex. Check your connection and try again.", createdAt: Date.now(), failed: true }]);
     } finally {
       if (reqIdRef.current === myReq) { chatAbortRef.current = null; setChatSending(false); }
     }

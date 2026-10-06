@@ -66,30 +66,30 @@ async function handleGenerate(userId: string) {
   const context = buildContext(thisWeek, lastWeek, revenue, now);
 
   const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
+    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
     max_tokens: 1500,
     messages: [{
       role: 'user',
       content: `${RELIABILITY_PROMPT}
 
-You are Zelrex, an AI business co-pilot for freelancers. Generate a weekly business summary based on this analytics data. Be specific, data-driven, and actionable. Never give financial advice. Use a confident but supportive tone.
+You are Zelrex, an AI business co-pilot for freelancers. Write a weekly business summary from the analytics data below. Be specific and plain. Never give financial advice.
 
 ${context}
 
-Generate a weekly summary with these sections:
-1. **Performance Snapshot** — Key numbers this week vs last week (use ↑ ↓ → arrows for trends)
-2. **What's Working** — 1-2 specific things the data shows are going well
-3. **What Needs Attention** — 1-2 specific issues with concrete suggestions (not vague advice)
-4. **This Week's Priority** — ONE specific action item for the next 7 days
+Write these sections, each with a ## heading:
+## Performance Snapshot: this week's numbers next to last week's. Use ↑ ↓ → for direction only when last week was above zero.
+## What's Working: 1-2 things the data actually shows.
+## What Needs Attention: 1-2 issues, each with options the user could consider.
+## Worth Considering This Week: ONE option for the next 7 days, framed as something to consider, not an instruction.
 
-IMPORTANT RULES FOR SUMMARIES:
-- Only reference data the user has actually reported or that exists in their CRM/analytics
-- Do NOT invent metrics, client names, or revenue figures
-- If you don't have data for a section, say "No data available for this period" instead of guessing
-- Tag all projections as [ESTIMATED]
-- End with: "This summary is based on available data and AI analysis. Verify key metrics independently."
-
-Keep it concise — under 400 words total. No fluff. Every sentence should be backed by a number or specific observation.`
+RULES:
+- Sample size comes first. With fewer than 30 unique visitors, say plainly that the sample is too small to draw conclusions, and keep every observation tentative ("so far", "too early to tell"). Never call small numbers strong, exceptional, outstanding or proven.
+- Use only the numbers in the data above. Do not cite industry averages, benchmarks or typical rates, because none were provided.
+- Phrase suggestions as options ("one option is...", "you could..."). Never tell the user what to do. No financial, pricing or revenue advice, and no predictions. Business decisions are theirs.
+- Do not invent metrics, client names or revenue. If a section has no data, write "No data for this period."
+- Tag any projection as [ESTIMATED].
+- No emoji, no hype, no filler. Under 300 words.
+- End with exactly: "Based on available data and AI analysis. Verify key metrics yourself."`
     }],
   });
 
@@ -166,37 +166,54 @@ async function handleGet(summaryId: string) {
 // ─── Chat About Summary ────────────────────────────────────────
 
 async function handleChat(userId: string, summaryId: string, message: string, history: any[]) {
-  if (!anthropic || !message) return NextResponse.json({ error: 'Missing data' }, { status: 400 });
+  if (!anthropic) return NextResponse.json({ error: 'AI not configured' }, { status: 500 });
+  const text = typeof message === 'string' ? message.trim().slice(0, 4000) : '';
+  if (!text) return NextResponse.json({ error: 'Missing message' }, { status: 400 });
 
-  // Get the summary for context
-  const { data: summary } = await supabase
-    .from('weekly_summaries')
-    .select('*')
-    .eq('id', summaryId)
-    .single();
+  try {
+    // Only this user's own summary is used as context.
+    const { data: summary } = await supabase
+      .from('weekly_summaries')
+      .select('*')
+      .eq('id', summaryId)
+      .eq('user_id', userId)
+      .single();
 
-  const systemPrompt = `You are Zelrex, an AI business co-pilot for freelancers. The user is asking about their weekly business summary. Here is the summary they're referencing:
+    const systemPrompt = `You are Zelrex, an AI business co-pilot for freelancers. The user is asking about their weekly business summary below.
 
 Week: ${summary?.week_start} to ${summary?.week_end}
 Analytics: ${JSON.stringify(summary?.analytics_snapshot || {})}
 Summary: ${summary?.summary_text || 'No summary available'}
 
-Answer their questions with specific, actionable advice based on the data. Be concise. Never give financial advice or guarantee outcomes. If you don't know something, say so.`;
+Rules:
+- Answer from this data. Be concise and plain, with no hype and no emoji.
+- If the sample is small (under 30 unique visitors), say so before drawing any conclusion.
+- Do not cite industry averages or benchmarks you were not given.
+- Offer options, not instructions. Never give financial advice, predict results or guarantee outcomes.
+- If the data does not answer the question, say so.`;
 
-  const messages = [
-    ...(history || []).map((m: any) => ({ role: m.role, content: m.content })),
-    { role: 'user' as const, content: message },
-  ];
+    // Keep only well-formed turns, cap the length, and make sure the first turn is the user's.
+    const prior = (Array.isArray(history) ? history : [])
+      .filter((m: any) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
+      .slice(-20)
+      .map((m: any) => ({ role: m.role as 'user' | 'assistant', content: String(m.content).slice(0, 4000) }));
+    while (prior.length && prior[0].role !== 'user') prior.shift();
 
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 800,
-    system: systemPrompt,
-    messages,
-  });
+    const response = await anthropic.messages.create({
+      model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
+      max_tokens: 800,
+      system: systemPrompt,
+      messages: [...prior, { role: 'user' as const, content: text }],
+    });
 
-  const reply = response.content[0]?.type === 'text' ? response.content[0].text : '';
-  return NextResponse.json({ reply });
+    const reply = response.content[0]?.type === 'text' ? response.content[0].text.trim() : '';
+    if (!reply) return NextResponse.json({ error: 'Empty reply' }, { status: 502 });
+    return NextResponse.json({ reply });
+  } catch (e: any) {
+    // The status and message land in the Vercel logs so a model or key problem is visible.
+    console.error('[Summary] Chat error:', e?.status, e?.message);
+    return NextResponse.json({ error: 'Chat failed' }, { status: 502 });
+  }
 }
 
 // ─── Helpers ───────────────────────────────────────────────────
@@ -229,7 +246,7 @@ async function getRevenue(userId: string, since: string, until: string) {
 
 function buildContext(thisWeek: any, lastWeek: any, revenue: any, now: Date): string {
   const pctChange = (curr: number, prev: number) => {
-    if (prev === 0) return curr > 0 ? '+∞%' : '0%';
+    if (prev === 0) return curr > 0 ? 'no baseline, last week was 0' : '0%';
     const pct = Math.round(((curr - prev) / prev) * 100);
     return pct > 0 ? `+${pct}%` : `${pct}%`;
   };
@@ -238,7 +255,7 @@ function buildContext(thisWeek: any, lastWeek: any, revenue: any, now: Date): st
 
 THIS WEEK:
 - Pageviews: ${thisWeek.pageviews} (${pctChange(thisWeek.pageviews, lastWeek.pageviews)} vs last week)
-- Unique visitors: ${thisWeek.visitors} (${pctChange(thisWeek.visitors, lastWeek.visitors)} vs last week)
+- Unique visitors: ${thisWeek.visitors} (${pctChange(thisWeek.visitors, lastWeek.visitors)} vs last week)${thisWeek.visitors < 30 ? ' [SMALL SAMPLE: under 30 visitors]' : ''}
 - CTA clicks: ${thisWeek.ctaClicks} (${pctChange(thisWeek.ctaClicks, lastWeek.ctaClicks)} vs last week)
 - Checkout starts: ${thisWeek.checkoutStarts}
 - Click rate: ${thisWeek.pageviews > 0 ? ((thisWeek.ctaClicks / thisWeek.pageviews) * 100).toFixed(1) : 0}%

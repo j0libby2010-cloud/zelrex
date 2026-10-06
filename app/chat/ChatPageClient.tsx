@@ -2670,6 +2670,15 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         .z-btn-pill{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),border-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1)!important;cursor:pointer}
         .z-btn-pill:hover{background:${C.accent}22!important;border-color:${C.accent}!important;color:${C.accent}!important}
         .z-btn-pill:active{background:${C.accent}33!important;transition-duration:80ms!important}
+        /* Input bar overlay: messages scroll behind it and are blurred, strongest
+           at the bottom and fading to nothing above the input box. */
+        .z-input-area--overlay{pointer-events:none}
+        .z-input-area--overlay>*{pointer-events:auto}
+        .z-input-fade{background:linear-gradient(to bottom,rgba(6,9,15,0) 0%,rgba(6,9,15,0.5) 45%,rgba(6,9,15,0.84) 100%)}
+        .z-input-fade>i{position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none}
+        .z-input-fade>i:nth-child(1){-webkit-backdrop-filter:blur(1.5px);backdrop-filter:blur(1.5px);-webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 32%);mask-image:linear-gradient(to bottom,transparent 0%,#000 32%)}
+        .z-input-fade>i:nth-child(2){-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);-webkit-mask-image:linear-gradient(to bottom,transparent 22%,#000 56%);mask-image:linear-gradient(to bottom,transparent 22%,#000 56%)}
+        .z-input-fade>i:nth-child(3){-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);-webkit-mask-image:linear-gradient(to bottom,transparent 42%,#000 76%);mask-image:linear-gradient(to bottom,transparent 42%,#000 76%)}
 
         /* Backwards-compat aliases for buttons already using old class names */
         .z-side-btn{transition:background-color 150ms cubic-bezier(0.22,1,0.36,1),border-color 150ms cubic-bezier(0.22,1,0.36,1),color 150ms cubic-bezier(0.22,1,0.36,1)!important}
@@ -3077,13 +3086,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               The disclaimer below is deliberately OUTSIDE this scope so it
               never moves — it always stays in its usual spot near the
               true bottom of the screen. */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, justifyContent: !hasMessages ? "center" : undefined }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, position: "relative", justifyContent: !hasMessages ? "center" : undefined }}>
           <div className="z-scroll" style={{ flex: hasMessages ? 1 : "0 1 auto", overflowY: "auto", padding: isMobile ? "12px 10px" : (showPreview ? "16px 12px" : "16px 16px") }}>
             <div style={{ maxWidth: showPreview ? "100%" : 820, margin: "0 auto" }}>
               {!hasMessages ? (
                 <WelcomeScreen onAction={sendViaCard} firstName={clerkUser?.firstName} chatId={activeChatId} />
               ) : (
-                <div style={{ paddingBottom: isMobile ? 120 : 140 }}>
+                <div style={{ paddingBottom: isMobile ? 168 : 176 }}>
                   {activeChat?.messages.map((m) => {
                     const isUser = m.role === "user";
                     return (
@@ -3155,14 +3164,14 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
           </div>
 
           {/* INPUT */}
-          <div className="z-input-area" style={{ padding: isMobile ? "6px 8px 12px" : (showPreview ? "8px 12px 14px" : "8px 16px 18px"), position: "relative" }}>
+          <div className={hasMessages ? "z-input-area z-input-area--overlay" : "z-input-area"} style={{ padding: isMobile ? "6px 8px 12px" : (showPreview ? "8px 12px 14px" : "8px 16px 18px"), ...(hasMessages ? { position: "absolute" as const, left: 0, right: 0, bottom: 0, zIndex: 5 } : { position: "relative" as const }) }}>
             {!surveyData && !showSurvey && activeChat?.pendingSurvey && (
               <div style={{ maxWidth: showPreview ? "100%" : 820, margin: "0 auto 10px", borderRadius: 999, border: `1px solid ${C.border}`, background: C.bg, padding: "8px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, position: "relative", zIndex: 2 }}>
                 <div style={{ fontSize: 12, color: C.textSec }}>Survey paused. Continue to finish your website build.</div>
                 <button type="button" onClick={() => { setSurveyDismissed(false); setShowSurvey(true); }} className="z-btn-pill" style={{ padding: "6px 12px", borderRadius: 999, border: `1px solid ${C.accent}55`, background: `${C.accent}18`, color: C.accent, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Continue survey</button>
               </div>
             )}
-            <div style={{ position: "absolute", left: 0, right: 0, top: 0, height: 24, background: "linear-gradient(to bottom, rgba(6,9,15,0), rgba(6,9,15,0.9))", pointerEvents: "none" }} />
+            {hasMessages && <div aria-hidden="true" className="z-input-fade" style={{ position: "absolute", left: 0, right: 0, bottom: 0, top: -56, zIndex: 0, pointerEvents: "none" }}><i /><i /><i /></div>}
             {/* FIXED: Sticky loading indicator - visible regardless of scroll position */}
             {isSending && buildStage && (
               <div style={{
@@ -3261,13 +3270,21 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 </div>
               </div>
             </div>
+            {hasMessages && (
+              <div style={{ position: "relative", zIndex: 1, padding: "8px 0 0", textAlign: "center", pointerEvents: "none" }}>
+                <div style={{ fontSize: 12, fontWeight: 500, color: C.textSec }}>Zelrex can make mistakes. Check important info before making business decisions.</div>
+              </div>
+            )}
           </div>
           </div>
-          {/* Disclaimer — always pinned near the true bottom, outside the
-              centering scope above, so it never travels with the input box. */}
-          <div style={{ padding: isMobile ? "0 8px 10px" : (showPreview ? "0 12px 12px" : "0 16px 14px"), textAlign: "center" }}>
-            <div style={{ fontSize: 12, fontWeight: 500, color: C.textSec }}>Zelrex can make mistakes. Check important info before making business decisions.</div>
-          </div>
+          {/* Disclaimer for the empty welcome screen: pinned near the true
+              bottom, outside the centering scope, so it never travels with the
+              input box. With messages it renders inside the input overlay above. */}
+          {!hasMessages && (
+            <div style={{ padding: isMobile ? "0 8px 10px" : (showPreview ? "0 12px 12px" : "0 16px 14px"), textAlign: "center" }}>
+              <div style={{ fontSize: 12, fontWeight: 500, color: C.textSec }}>Zelrex can make mistakes. Check important info before making business decisions.</div>
+            </div>
+          )}
         </div>
 
         {/* DRAG HANDLE + PREVIEW PANEL */}

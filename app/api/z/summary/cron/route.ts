@@ -74,7 +74,7 @@ export async function GET(req: Request) {
 
       // Generate summary with Claude
       const response = await anthropic.messages.create({
-        model: "claude-sonnet-4-20250514",
+        model: process.env.ANTHROPIC_MODEL_SONNET || "claude-sonnet-5-5",
         max_tokens: 800,
         messages: [{
           role: "user",
@@ -94,9 +94,9 @@ Write a 3-5 paragraph summary covering:
 1. Traffic performance (up/down, what it means)
 2. Conversion signals (CTAs, checkouts)
 3. Revenue health
-4. ONE specific action for this week (not a list — one clear priority)
+4. ONE option to consider this week (not a list)
 
-Be direct, specific, and honest. Don't be vague. If traffic is zero, say so and explain what to do about it.`,
+Be direct, specific and plain. If there were very few visitors (under about 30), say the sample is too small to draw conclusions and keep observations tentative. Never call small numbers strong or exceptional. Use only the numbers above: no industry averages or benchmarks. Offer options rather than instructions, give no financial advice and no predictions. No emoji. If traffic is zero, say so.`,
         }],
       });
 
