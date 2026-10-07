@@ -256,7 +256,7 @@ export async function POST(req: NextRequest) {
 
       try {
         const result = await addCustomDomain(projectId, domain);
-        return NextResponse.json({ success: true, ...result });
+        return NextResponse.json({ ...result, success: !(result as any).error });
       } catch (err: any) {
         return NextResponse.json(
           { error: sanitizeError(err?.message) },
@@ -278,7 +278,7 @@ export async function POST(req: NextRequest) {
 
       try {
         const result = await verifyDomain(projectId, domain);
-        return NextResponse.json({ success: true, ...result });
+        return NextResponse.json({ ...result, success: !(result as any).error });
       } catch (err: any) {
         return NextResponse.json(
           { error: sanitizeError(err?.message) },

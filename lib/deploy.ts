@@ -74,6 +74,11 @@ export interface DomainResult {
   alreadyAdded?: boolean;
   dnsRecords: { type: string; name: string; value: string }[];
   message: string;
+  /** Set only when `verified` is true. true = DNS points at Vercel, false = it does not yet,
+   *  null/absent = we could not check. `verified` alone only means ownership is verified. */
+  dnsConfigured?: boolean | null;
+  /** Present only when the request failed, so callers can show it instead of guessing. */
+  error?: string;
 }
 
 // ─── Slug generation ────────────────────────────────────────────────
@@ -213,6 +218,45 @@ export async function deployWebsite(
 
 // ─── Add custom domain (FIXED: idempotent) ──────────────────────────
 
+// ─── DNS status ─────────────────────────────────────────────────────
+// Vercel's `verified` flag only means the domain is verified for use on this project. It says
+// nothing about whether DNS points at Vercel. The config endpoint reports that, plus the
+// records Vercel currently recommends (the IP and CNAME values can change over time).
+
+async function checkDnsConfig(
+  projectId: string,
+  domain: string
+): Promise<{ configured: boolean | null; records: { type: string; name: string; value: string }[] }> {
+  try {
+    const teamId = getTeamId();
+    const qs = `?projectIdOrName=${encodeURIComponent(projectId)}${teamId ? `&teamId=${encodeURIComponent(teamId)}` : ""}`;
+    const res = await fetch(
+      `https://api.vercel.com/v6/domains/${encodeURIComponent(domain)}/config${qs}`,
+      { headers: headers() }
+    );
+    if (!res.ok) return { configured: null, records: [] };
+    const data = await res.json();
+    if (typeof data?.misconfigured !== "boolean") return { configured: null, records: [] };
+    if (!data.misconfigured) return { configured: true, records: [] };
+
+    const clean = (v: unknown) => String(v ?? "").replace(/\.$/, "");
+    const bestCname = (Array.isArray(data.recommendedCNAME) ? [...data.recommendedCNAME] : [])
+      .sort((a: any, b: any) => (a?.rank ?? 99) - (b?.rank ?? 99))[0]?.value;
+    const bestIp = (Array.isArray(data.recommendedIPv4) ? [...data.recommendedIPv4] : [])
+      .sort((a: any, b: any) => (a?.rank ?? 99) - (b?.rank ?? 99))[0]?.value?.[0];
+
+    // Start from the known-good defaults, and swap in Vercel's current values where it gave them.
+    const records = getDefaultDnsRecords(domain).map((r) => {
+      if (r.type === "A" && bestIp) return { ...r, value: clean(bestIp) };
+      if (r.type === "CNAME" && bestCname) return { ...r, value: clean(bestCname) };
+      return r;
+    });
+    return { configured: false, records };
+  } catch {
+    return { configured: null, records: [] };
+  }
+}
+
 export async function addCustomDomain(
   projectId: string,
   domain: string
@@ -225,6 +269,7 @@ export async function addCustomDomain(
       domain: domain,
       dnsRecords: [],
       message: validation.reason || "Invalid domain",
+      error: validation.reason || "Invalid domain",
     };
   }
   
@@ -258,6 +303,7 @@ export async function addCustomDomain(
         domain: cleanDomain,
         dnsRecords: getDefaultDnsRecords(cleanDomain),
         message: sanitizeError(errorMsg) || `Failed to add domain (HTTP ${res.status})`,
+        error: sanitizeError(errorMsg) || `Failed to add domain (HTTP ${res.status})`,
       };
     }
 
@@ -277,11 +323,17 @@ export async function addCustomDomain(
       };
     }
 
+    const dns = await checkDnsConfig(projectId, cleanDomain);
     return {
       verified: true,
       domain: cleanDomain,
-      dnsRecords: [],
-      message: "Domain connected and verified. Your site is live.",
+      dnsConfigured: dns.configured,
+      dnsRecords: dns.records,
+      message: dns.configured === false
+        ? "Domain added. Point your DNS at the records below to bring it live."
+        : dns.configured === true
+          ? "Domain connected. Your site is live."
+          : "Domain added. We couldn't confirm your DNS settings yet.",
     };
   } catch (e: any) {
     return {
@@ -289,6 +341,7 @@ export async function addCustomDomain(
       domain: cleanDomain,
       dnsRecords: getDefaultDnsRecords(cleanDomain),
       message: sanitizeError(e?.message) || "Failed to add domain",
+      error: sanitizeError(e?.message) || "Failed to add domain",
     };
   }
 }
@@ -319,12 +372,18 @@ export async function verifyDomain(
     const data = await verifyRes.json();
 
     if (data.verified) {
+      const dns = await checkDnsConfig(projectId, cleanDomain);
       return {
         verified: true,
         domain: cleanDomain,
         alreadyAdded: true,
-        dnsRecords: [],
-        message: `${cleanDomain} is verified and live. Your site is ready.`,
+        dnsConfigured: dns.configured,
+        dnsRecords: dns.records,
+        message: dns.configured === false
+          ? `${cleanDomain} is added, but its DNS does not point at Vercel yet.`
+          : dns.configured === true
+            ? `${cleanDomain} is connected. Your site is live.`
+            : `${cleanDomain} is added. We couldn't confirm your DNS settings yet.`,
       };
     }
 

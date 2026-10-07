@@ -1,21 +1,71 @@
-// @ts-nocheck
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
-const G = {
-  bg: "#050709", glass: "rgba(255,255,255,0.025)", glassBorder: "rgba(255,255,255,0.055)",
-  text: "rgba(255,255,255,0.92)", textSec: "rgba(255,255,255,0.52)", textMuted: "rgba(255,255,255,0.26)",
-  accent: "#3B82F6", accentSoft: "#5B9BF7", green: "#34D399", amber: "#FBBF24", red: "#F87171", purple: "#A78BFA",
+/* Zelrex design tokens, same values as the C object in ChatPageClient.tsx. */
+const C = {
+  bg: "#06090F", bgElevated: "#0D1320", bgInput: "#080D17",
+  border: "rgba(255,255,255,0.07)", borderHover: "rgba(255,255,255,0.14)",
+  accent: "#4A90FF",
+  text: "rgba(255,255,255,0.88)", textSec: "rgba(255,255,255,0.50)", textMuted: "rgba(255,255,255,0.30)",
+  green: "#10B981", red: "#EF4444",
 };
 const EASE = "cubic-bezier(0.22,1,0.36,1)";
-const liquidGlass: React.CSSProperties = {
-  background: "linear-gradient(165deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.012) 50%, rgba(255,255,255,0.02) 100%)",
-  backdropFilter: "blur(64px) saturate(1.6) brightness(1.04)", WebkitBackdropFilter: "blur(64px) saturate(1.6) brightness(1.04)",
-  border: `0.5px solid ${G.glassBorder}`, borderRadius: 20,
-  boxShadow: "0 0.5px 0 0 rgba(255,255,255,0.06) inset, 0 8px 32px rgba(0,0,0,0.4)",
-};
 
 type DomainStatus = "none" | "pending" | "verifying" | "verified" | "failed";
+type DnsRecord = { type: string; name: string; value: string };
+
+/* Vercel's `verified` only means ownership is verified. A domain is live only when DNS also points at
+   Vercel, which the server reports as `dnsConfigured` (true / false / null when it couldn't check).
+   Only an explicit `false` keeps the panel in the "set your DNS" state. */
+const isLive = (r: any) => !!r?.verified && r.dnsConfigured !== false;
+
+const GlobeIcon = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden><circle cx="12" cy="12" r="9.25" stroke="currentColor" strokeWidth="1.5" /><path d="M3 12h18M12 2.75c2.4 2.5 3.6 5.6 3.6 9.25S14.4 18.75 12 21.25C9.6 18.75 8.4 15.65 8.4 12S9.6 5.25 12 2.75z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" /></svg>
+);
+const XIcon = ({ size = 17 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+);
+const CopyIcon = ({ size = 15 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden><rect x="9" y="9" width="11" height="11" rx="2.5" stroke="currentColor" strokeWidth="1.5" /><path d="M15 9V6.5A2.5 2.5 0 0012.5 4h-6A2.5 2.5 0 004 6.5v6A2.5 2.5 0 006.5 15H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg>
+);
+const CheckIcon = ({ size = 15 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+);
+const ArrowUpRight = ({ size = 14 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden><path d="M7 17L17 7M9 7h8v8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+);
+const Spinner = ({ size = 13 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden style={{ animation: "dm-spin 0.8s linear infinite" }}><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2.5" opacity="0.25" /><path d="M12 3a9 9 0 019 9" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></svg>
+);
+
+const STYLES = `
+  @keyframes dm-fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes dm-spin{to{transform:rotate(360deg)}}
+  .dm-btn-accent{transition:filter 150ms ${EASE},transform 100ms ${EASE};cursor:pointer}
+  .dm-btn-accent:not(:disabled):hover{filter:brightness(1.1)}
+  .dm-btn-accent:not(:disabled):active{filter:brightness(0.95);transform:scale(0.98);transition-duration:80ms}
+  .dm-btn-accent:disabled{opacity:0.5;cursor:not-allowed}
+  .dm-btn-outlined{transition:background-color 150ms ${EASE},border-color 150ms ${EASE},color 150ms ${EASE};cursor:pointer}
+  .dm-btn-outlined:hover{background:rgba(255,255,255,0.04)!important;border-color:${C.borderHover}!important;color:${C.text}!important}
+  .dm-btn-outlined:active{background:rgba(255,255,255,0.06)!important;transition-duration:80ms}
+  .dm-btn-text{transition:background-color 150ms ${EASE},color 150ms ${EASE};cursor:pointer;background:none;border:none;border-radius:999px}
+  .dm-btn-text:hover{background:rgba(255,255,255,0.04);color:${C.text}!important}
+  .dm-btn-icon{transition:background-color 150ms ${EASE},color 150ms ${EASE};cursor:pointer;border-radius:999px}
+  .dm-btn-icon:hover{background:rgba(255,255,255,0.06)!important;color:${C.text}!important}
+  .dm-btn-icon:active{background:rgba(255,255,255,0.10)!important;transition-duration:80ms}
+  .dm-input{width:100%;height:42px;padding:0 14px;border-radius:10px;border:1px solid ${C.border};background:${C.bgInput};color:${C.text};font-size:14px;font-family:inherit;outline:none;transition:border-color 150ms ${EASE}}
+  .dm-input:focus{border-color:${C.accent}}
+  .dm-input::placeholder{color:${C.textMuted}}
+  .dm-header{height:52px;padding:0 14px 0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid ${C.border};flex-shrink:0}
+  .dm-row{display:grid;grid-template-columns:64px minmax(0,1fr) minmax(0,1.6fr);gap:12px;align-items:center;padding:12px 8px 12px 16px}
+  .dm-cell{display:flex;align-items:center;gap:4px;min-width:0}
+  .dm-add{display:flex;gap:10px}
+  @media(max-width:560px){
+    .dm-row{grid-template-columns:1fr;gap:8px;padding:14px 12px 14px 16px}
+    .dm-head-row{display:none!important}
+    .dm-add{flex-direction:column}
+  }
+`;
 
 export function DomainManager({ deployData, onAddDomain, onVerifyDomain, onClose }: {
   deployData: { url?: string; projectId?: string; projectName?: string; customDomain?: string; domainStatus?: DomainStatus; dnsRecords?: any[] } | null;
@@ -23,30 +73,52 @@ export function DomainManager({ deployData, onAddDomain, onVerifyDomain, onClose
   onVerifyDomain: () => Promise<any>;
   onClose: () => void;
 }) {
-  const [domain, setDomain] = useState("");
-  const [status, setStatus] = useState<DomainStatus>(deployData?.domainStatus || "none");
-  const [dnsRecords, setDnsRecords] = useState<any[]>(deployData?.dnsRecords || []);
+  const startStatus: DomainStatus = deployData?.customDomain ? (deployData?.domainStatus || "pending") : "none";
+  const [input, setInput] = useState("");
+  const [active, setActive] = useState(deployData?.customDomain || "");
+  const [status, setStatus] = useState<DomainStatus>(startStatus);
+  const [dnsRecords, setDnsRecords] = useState<DnsRecord[]>(deployData?.dnsRecords || []);
+  const [dnsKnown, setDnsKnown] = useState<boolean | null>(startStatus === "verified" ? true : null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
-  const [polling, setPolling] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  const currentDomain = deployData?.customDomain || "";
+  // The 30-second check must always call the *current* verify function. The parent rebuilds it after the
+  // domain is saved, and an interval that kept the first copy would verify an undefined domain forever.
+  const verifyRef = useRef(onVerifyDomain);
+  verifyRef.current = onVerifyDomain;
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  useEffect(() => { const t = requestAnimationFrame(() => setMounted(true)); return () => cancelAnimationFrame(t); }, []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") closeRef.current(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const applyResult = (r: any) => {
+    if (Array.isArray(r?.dnsRecords) && r.dnsRecords.length) setDnsRecords(r.dnsRecords);
+    if (isLive(r)) { setStatus("verified"); setDnsKnown(r.dnsConfigured ?? null); return true; }
+    return false;
+  };
 
   const handleAddDomain = async () => {
-    if (!domain.trim()) { setError("Enter a domain"); return; }
-    if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z]{2,})+$/i.test(domain.trim())) {
-      setError("Invalid domain format. Example: mybusiness.com"); return;
+    // Accept a pasted address: drop the protocol and any path before checking the format.
+    const clean = input.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    if (!clean) { setError("Enter a domain."); return; }
+    if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/i.test(clean)) {
+      setError("That doesn't look like a domain. Example: mybusiness.com"); return;
     }
     setLoading(true); setError("");
     try {
-      const result = await onAddDomain(domain.trim());
-      if (result?.dnsRecords) {
-        setDnsRecords(result.dnsRecords);
-        setStatus(result.verified ? "verified" : "pending");
-      }
-      if (result?.error) setError(result.error);
-    } catch (e: any) { setError(e?.message || "Failed to add domain"); }
+      const result = await onAddDomain(clean);
+      if (result?.error) { setError(result.error); }
+      else if (applyResult(result)) { setActive(result.domain || clean); }
+      else if (result?.dnsRecords?.length) { setActive(result.domain || clean); setStatus("pending"); }
+      else { setError(result?.message || "Couldn't add that domain. Try again."); }
+    } catch (e: any) { setError(e?.message || "Couldn't add that domain. Try again."); }
     setLoading(false);
   };
 
@@ -54,174 +126,143 @@ export function DomainManager({ deployData, onAddDomain, onVerifyDomain, onClose
     setLoading(true); setStatus("verifying"); setError("");
     try {
       const result = await onVerifyDomain();
-      setStatus(result?.verified ? "verified" : "failed");
-      if (!result?.verified) setError(result?.message || "DNS not propagated yet. This can take up to 48 hours.");
-    } catch { setError("Verification check failed"); setStatus("failed"); }
+      if (!applyResult(result)) {
+        if (result?.verified && result.dnsConfigured === false) {
+          setStatus("pending");
+          setError("Your domain is added, but its DNS doesn't point at us yet. Changes can take a while to spread.");
+        } else {
+          setStatus("failed");
+          setError(result?.error || result?.message || "DNS hasn't propagated yet. This can take up to 48 hours.");
+        }
+      }
+    } catch { setError("Couldn't check your DNS. Try again in a moment."); setStatus("failed"); }
     setLoading(false);
   };
 
-  // Auto-poll every 30s when pending
+  // While records are waiting to be set, check again every 30 seconds.
   useEffect(() => {
-    if (status !== "pending" || polling) return;
-    const interval = setInterval(async () => {
-      try {
-        const result = await onVerifyDomain();
-        if (result?.verified) { setStatus("verified"); clearInterval(interval); }
-      } catch {}
+    if (status !== "pending") return;
+    const id = setInterval(async () => {
+      try { applyResult(await verifyRef.current()); } catch {}
     }, 30000);
-    setPolling(true);
-    return () => { clearInterval(interval); setPolling(false); };
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
-  const copyValue = (val: string, key: string) => {
-    navigator.clipboard.writeText(val);
-    setCopied(key); setTimeout(() => setCopied(null), 1500);
+  const copyValue = async (val: string, key: string) => {
+    try { await navigator.clipboard.writeText(val); } catch { return; }
+    setCopied(key); setTimeout(() => setCopied((c) => (c === key ? null : c)), 1500);
   };
 
-  const statusConfig: Record<DomainStatus, { color: string; label: string; icon: string }> = {
-    none: { color: G.textMuted, label: "No custom domain", icon: "○" },
-    pending: { color: G.amber, label: "DNS setup required", icon: "◐" },
-    verifying: { color: G.accent, label: "Checking DNS...", icon: "◌" },
-    verified: { color: G.green, label: "Connected & live", icon: "●" },
-    failed: { color: G.red, label: "DNS not found", icon: "✕" },
-  };
+  const useDifferent = () => { setStatus("none"); setDnsRecords([]); setDnsKnown(null); setInput(""); setActive(""); setError(""); };
 
-  const sc = statusConfig[status];
+  const showRecords = (status === "pending" || status === "failed" || status === "verifying") && dnsRecords.length > 0;
+  const siteUrl = deployData?.url ? deployData.url.replace(/^https?:\/\//, "").replace(/\/$/, "") : "";
+
+  const label: Record<DomainStatus, { color: string; text: string }> = {
+    none: { color: C.textMuted, text: "" },
+    pending: { color: C.accent, text: "Waiting for DNS" },
+    verifying: { color: C.accent, text: "Checking DNS" },
+    verified: dnsKnown === true ? { color: C.green, text: "Connected" } : { color: C.accent, text: "Added" },
+    failed: { color: C.red, text: "DNS not found yet" },
+  };
+  const sc = label[status];
+
+  const heading = status === "none" ? "Use your own domain"
+    : status === "verified" ? (dnsKnown === true ? "Your domain is connected" : "Your domain is added")
+    : active;
+  const sub = status === "none" ? (siteUrl ? `Your site is at ${siteUrl}. Point a domain you own at it and visitors will see that instead.` : "Deploy your site first, then connect a domain you own.")
+    : status === "verified" ? (dnsKnown === true ? `Visitors to ${active} now see your site.` : `We couldn't confirm your DNS settings from here. If ${active} doesn't load, check that its records point at us.`)
+    : "Set these records where you registered the domain.";
+
+  const outlinedBtn: React.CSSProperties = { height: 36, padding: "0 16px", borderRadius: 999, border: `1px solid ${C.border}`, background: "transparent", color: C.textSec, fontSize: 13, fontWeight: 500, display: "inline-flex", alignItems: "center", gap: 6 };
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9700, background: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={onClose}>
-      <div style={{ ...liquidGlass, maxWidth: 560, width: "100%", padding: 0, overflow: "hidden", animation: `dmFadeUp 300ms ${EASE}` }} onClick={e => e.stopPropagation()}>
-        <style>{`@keyframes dmFadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes dmSpin{to{transform:rotate(360deg)}}`}</style>
+    <div role="dialog" aria-label="Domain" style={{ position: "fixed", inset: 0, zIndex: 9700, background: C.bg, display: "flex", flexDirection: "column", overflow: "hidden", opacity: mounted ? 1 : 0, transition: `opacity 300ms ${EASE}`, fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <style>{STYLES}</style>
 
-        {/* Header */}
-        <div style={{ padding: "24px 28px 20px", borderBottom: `1px solid ${G.glassBorder}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: G.text, letterSpacing: "-0.02em" }}>Custom domain</div>
-            <div style={{ fontSize: 12, color: G.textMuted, marginTop: 4 }}>
-              {deployData?.url ? `Currently at ${deployData.url.replace("https://", "")}` : "Deploy your site first"}
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: G.textMuted, cursor: "pointer", fontSize: 18, padding: 8 }}>✕</button>
+      <div className="dm-header">
+        <div style={{ display: "flex", alignItems: "center", gap: 10, color: C.accent }}>
+          <GlobeIcon size={18} />
+          <span style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Domain</span>
         </div>
+        <button className="dm-btn-icon" onClick={onClose} aria-label="Close" title="Close (Esc)" style={{ width: 32, height: 32, border: "none", background: "none", color: C.textSec, display: "flex", alignItems: "center", justifyContent: "center" }}><XIcon /></button>
+      </div>
 
-        <div style={{ padding: "24px 28px 28px" }}>
-          {/* Status indicator */}
-          {(currentDomain || status !== "none") && (
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20, padding: "14px 18px", borderRadius: 14, background: `${sc.color}08`, border: `0.5px solid ${sc.color}20` }}>
-              <div style={{ width: 10, height: 10, borderRadius: 999, background: sc.color, boxShadow: `0 0 8px ${sc.color}40`, animation: status === "verifying" ? "dmSpin 1s linear infinite" : "none" }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: G.text }}>{currentDomain || domain}</div>
-                <div style={{ fontSize: 11, color: sc.color, fontWeight: 500, marginTop: 2 }}>{sc.label}</div>
+      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", padding: "24px 20px 64px" }}>
+        <div style={{ width: 520, maxWidth: "100%", margin: "auto", animation: `dm-fadeUp 250ms ${EASE} both` }}>
+          <div style={{ textAlign: status === "none" || status === "verified" ? "center" : "left" }}>
+            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.15, color: C.text, overflowWrap: "anywhere" }}>{heading}</h1>
+            {status !== "none" && sc.text && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, justifyContent: status === "verified" ? "center" : "flex-start", fontSize: 13, fontWeight: 500, color: sc.color }}>
+                {status === "verifying" ? <Spinner /> : <span style={{ width: 7, height: 7, borderRadius: 999, background: sc.color }} />}
+                {sc.text}
               </div>
-              {status === "verified" && <span style={{ fontSize: 11, color: G.green, fontWeight: 700 }}>✓ LIVE</span>}
-            </div>
-          )}
+            )}
+            <p style={{ margin: `${status === "none" ? 10 : 14}px ${status === "none" || status === "verified" ? "auto" : 0} 28px`, fontSize: 14, lineHeight: 1.6, color: C.textSec, maxWidth: status === "none" || status === "verified" ? 380 : "none" }}>{sub}</p>
+          </div>
 
-          {/* Domain input (when no domain set) */}
           {status === "none" && (
             <div>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 500, color: G.textSec, marginBottom: 6 }}>Enter your domain</label>
-              <div style={{ display: "flex", gap: 10 }}>
-                <input
-                  value={domain} onChange={e => setDomain(e.target.value.toLowerCase())}
-                  placeholder="mybusiness.com"
-                  onKeyDown={e => e.key === "Enter" && handleAddDomain()}
-                  style={{ flex: 1, padding: "12px 16px", borderRadius: 12, border: `1px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.03)", color: G.text, fontSize: 14, outline: "none" }}
-                />
-                <button onClick={handleAddDomain} disabled={loading} style={{
-                  padding: "12px 22px", borderRadius: 12, border: "none", background: G.accent, color: "#fff", fontSize: 13, fontWeight: 600, cursor: loading ? "wait" : "pointer", opacity: loading ? 0.6 : 1,
-                }}>
-                  {loading ? "Adding..." : "Connect"}
+              <label htmlFor="dm-domain" style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.textSec, marginBottom: 6 }}>Your domain</label>
+              <div className="dm-add">
+                <input id="dm-domain" className="dm-input" autoFocus value={input} onChange={(e) => { setInput(e.target.value.toLowerCase()); if (error) setError(""); }} onKeyDown={(e) => { if (e.key === "Enter" && !loading) handleAddDomain(); }} placeholder="mybusiness.com" inputMode="url" autoCapitalize="off" autoCorrect="off" spellCheck={false} disabled={!deployData?.url} />
+                <button className="dm-btn-accent" onClick={handleAddDomain} disabled={loading || !input.trim() || !deployData?.url} style={{ height: 42, padding: "0 22px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, flexShrink: 0 }}>
+                  {loading ? <><Spinner /> Adding</> : "Connect"}
                 </button>
               </div>
-              <div style={{ fontSize: 11, color: G.textMuted, marginTop: 8, lineHeight: 1.5 }}>
-                You'll need access to your domain's DNS settings (Namecheap, GoDaddy, Cloudflare, etc.)
-              </div>
+              <p style={{ margin: "10px 0 0", fontSize: 12, lineHeight: 1.6, color: C.textMuted }}>You'll need access to your domain's DNS settings, which you can find at the company you bought it from.</p>
             </div>
           )}
 
-          {/* DNS Records (when pending) */}
-          {(status === "pending" || status === "failed") && dnsRecords.length > 0 && (
+          {showRecords && (
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: G.text, marginBottom: 12 }}>
-                {status === "failed" ? "DNS records not detected yet. Verify these are set:" : "Set these DNS records at your domain registrar:"}
-              </div>
-              <div style={{ borderRadius: 14, overflow: "hidden", border: `0.5px solid ${G.glassBorder}` }}>
-                {/* Header row */}
-                <div style={{ display: "grid", gridTemplateColumns: "70px 1fr 1fr 50px", padding: "10px 16px", background: "rgba(255,255,255,0.03)", borderBottom: `0.5px solid ${G.glassBorder}` }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: G.textMuted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Type</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: G.textMuted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Name</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: G.textMuted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Value</span>
-                  <span />
+              <div style={{ borderRadius: 14, border: `1px solid ${C.border}`, background: C.bgElevated, overflow: "hidden" }}>
+                <div className="dm-row dm-head-row" style={{ padding: "10px 8px 10px 16px", borderBottom: `1px solid ${C.border}` }}>
+                  {["Type", "Name", "Value"].map((h) => <span key={h} style={{ fontSize: 12, fontWeight: 500, color: C.textMuted }}>{h}</span>)}
                 </div>
-                {dnsRecords.map((rec: any, i: number) => (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "70px 1fr 1fr 50px", padding: "12px 16px", borderBottom: i < dnsRecords.length - 1 ? `0.5px solid ${G.glassBorder}` : "none", alignItems: "center" }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: G.accent, fontFamily: "monospace" }}>{rec.type}</span>
-                    <span style={{ fontSize: 12, color: G.textSec, fontFamily: "monospace", wordBreak: "break-all" }}>{rec.name}</span>
-                    <span style={{ fontSize: 12, color: G.text, fontFamily: "monospace", wordBreak: "break-all" }}>{rec.value}</span>
-                    <button onClick={() => copyValue(rec.value, `dns_${i}`)} style={{ background: "none", border: "none", color: copied === `dns_${i}` ? G.green : G.textMuted, cursor: "pointer", fontSize: 11, fontWeight: 600 }}>
-                      {copied === `dns_${i}` ? "✓" : "Copy"}
-                    </button>
+                {dnsRecords.map((rec, i) => (
+                  <div key={i} className="dm-row" style={{ borderBottom: i < dnsRecords.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: C.text, fontFamily: "'JetBrains Mono','SF Mono',monospace" }}>{rec.type}</span>
+                    <div className="dm-cell">
+                      <span style={{ fontSize: 12.5, color: C.textSec, fontFamily: "'JetBrains Mono','SF Mono',monospace", overflowWrap: "anywhere", minWidth: 0 }}>{rec.name}</span>
+                      <button className="dm-btn-icon" onClick={() => copyValue(rec.name, `n${i}`)} aria-label={`Copy name ${rec.name}`} title="Copy name" style={{ width: 28, height: 28, border: "none", background: "none", color: copied === `n${i}` ? C.green : C.textMuted, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{copied === `n${i}` ? <CheckIcon /> : <CopyIcon />}</button>
+                    </div>
+                    <div className="dm-cell">
+                      <span style={{ fontSize: 12.5, color: C.text, fontFamily: "'JetBrains Mono','SF Mono',monospace", overflowWrap: "anywhere", minWidth: 0 }}>{rec.value}</span>
+                      <button className="dm-btn-icon" onClick={() => copyValue(rec.value, `v${i}`)} aria-label={`Copy value ${rec.value}`} title="Copy value" style={{ width: 28, height: 28, border: "none", background: "none", color: copied === `v${i}` ? C.green : C.textMuted, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{copied === `v${i}` ? <CheckIcon /> : <CopyIcon />}</button>
+                    </div>
                   </div>
                 ))}
               </div>
 
-              {/* Steps */}
-              <div style={{ marginTop: 16, padding: "14px 18px", borderRadius: 14, background: "rgba(255,255,255,0.02)", border: `0.5px solid ${G.glassBorder}` }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: G.text, marginBottom: 8 }}>Steps:</div>
-                <div style={{ fontSize: 12, color: G.textSec, lineHeight: 1.8 }}>
-                  1. Log into your domain registrar (Namecheap, GoDaddy, etc.)<br />
-                  2. Go to DNS settings for {currentDomain || domain}<br />
-                  3. Add the records shown above<br />
-                  4. Wait 5-30 minutes (can take up to 48h)<br />
-                  5. Click "Verify" below
-                </div>
-              </div>
+              <ol style={{ margin: "24px 0 0", padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
+                {[`Sign in where you registered ${active}.`, "Open its DNS settings and add the records above.", "Come back and check. It usually takes a few minutes, and can take up to 48 hours."].map((t, i) => (
+                  <li key={i} style={{ display: "flex", gap: 12, fontSize: 13, lineHeight: 1.6, color: C.textSec }}>
+                    <span style={{ color: C.textMuted, fontWeight: 600, minWidth: 14 }}>{i + 1}</span><span>{t}</span>
+                  </li>
+                ))}
+              </ol>
 
-              <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-                <button onClick={handleVerify} disabled={loading} style={{
-                  flex: 1, padding: "13px 0", borderRadius: 12, border: "none", background: G.accent, color: "#fff", fontSize: 14, fontWeight: 600, cursor: loading ? "wait" : "pointer", opacity: loading ? 0.6 : 1,
-                }}>
-                  {loading ? "Checking..." : status === "failed" ? "Retry verification" : "Verify DNS"}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 28, flexWrap: "wrap" }}>
+                <button className="dm-btn-accent" onClick={handleVerify} disabled={loading} style={{ height: 42, padding: "0 22px", borderRadius: 999, border: "none", background: C.accent, color: "#fff", fontSize: 14, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  {loading ? <><Spinner /> Checking</> : status === "failed" ? "Check again" : "Check DNS"}
                 </button>
-                <button onClick={() => { setStatus("none"); setDnsRecords([]); setDomain(""); }} style={{
-                  padding: "13px 20px", borderRadius: 12, border: `1px solid ${G.glassBorder}`, background: "none", color: G.textMuted, fontSize: 13, fontWeight: 500, cursor: "pointer",
-                }}>
-                  Change domain
-                </button>
+                <button className="dm-btn-text" onClick={useDifferent} style={{ height: 36, padding: "0 14px", color: C.textSec, fontSize: 13, fontWeight: 500 }}>Use a different domain</button>
               </div>
-
-              {polling && status === "pending" && (
-                <div style={{ fontSize: 11, color: G.textMuted, marginTop: 10, textAlign: "center" }}>
-                  Auto-checking every 30 seconds...
-                </div>
-              )}
+              {status === "pending" && <p style={{ margin: "14px 0 0", fontSize: 12, color: C.textMuted }}>We'll check again every 30 seconds while this page is open.</p>}
             </div>
           )}
 
-          {/* Verified state */}
           {status === "verified" && (
-            <div style={{ textAlign: "center", padding: 20 }}>
-              <div style={{ width: 56, height: 56, borderRadius: 28, background: `${G.green}12`, border: `1px solid ${G.green}25`, margin: "0 auto 16px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={G.green} strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: G.text, marginBottom: 6 }}>Domain connected</div>
-              <div style={{ fontSize: 13, color: G.textSec, marginBottom: 16 }}>
-                Your site is live at <span style={{ color: G.green, fontWeight: 600 }}>https://{currentDomain || domain}</span>
-              </div>
-              <button onClick={() => window.open(`https://${currentDomain || domain}`, "_blank")} style={{
-                padding: "10px 24px", borderRadius: 10, border: `1px solid ${G.glassBorder}`, background: "rgba(255,255,255,0.04)", color: G.text, fontSize: 13, fontWeight: 500, cursor: "pointer",
-              }}>
-                Visit site ↗
-              </button>
+            <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+              <button className="dm-btn-outlined" onClick={() => window.open(`https://${active}`, "_blank", "noopener,noreferrer")} style={outlinedBtn}>Visit site <ArrowUpRight /></button>
+              <button className="dm-btn-text" onClick={useDifferent} style={{ height: 36, padding: "0 14px", color: C.textSec, fontSize: 13, fontWeight: 500 }}>Use a different domain</button>
             </div>
           )}
 
-          {/* Error */}
           {error && (
-            <div style={{ marginTop: 14, padding: "10px 14px", borderRadius: 10, background: `${G.red}08`, border: `0.5px solid ${G.red}15`, fontSize: 12, color: G.red }}>
-              {error}
-            </div>
+            <div role="alert" style={{ marginTop: 20, padding: "10px 14px", borderRadius: 10, border: "1px solid rgba(239,68,68,0.2)", background: "rgba(239,68,68,0.06)", fontSize: 13, lineHeight: 1.5, color: C.red }}>{error}</div>
           )}
         </div>
       </div>
