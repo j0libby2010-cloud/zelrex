@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
+import { createMessage } from "@/lib/models";
 
 // Runs daily at 7am UTC — checks for market disruptions relevant to each active user's niche
 // Add to vercel.json: { "path": "/api/z/market-alert/cron", "schedule": "0 7 * * *" }
@@ -55,10 +56,9 @@ export async function GET(req: Request) {
   for (const [niche, userIds] of nicheUsers) {
     try {
       // Use Claude with web search to find disruptions
-      const response = await anthropic.messages.create({
-        model: process.env.ANTHROPIC_MODEL_SONNET || "claude-sonnet-5-5",
+      const response = await createMessage(anthropic, "standard", {
         max_tokens: 600,
-        tools: [{ type: "web_search_20250305" as any, name: "web_search" }],
+        tools: [{ type: "web_search_20250305" as any, name: "web_search", max_uses: 3 }],
         messages: [{
           role: "user",
           content: `Search for major recent changes (last 7 days) in the "${niche}" freelancing market. Look for:

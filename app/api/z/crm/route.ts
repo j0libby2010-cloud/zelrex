@@ -4,6 +4,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { validateOutput, RELIABILITY_PROMPT, CONTRACT_PROMPT } from '@/lib/aiSafety';
 import { collectDataPoint, maybeAggregate } from '@/lib/dataCollector';
+import { createMessage } from "@/lib/models";
 
 let _sb: SupabaseClient | null = null;
 function db(): SupabaseClient | null {
@@ -292,8 +293,8 @@ async function invoicesGenerate(supabase: SupabaseClient, userId: string, body: 
     ? `\nUSER'S ACTUAL PAST PRICING (anchor new estimates to these real rates):\n${pastInvoices.map((inv: any) => `- $${(inv.total_cents / 100).toFixed(2)} total`).join('\n')}`
     : '\nNo past invoices on file. Do NOT invent rates — leave rate_cents at 0 and write "Confirm rate with client" in the description so the user fills it in.';
 
-  const res = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5', max_tokens: 800,
+  const res = await createMessage(anthropic, "standard", {
+    max_tokens: 800,
     messages: [{ role: 'user', content: `Generate invoice line items for a freelancer.
 
 CLIENT: ${client?.name} (${client?.company || 'Individual'})
@@ -371,8 +372,8 @@ ${(pastInvoices.data || []).map((inv: any) => `- Invoice: $${(inv.total_cents / 
 
   const isProposal = type === 'proposal';
 
-  const res = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5', max_tokens: 2000,
+  const res = await createMessage(anthropic, "standard", {
+    max_tokens: 2000,
     messages: [{ role: 'user', content: `${RELIABILITY_PROMPT}
 ${CONTRACT_PROMPT}
 
@@ -482,8 +483,8 @@ async function followupsGenerate(supabase: SupabaseClient, userId: string, body:
     ? 'Write a follow-up checking if they reviewed the proposal. Keep it brief and helpful.'
     : 'Write a friendly check-in message. Ask if they need anything or have upcoming projects.';
 
-  const res = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5', max_tokens: 400,
+  const res = await createMessage(anthropic, "standard", {
+    max_tokens: 400,
     messages: [{ role: 'user', content: `Write a follow-up email for a freelancer.
 
 CLIENT: ${client?.name} (${client?.email || ''})
@@ -616,8 +617,8 @@ async function screenClient(supabase: SupabaseClient, userId: string, body: any)
   const { description, userNiche } = body;
   if (!description) return NextResponse.json({ error: 'Missing description' }, { status: 400 });
 
-  const res = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-4-5-20250929', max_tokens: 2000,
+  const res = await createMessage(anthropic, "standard", {
+    max_tokens: 2000,
     tools: [{ type: 'web_search_20250305' as any, name: 'web_search' }],
     messages: [{ role: 'user', content: `You are an expert freelancer protection system. A freelancer${userNiche ? ` in ${userNiche}` : ""} is considering working with a potential client. Analyze the client's message/project description for risks.
 
@@ -1088,8 +1089,8 @@ async function outcomeCheck(supabase: SupabaseClient, userId: string, body: any)
   }
 
   // AI analysis of progress
-  const res = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5', max_tokens: 500,
+  const res = await createMessage(anthropic, "standard", {
+    max_tokens: 500,
     messages: [{ role: 'user', content: `You are analyzing a freelancer's progress at their ${checkpointDay}-day check-in.
 
 GOAL: ${outcome.goal_description}

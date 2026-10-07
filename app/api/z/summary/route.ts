@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { validateOutput, RELIABILITY_PROMPT } from '@/lib/aiSafety';
+import { createMessage } from "@/lib/models";
 
 let supabase: any = null;
 try {
@@ -65,8 +66,7 @@ async function handleGenerate(userId: string) {
   // Build analytics context for Claude
   const context = buildContext(thisWeek, lastWeek, revenue, now);
 
-  const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
+  const response = await createMessage(anthropic, "standard", {
     max_tokens: 1500,
     messages: [{
       role: 'user',
@@ -199,8 +199,7 @@ Rules:
       .map((m: any) => ({ role: m.role as 'user' | 'assistant', content: String(m.content).slice(0, 4000) }));
     while (prior.length && prior[0].role !== 'user') prior.shift();
 
-    const response = await anthropic.messages.create({
-      model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
+    const response = await createMessage(anthropic, "standard", {
       max_tokens: 800,
       system: systemPrompt,
       messages: [...prior, { role: 'user' as const, content: text }],

@@ -26,6 +26,8 @@ const i18n: Record<string, Record<string, string>> = {
 import { CRMSystem } from "@/components/CRMSystem";
 import { DomainManager } from "@/components/DomainManager";
 import { SettingsPanel } from "@/components/SettingsPanel";
+import { TesseractThinking } from "@/components/TesseractThinking";
+import { ProductTour } from "@/components/ProductTour";
 import { WebsiteEditMode } from "@/components/WebsiteEditMode";
 import { db, useDebouncedSave } from "@/lib/useZelrexData";
 
@@ -216,52 +218,6 @@ function ZelrexZIcon({ size = 24 }: { size?: number }) {
 }
 
 // ─── SUB-COMPONENTS ────────────────────────────────────────────────
-
-function ZelrexThinking({ stage }: { stage?: string }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 0", minHeight: 48 }}>
-      <div className="dyson-wrap">
-        <div className="dyson-glow" />
-        <div className="dyson-core"><ZelrexZIcon size={18} /></div>
-        {/* Three orbital rings at distinct depths and tilts — proper 3D
-            compositing via transform-style:preserve-3d on the parent, so
-            they read as one coherent rotating sphere instead of a flat
-            stack. Each ring is a thin masked comet-trail (bright head,
-            fading tail) rather than a solid glowing border, which is what
-            reads as crisp/premium instead of a blurry blob. */}
-        <div className="dyson-ring dyson-r1" />
-        <div className="dyson-ring dyson-r2" />
-        <div className="dyson-ring dyson-r3" />
-      </div>
-      <span className="z-think-label">{stage || "Thinking"}</span>
-      <style>{`
-        .dyson-wrap{position:relative;width:48px;height:48px;flex-shrink:0;perspective:340px;transform-style:preserve-3d}
-        .dyson-core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5}
-        .dyson-glow{position:absolute;inset:12px;border-radius:50%;background:radial-gradient(circle,rgba(74,144,255,0.38) 0%,rgba(74,144,255,0.08) 55%,transparent 80%);animation:dyson-breathe 2.6s ease-in-out infinite;z-index:0}
-        @keyframes dyson-breathe{0%,100%{opacity:0.4;transform:scale(0.85)}50%{opacity:0.95;transform:scale(1.18)}}
-
-        .dyson-ring{position:absolute;border-radius:50%;z-index:2}
-        .dyson-ring::before{content:'';position:absolute;inset:0;border-radius:50%;background:conic-gradient(from var(--start,0deg), transparent 0%, var(--c,#4A90FF) 10%, transparent 32%, transparent 100%);-webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));mask:radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px))}
-
-        /* Equatorial ring — flattest, fastest, brightest */
-        .dyson-r1{inset:1px;--rx:0deg;--rz:0deg;animation:dyson-orbit 2.1s linear infinite}
-        .dyson-r1::before{--c:#6BA6FF}
-        /* Tilted ring, opposite direction, mid depth */
-        .dyson-r2{inset:7px;--rx:64deg;--rz:10deg;animation:dyson-orbit-rev 3.1s linear infinite}
-        .dyson-r2::before{--c:#8FBBFF}
-        /* Counter-tilted ring, slowest, innermost */
-        .dyson-r3{inset:13px;--rx:-56deg;--rz:-16deg;animation:dyson-orbit 4.2s linear infinite}
-        .dyson-r3::before{--c:#3B82F6}
-
-        @keyframes dyson-orbit{from{transform:rotateX(var(--rx)) rotateZ(var(--rz)) rotate(0deg)}to{transform:rotateX(var(--rx)) rotateZ(var(--rz)) rotate(360deg)}}
-        @keyframes dyson-orbit-rev{from{transform:rotateX(var(--rx)) rotateZ(var(--rz)) rotate(360deg)}to{transform:rotateX(var(--rx)) rotateZ(var(--rz)) rotate(0deg)}}
-
-        .z-think-label{font-size:13px;font-weight:600;letter-spacing:0.02em;background:linear-gradient(135deg,#93C5FD,#3B82F6,#60A5FA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:z-label-fade 2.4s cubic-bezier(0.4,0,0.2,1) infinite}
-        @keyframes z-label-fade{0%,100%{opacity:0.5}40%{opacity:1}}
-      `}</style>
-    </div>
-  );
-}
 
 function Typewriter({ text, speed = 8, onFinish }: { text: string; speed?: number; onFinish?: () => void }) {
   const [n, setN] = useState(0);
@@ -637,7 +593,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
 
   // Tutorial
   const [showTutorial, setShowTutorial] = useState(false);
-  const [tutorialStep, setTutorialStep] = useState(0);
+  const tourSidebarPrev = useRef<boolean | null>(null);
   useEffect(() => {
     try {
       if (dataLoaded && !localStorage.getItem("zelrex_tutorial_done")) {
@@ -2877,13 +2833,13 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
         <aside style={{ width: sidebarOpen ? 260 : 0, minWidth: sidebarOpen ? 260 : 0, borderRight: sidebarOpen ? `1px solid ${C.border}` : "none", background: C.bg, transition: "all 500ms cubic-bezier(0.32,0.72,0,1)", overflow: "hidden", display: "flex", flexDirection: "column", position: isMobile ? "fixed" : "absolute", top: isMobile ? 0 : -81, bottom: 0, left: 0, paddingTop: isMobile ? 64 : 81, zIndex: 20 }}>
           <div style={{ padding: 10, opacity: sidebarOpen ? 1 : 0, transition: "opacity 400ms cubic-bezier(0.32,0.72,0,1)" }}>
             {/* New Business button */}
-            <button onClick={createNewChat} type="button" className="z-side-btn-outlined" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: isMobile ? "11px 0" : "9px 0", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+            <button data-tour="new-business" onClick={createNewChat} type="button" className="z-side-btn-outlined" style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: isMobile ? "11px 0" : "9px 0", borderRadius: 999, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
               <Ic n="briefcase" className="h-4 w-4" /> New Business
             </button>
 
             {/* Tool buttons */}
             <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: isMobile ? 1 : 2 }}>
-              <button type="button" className="z-side-btn" onClick={(e) => {
+              <button type="button" data-tour="summaries" className="z-side-btn" onClick={(e) => {
                 summariesOriginRef.current = { x: e.clientX, y: e.clientY };
                 setSummariesOpen(true);
                 if (isMobile) setSidebarOpen(false);
@@ -2891,7 +2847,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 <Ic n="calendar" style={{ width: 15, height: 15, color: "#10B981" }} /> Weekly Summaries
               </button>
               <div style={{ position: "relative" }}>
-                <button type="button" className="z-side-btn" onClick={(e) => {
+                <button type="button" data-tour="analytics" className="z-side-btn" onClick={(e) => {
                   if (deployData?.url) {
                     analyticsOriginRef.current = { x: e.clientX, y: e.clientY };
                     setAnalyticsOpen(true);
@@ -2917,21 +2873,21 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   </div>
                 )}
               </div>
-              <button type="button" className="z-side-btn" onClick={(e) => {
+              <button type="button" data-tour="outreach" className="z-side-btn" onClick={(e) => {
                 outreachOriginRef.current = { x: e.clientX, y: e.clientY };
                 setOutreachOpen(true);
                 if (isMobile) setSidebarOpen(false);
               }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="outreach" style={{ width: 15, height: 15, color: "#FBBF24" }} /> Outreach
               </button>
-              <button type="button" className="z-side-btn" onClick={(e) => {
+              <button type="button" data-tour="clients" className="z-side-btn" onClick={(e) => {
                 crmOriginRef.current = { x: e.clientX, y: e.clientY };
                 setCrmOpen(true);
                 if (isMobile) setSidebarOpen(false);
               }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="clients" style={{ width: 15, height: 15, color: "#3B82F6" }} /> Clients
               </button>
-              <button type="button" className="z-side-btn" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+              <button type="button" data-tour="goal" className="z-side-btn" onClick={openGoalModal} style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 999, border: "none", background: "none", color: userGoal ? C.accent : C.textSec, fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <Ic n="goal" style={{ width: 15, height: 15, color: userGoal ? C.accent : "#F59E0B" }} /> {userGoal ? t("myGoal") : t("setGoal")}
               </button>
             </div>
@@ -3015,7 +2971,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, letterSpacing: "0.03em", marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" className="z-side-btn" onClick={openSettings} title="Settings" style={{ width: 32, height: 32, borderRadius: 999, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: sidebarOpen ? 1 : 0 }}>
+                <button type="button" data-tour="settings" className="z-side-btn" onClick={openSettings} title="Settings" style={{ width: 32, height: 32, borderRadius: 999, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: sidebarOpen ? 1 : 0 }}>
                   <Ic n="settings" style={{ width: 20, height: 20 }} />
                 </button>
               </div>
@@ -3038,7 +2994,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                   <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>{clerkUser.fullName || clerkUser.firstName || "User"}</div>
                   <div style={{ fontSize: 10, fontWeight: 500, color: C.accent, marginTop: 1 }}>Free plan</div>
                 </div>
-                <button type="button" className="z-side-btn" onClick={openSettings} title="Settings" style={{ width: 30, height: 30, borderRadius: 999, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <button type="button" data-tour="settings" className="z-side-btn" onClick={openSettings} title="Settings" style={{ width: 30, height: 30, borderRadius: 999, border: "none", background: "none", color: C.textMuted, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Ic n="settings" style={{ width: 18, height: 18 }} />
                 </button>
               </div>
@@ -3125,7 +3081,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                       </div>
                     );
                   })}
-                  {isSending && <div style={{ display: "flex", gap: 6, marginBottom: 16, alignItems: "center" }}><ZelrexThinking stage={buildStage} /></div>}
+                  {isSending && <div style={{ display: "flex", gap: 6, marginBottom: 16, alignItems: "center" }}><TesseractThinking stage={buildStage} /></div>}
                   <div ref={listEndRef} />
                 </div>
               )}
@@ -3176,7 +3132,7 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
                 </div>
               </div>
             )}
-            <div className={inputFocused ? "input-box input-focus-glow" : "input-box"} style={{ position: "relative", zIndex: 1, maxWidth: showPreview ? "100%" : 820, margin: "0 auto", borderRadius: 24, border: `1px solid ${inputFocused ? C.borderHover : C.border}`, background: C.bgInput, boxShadow: `0 4px 24px rgba(0,0,0,0.3)`, transition: "border-color 500ms cubic-bezier(0.32,0.72,0,1), box-shadow 500ms cubic-bezier(0.32,0.72,0,1)" }}>
+            <div data-tour="composer" className={inputFocused ? "input-box input-focus-glow" : "input-box"} style={{ position: "relative", zIndex: 1, maxWidth: showPreview ? "100%" : 820, margin: "0 auto", borderRadius: 24, border: `1px solid ${inputFocused ? C.borderHover : C.border}`, background: C.bgInput, boxShadow: `0 4px 24px rgba(0,0,0,0.3)`, transition: "border-color 500ms cubic-bezier(0.32,0.72,0,1), box-shadow 500ms cubic-bezier(0.32,0.72,0,1)" }}>
               <style>{`
                 .input-focus-glow {
                   animation: inputRingIn 600ms cubic-bezier(0.32,0.72,0,1) forwards, inputRingOut 600ms cubic-bezier(0.32,0.72,0,1) 500ms forwards;
@@ -3469,48 +3425,26 @@ export default function ChatPage({ initialChatId }: { initialChatId?: string } =
               onConnectStripe={() => { closeSettings(); const msg = "Connect my Stripe account"; setInput(msg); setTimeout(() => sendMessage(msg), 100); }}
               onSignOut={() => { closeSettings(); signOut(); }}
               onAccountDeleted={() => { window.location.assign("/"); }}
-              onReplayTutorial={() => { closeSettings(); setTutorialStep(0); setShowTutorial(true); }}
+              onReplayTutorial={() => { closeSettings(); setShowTutorial(true); }}
               onClose={closeSettings}
             />
           </div>
         )}
 
-        {/* ─── ONBOARDING TUTORIAL ─── */}
+        {/* ─── PRODUCT TOUR ─── */}
         {showTutorial && (
-          <div style={{ position: "fixed", inset: 0, zIndex: 9500, display: "flex", alignItems: "center", justifyContent: "center", animation: "vacuumIn 300ms cubic-bezier(0.22,1,0.36,1) forwards" }}>
-            <div onClick={() => { setShowTutorial(false); try { localStorage.setItem("zelrex_tutorial_done", "1"); } catch {} }} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.7)" }} />
-            <div style={{ position: "relative", width: 440, maxWidth: "92vw", borderRadius: 22, border: `0.5px solid ${C.border}`, background: C.bgElevated, boxShadow: "0 32px 80px rgba(0,0,0,0.6)", overflow: "hidden" }}>
-              <div style={{ padding: "32px 28px 20px", textAlign: "center" }}>
-                <div style={{ width: 56, height: 56, borderRadius: 16, background: `${C.accent}15`, border: `1px solid ${C.accent}20`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", boxShadow: `0 0 30px ${C.accent}15` }}>
-                  {tutorialStep === 0 && <Ic n="compose" style={{ width: 24, height: 24, color: C.accent }} />}
-                  {tutorialStep === 1 && <Ic n="rocket" style={{ width: 24, height: 24, color: "#FBBF24" }} />}
-                  {tutorialStep === 2 && <Ic n="user" style={{ width: 24, height: 24, color: "#3B82F6" }} />}
-                  {tutorialStep === 3 && <Ic n="chart" style={{ width: 24, height: 24, color: "#10B981" }} />}
-                </div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: C.text, letterSpacing: "-0.03em", marginBottom: 8 }}>
-                  {tutorialStep === 0 ? t("welcome") : tutorialStep === 1 ? t("outreach") : tutorialStep === 2 ? t("clients") : t("businessAnalytics")}
-                </div>
-                <div style={{ fontSize: 14, color: C.textSec, lineHeight: 1.6, maxWidth: 340, margin: "0 auto" }}>
-                  {tutorialStep === 0 ? t("tutorialStep1") : tutorialStep === 1 ? t("tutorialStep2") : tutorialStep === 2 ? t("tutorialStep3") : t("tutorialStep4")}
-                </div>
-                {/* Step dots */}
-                <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 20 }}>
-                  {[0,1,2,3].map(i => (
-                    <div key={i} style={{ width: i === tutorialStep ? 20 : 6, height: 6, borderRadius: 3, background: i === tutorialStep ? C.accent : "rgba(255,255,255,0.12)", transition: "all 300ms ease" }} />
-                  ))}
-                </div>
-              </div>
-              <div style={{ padding: "0 28px 24px", display: "flex", gap: 10 }}>
-                <button onClick={() => { setShowTutorial(false); try { localStorage.setItem("zelrex_tutorial_done", "1"); } catch {} }} className="z-btn-outlined" style={{ flex: 1, padding: "11px", borderRadius: 12, border: `1px solid ${C.border}`, background: "none", color: C.textSec, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t("skip")}</button>
-                <button onClick={() => {
-                  if (tutorialStep < 3) { setTutorialStep(s => s + 1); }
-                  else { setShowTutorial(false); try { localStorage.setItem("zelrex_tutorial_done", "1"); } catch {} }
-                }} className="z-btn-accent" style={{ flex: 1.5, padding: "11px", borderRadius: 12, border: "none", background: C.accent, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", boxShadow: `0 4px 16px ${C.accent}40` }}>
-                  {tutorialStep < 3 ? t("next") : t("gotIt")}
-                </button>
-              </div>
-            </div>
-          </div>
+          <ProductTour
+            onStepChange={(step) => {
+              /* Sidebar steps need the sidebar. Open it if it's closed, and remember so we can put it back afterwards. */
+              if (step.needsSidebar && !sidebarOpen) { if (tourSidebarPrev.current === null) tourSidebarPrev.current = sidebarOpen; setSidebarOpen(true); }
+              else if (!step.needsSidebar && tourSidebarPrev.current !== null) { setSidebarOpen(tourSidebarPrev.current); tourSidebarPrev.current = null; }
+            }}
+            onClose={() => {
+              setShowTutorial(false);
+              if (tourSidebarPrev.current !== null) { setSidebarOpen(tourSidebarPrev.current); tourSidebarPrev.current = null; }
+              try { localStorage.setItem("zelrex_tutorial_done", "1"); } catch {}
+            }}
+          />
         )}
 
         {(goalModalOpen || goalClosing) && (

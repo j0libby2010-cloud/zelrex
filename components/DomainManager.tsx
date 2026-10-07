@@ -195,7 +195,7 @@ export function DomainManager({ deployData, onAddDomain, onVerifyDomain, onClose
             <h1 style={{ margin: 0, fontSize: 28, fontWeight: 600, letterSpacing: "-0.03em", lineHeight: 1.15, color: C.text, overflowWrap: "anywhere" }}>{heading}</h1>
             {status !== "none" && sc.text && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, justifyContent: status === "verified" ? "center" : "flex-start", fontSize: 13, fontWeight: 500, color: sc.color }}>
-                {status === "verifying" ? <Spinner /> : <span style={{ width: 7, height: 7, borderRadius: 999, background: sc.color }} />}
+                {status === "verifying" ? <Spinner /> : status === "verified" && dnsKnown === true ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden><path d="M5 12.5l4.2 4.2L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg> : null}
                 {sc.text}
               </div>
             )}

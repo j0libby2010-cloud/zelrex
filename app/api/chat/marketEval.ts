@@ -20,12 +20,12 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import { createMessage } from "@/lib/models";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
-const MODEL = "claude-sonnet-4-5-20250929";
 
 // ═══════════════════════════════════════════════════════════════════════
 // DETECTION
@@ -154,9 +154,9 @@ async function round1(ctx: UserContext): Promise<string> {
   const biz = ctx.businessIdea || ctx.skills || "online business";
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-  const r = await anthropic.messages.create({
-    model: MODEL, max_tokens: 2000,
-    tools: [{ type: "web_search_20250305", name: "web_search" }],
+  const r = await createMessage(anthropic, "standard", {
+    max_tokens: 2000,
+    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
     messages: [{ role: "user", content: `Today is ${today}.
 
 Research the market for: "${biz}"
@@ -186,9 +186,9 @@ async function round2Competitors(ctx: UserContext, r1: string): Promise<string> 
   const biz = ctx.businessIdea || ctx.skills || "online business";
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-  const r = await anthropic.messages.create({
-    model: MODEL, max_tokens: 2500,
-    tools: [{ type: "web_search_20250305", name: "web_search" }],
+  const r = await createMessage(anthropic, "standard", {
+    max_tokens: 2500,
+    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
     messages: [{ role: "user", content: `Today is ${today}.
 
 You're researching competitors for someone starting: "${biz}"
@@ -231,9 +231,9 @@ RULES:
 async function round3Gaps(ctx: UserContext, r1: string, r2: string): Promise<string> {
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-  const r = await anthropic.messages.create({
-    model: MODEL, max_tokens: 2000,
-    tools: [{ type: "web_search_20250305", name: "web_search" }],
+  const r = await createMessage(anthropic, "standard", {
+    max_tokens: 2000,
+    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
     messages: [{ role: "user", content: `Today is ${today}.
 
 You've done 2 rounds of research. Review the findings and fill the BIGGEST remaining gaps.
@@ -270,8 +270,9 @@ Return findings organized by gap, with sources and years.` }],
 async function round4Synthesis(ctx: UserContext, r1: string, r2: string, r3: string): Promise<string> {
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
-  const r = await anthropic.messages.create({
-    model: MODEL, max_tokens: 5000,
+  const r = await createMessage(anthropic, "standard", {
+    max_tokens: 5000,
+    _z: { thinking: "adaptive", effort: "medium" },  // the one call that writes the final evaluation: let it think
     messages: [{ role: "user", content: `Today is ${today}.
 
 You are Zelrex. Synthesize 3 rounds of research into the definitive market evaluation.
@@ -556,9 +557,9 @@ export async function runCheckIn(
   const userMessages = messages.filter((m) => m.role === "user").map((m) => m.content).join(" ");
   const assistantMessages = messages.filter((m) => m.role === "assistant").map((m) => m.content).join(" ");
 
-  const r = await anthropic.messages.create({
-    model: MODEL, max_tokens: 2500,
-    tools: [{ type: "web_search_20250305", name: "web_search" }],
+  const r = await createMessage(anthropic, "standard", {
+    max_tokens: 2500,
+    tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
     messages: [{ role: "user", content: `Today is ${today}.
 
 You are Zelrex running a business check-in.
@@ -612,8 +613,8 @@ End with: "Same time next week. I'll remember what you committed to."` }],
 
 async function runFallback(ctx: UserContext): Promise<string> {
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-  const r = await anthropic.messages.create({
-    model: MODEL, max_tokens: 4000,
+  const r = await createMessage(anthropic, "standard", {
+    max_tokens: 4000,
     messages: [{ role: "user", content: `Today is ${today}.
 
 You are Zelrex. Web search is UNAVAILABLE. Run a market evaluation using ONLY training knowledge.

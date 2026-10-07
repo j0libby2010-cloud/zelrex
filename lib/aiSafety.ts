@@ -12,6 +12,7 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import { createMessage } from "./models";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
@@ -203,8 +204,7 @@ export async function factCheck(
   if (/^(hey|hi|hello|sure|got it|sounds good|nice|ok|understood)/i.test(reply.trim()) && reply.length < 400) return reply;
 
   try {
-    const response = await anthropic.messages.create({
-      model: process.env.ANTHROPIC_MODEL_HAIKU || "claude-haiku-4-5-20251001",
+    const response = await createMessage(anthropic, "fast", {
       max_tokens: 500,
       messages: [{
         role: "user",

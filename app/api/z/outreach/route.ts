@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Anthropic from '@anthropic-ai/sdk';
 import { collectDataPoint, maybeAggregate } from '@/lib/dataCollector';
+import { createMessage } from "@/lib/models";
 
 let _sb: SupabaseClient | null = null;
 function db(): SupabaseClient | null {
@@ -153,10 +154,9 @@ async function handleFind(supabase: SupabaseClient, userId: string) {
   const targetDesc = settings?.target_description || '';
 
   // Use Claude with web search to find REAL businesses
-  const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
+  const response = await createMessage(anthropic, "standard", {
     max_tokens: 3000,
-    tools: [{ type: "web_search_20250305" as any, name: "web_search" }],
+    tools: [{ type: "web_search_20250305" as any, name: "web_search", max_uses: 3 }],
     messages: [{
       role: 'user',
       content: `You are Zelrex's prospect discovery engine. Your job is to find REAL businesses that would benefit from this freelancer's services.
@@ -392,8 +392,7 @@ async function handleGenerate(supabase: SupabaseClient, userId: string, prospect
   const emails: any[] = [];
 
   for (const prospect of prospects) {
-    const response = await anthropic.messages.create({
-      model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
+    const response = await createMessage(anthropic, "standard", {
       max_tokens: 800,
       messages: [{
         role: 'user',
@@ -631,8 +630,7 @@ async function handleLinkedInDM(supabase: SupabaseClient, userId: string, prospe
   const businessContext = allMsgs.filter((m: any) => m.role === 'assistant').map((m: any) => m.content).join('\n').slice(0, 1500);
   const userVoice = allMsgs.filter((m: any) => m.role === 'user' && m.content.length > 20).map((m: any) => m.content).slice(0, 10).join('\n').slice(0, 1000);
 
-  const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
+  const response = await createMessage(anthropic, "standard", {
     max_tokens: 600,
     messages: [{
       role: 'user',
@@ -729,8 +727,7 @@ async function handleFollowUp(supabase: SupabaseClient, userId: string, prospect
     const lastEmail = (prospect.outreach_emails || []).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
     const followUpNumber = (lastEmail?.follow_up_number || 1) + 1;
 
-    const response = await anthropic.messages.create({
-      model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
+    const response = await createMessage(anthropic, "standard", {
       max_tokens: 500,
       messages: [{
         role: 'user',
@@ -801,8 +798,7 @@ async function handleABGenerate(supabase: SupabaseClient, userId: string, prospe
   const businessContext = allMsgs.filter((m: any) => m.role === 'assistant').map((m: any) => m.content).join('\n').slice(0, 1500);
   const userVoice = allMsgs.filter((m: any) => m.role === 'user' && m.content.length > 20).map((m: any) => m.content).slice(0, 15).join('\n').slice(0, 1500);
 
-  const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
+  const response = await createMessage(anthropic, "standard", {
     max_tokens: 1200,
     messages: [{
       role: 'user',
@@ -917,10 +913,9 @@ async function handleFindEmail(supabase: SupabaseClient, userId: string, prospec
   if (!prospect) return NextResponse.json({ error: 'Prospect not found' }, { status: 404 });
 
   // Use Claude with web search to find contact info
-  const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || 'claude-sonnet-5-5',
+  const response = await createMessage(anthropic, "standard", {
     max_tokens: 800,
-    tools: [{ type: "web_search_20250305" as any, name: "web_search" }],
+    tools: [{ type: "web_search_20250305" as any, name: "web_search", max_uses: 3 }],
     messages: [{
       role: 'user',
       content: `Find the business email address for this person/company. Search their website and any public profiles.

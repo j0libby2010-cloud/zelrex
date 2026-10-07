@@ -88,7 +88,6 @@ const TABS: Array<{ id: SettingsTab; label: string; title: string; sub: string }
 const svg = (d: React.ReactNode, size: number) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>{d}</svg>
 );
-const GearIcon = ({ size = 18 }: { size?: number }) => svg(<><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.5" /><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33h0a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51h0a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82v0a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></>, size);
 const XIcon = ({ size = 17 }: { size?: number }) => svg(<path d="M7 7l10 10M17 7L7 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />, size);
 const ArrowUpRight = ({ size = 14 }: { size?: number }) => svg(<path d="M7 17L17 7M9 7h8v8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />, size);
 const Spinner = ({ size = 13 }: { size?: number }) => (
@@ -205,9 +204,12 @@ function Select({ value, onChange, options, label }: { value: string; onChange: 
   );
 }
 
+const CheckIcon = ({ size = 14 }: { size?: number }) => svg(<path d="M5 12.5l4.2 4.2L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />, size);
+
+/* Status is words, not a coloured dot. A tick appears only when something is actually done. */
 const Status = ({ ok, children }: { ok?: boolean; children: React.ReactNode }) => (
-  <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 13, fontWeight: 500, color: ok ? C.green : C.textMuted }}>
-    <span style={{ width: 7, height: 7, borderRadius: 999, background: ok ? C.green : C.textMuted }} />
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, color: ok ? C.green : C.textMuted }}>
+    {ok && <CheckIcon />}
     {children}
   </span>
 );
@@ -335,10 +337,7 @@ export function SettingsPanel({ settings, onChange, user, stripeStatus, onConnec
       <style>{STYLES}</style>
 
       <div className="sp-header">
-        <div style={{ display: "flex", alignItems: "center", gap: 10, color: C.accent }}>
-          <GearIcon />
-          <span style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Settings</span>
-        </div>
+        <span style={{ fontSize: 14, fontWeight: 600, color: C.text, letterSpacing: "-0.01em" }}>Settings</span>
         <button className="sp-icon-btn" onClick={onClose} aria-label="Close" title="Close (Esc)"><XIcon /></button>
       </div>
 

@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
+import { createMessage } from "@/lib/models";
 
 // This route is called by Vercel Cron every Monday at 8am UTC
 // Add to vercel.json: { "crons": [{ "path": "/api/z/summary/cron", "schedule": "0 8 * * 1" }] }
@@ -73,8 +74,7 @@ export async function GET(req: Request) {
       const overdueCount = invoices.filter((i: any) => i.status === "overdue").length;
 
       // Generate summary with Claude
-      const response = await anthropic.messages.create({
-        model: process.env.ANTHROPIC_MODEL_SONNET || "claude-sonnet-5-5",
+      const response = await createMessage(anthropic, "standard", {
         max_tokens: 800,
         messages: [{
           role: "user",

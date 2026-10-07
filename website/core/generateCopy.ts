@@ -15,6 +15,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { WebsiteCopy } from "./websiteCopy";
 import { ZelrexWebsite } from "./websiteTypes";
 import { ZelrexAssumptions } from "./deriveAssumptions";
+import { createMessage } from "@/lib/models";
 
 export interface SurveyData {
   businessName: string;
@@ -568,11 +569,11 @@ export async function generateWebsiteCopy(input: CopyInput): Promise<WebsiteCopy
   console.log(`ZELREX COPY: voice=${voice}, hero=${heroShape}, temp=${temperature.toFixed(2)}`);
 
   try {
-    const response = await anthropic.messages.create({
-      model: process.env.ANTHROPIC_MODEL_SONNET || "claude-sonnet-4-5-20250929",
+    const response = await createMessage(anthropic, "standard", {
       max_tokens: 4096,
-      temperature,
+      temperature,  // only applied on older models; Claude 5.x rejects it, so voice variety comes from the voice archetype in the prompt
       messages: [{ role: "user", content: prompt }],
+      _z: { thinking: "adaptive", effort: "medium" },  // site copy is the product: worth a little thinking
     });
 
     const raw = response.content?.[0]?.type === "text" ? response.content[0].text : "";
@@ -598,8 +599,7 @@ export async function generateWebsiteCopy(input: CopyInput): Promise<WebsiteCopy
       // Retry once with stricter prompt
       try {
         const retryPrompt = prompt + `\n\n⚠️ RETRY: The previous attempt had these issues that MUST be fixed:\n${audit.issues.map(i => `- ${i}`).join('\n')}\n\nWrite it again, avoiding all of these.`;
-        const retryResponse = await anthropic.messages.create({
-          model: process.env.ANTHROPIC_MODEL_SONNET || "claude-sonnet-4-5-20250929",
+        const retryResponse = await createMessage(anthropic, "standard", {
           max_tokens: 4096,
           temperature: Math.max(0.3, temperature - 0.1),
           messages: [{ role: "user", content: retryPrompt }],

@@ -13,6 +13,7 @@ import { SYSTEM_PROMPT } from "./systemPrompt";
 import { runMarketEvaluation, wantsMarketEval } from "./marketEval";
 import { generateHealthCheck } from "./healthMonitor";
 import { fullReliabilityPipeline } from '@/lib/aiSafety';
+import { createMessage, textOf } from "@/lib/models";
 import { generateWeeklySummary, wantsWeeklySummary } from "./weeklySummary";
 import {
   BusinessProgress,
@@ -231,14 +232,12 @@ ${JSON.stringify(sessionState, null, 2)}
 Return ONLY the JSON object. No markdown, no explanation.`;
 
   try {
-    const response = await anthropic.messages.create({
-      model: process.env.ANTHROPIC_MODEL_SONNET || "claude-sonnet-4-5-20250929",
+    const response = await createMessage(anthropic, "fast", {
       max_tokens: 500,
       messages: [{ role: "user", content: extractionPrompt }],
     });
 
-    const text =
-      response.content?.[0]?.type === "text" ? response.content[0].text : "";
+    const text = textOf(response);
     const cleaned = text.replace(/```json\s*|```\s*/g, "").trim();
     return JSON.parse(cleaned);
   } catch (error) {
@@ -305,17 +304,13 @@ RULES:
 - The validation plan MUST match the user's timeline
 - Be specific to THIS user, not generic`;
 
-  const response = await anthropic.messages.create({
-    model: process.env.ANTHROPIC_MODEL_SONNET || "claude-sonnet-4-5-20250929",
+  const response = await createMessage(anthropic, "standard", {
     max_tokens: 6000,
-    temperature: 0.2,
     messages: [{ role: "user", content: fallbackPrompt }],
+    _z: { effort: "medium" },
   });
 
-  const text =
-    response.content?.[0]?.type === "text"
-      ? response.content[0].text
-      : "Market evaluation could not be completed. Please try again.";
+  const text = textOf(response) || "Market evaluation could not be completed. Please try again.";
 
   return text;
 }
@@ -971,6 +966,30 @@ Do NOT rely on training data for market-specific information. Search first, then
 
         const fullSystemPrompt = dynamicSystemPrompt + nicheInsights + ruleReminder + confidenceInstruction + webSearchInstruction + reliabilityGuardrails + buildStatusContext;
 
+        // Prompt caching: everything before the per-user context block is identical between messages
+        // (same stage = same modules), so it is cached and billed at ~5% on repeat turns. The rest changes per user/message.
+        const CTX_MARKER = "--- USER CONTEXT (loaded from database) ---";
+        const markerAt = fullSystemPrompt.indexOf(CTX_MARKER);
+        const systemBlocks: any[] = markerAt > 2000
+          ? [
+              { type: "text", text: fullSystemPrompt.slice(0, markerAt), cache_control: { type: "ephemeral" } },
+              { type: "text", text: fullSystemPrompt.slice(markerAt) },
+            ]
+          : [{ type: "text", text: fullSystemPrompt }];
+
+        // Pick the model tier and effort ONCE per request, from what the user actually typed
+        // (the old code re-read the last message inside the loop, which after a tool call is a tool_result, not the question).
+        const msgText = userText;
+        const isComplexQuery = /pric|revenue|market|evaluat|compet|strateg|contract|proposal|offer|should i|how much|how viable/i.test(msgText);
+        const isCasualQuery = msgText.length < 80 && /^(hi|hello|hey|thanks|thank you|ok|okay|got it|sure|yes|no|cool|nice|sounds good)/i.test(msgText.trim());
+        const isModerateQuery = msgText.length < 200 && !isComplexQuery;
+        const chatEffort = isCasualQuery ? "low" : "medium";
+        // Premium (Opus) only for the heavy strategy questions; everything else runs on Standard (Sonnet).
+        // Set ZELREX_CHAT_PREMIUM=always to use Opus for every message, or =never to never use it.
+        const premiumSetting = (process.env.ZELREX_CHAT_PREMIUM || "").toLowerCase();
+        const chatTier: "standard" | "premium" = premiumSetting === "always" ? "premium" : premiumSetting === "never" ? "standard" : isComplexQuery ? "premium" : "standard";
+        const chatThinkingBudget = isCasualQuery ? 2000 : isComplexQuery ? 12000 : isModerateQuery ? 4000 : 8000;
+
         // 3. Call Claude with tools in a loop
         let currentMessages: any[] = messages.map((m: any, idx: number) => {
           // Check if this is the last user message and has attachments
@@ -1001,34 +1020,16 @@ Do NOT rely on training data for market-specific information. Search first, then
           loops++;
           if(process.env.NODE_ENV==='development') console.log(`[ZELREX] Claude call loop ${loops}`);
 
-          // Dynamically adjust thinking budget based on message complexity
-          const lastMsg = currentMessages[currentMessages.length - 1];
-          const msgText = typeof lastMsg?.content === "string" ? lastMsg.content : (lastMsg?.content?.find?.((b: any) => b.type === "text")?.text || "");
-          // FIXED: Tiered thinking budget based on query complexity.
-          // Casual messages get fast responses; complex strategy gets full thinking.
-          const isComplexQuery = /pric|revenue|market|evaluat|compet|strateg|contract|proposal|offer|should i|how much|how viable/i.test(msgText);
-          const isCasualQuery = msgText.length < 80 && /^(hi|hello|hey|thanks|thank you|ok|okay|got it|sure|yes|no|cool|nice|sounds good)/i.test(msgText.trim());
-          const isModerateQuery = msgText.length < 200 && !isComplexQuery;
-
-          const thinkingBudget = isCasualQuery ? 2000
-                               : isComplexQuery ? 12000
-                               : isModerateQuery ? 4000
-                               : 8000;
-
-          const response = await anthropic.messages.create({
-            model: process.env.ANTHROPIC_MODEL_OPUS || 'claude-opus-4-6',
+          const response = await createMessage(anthropic, chatTier, {
             max_tokens: 16000,
-            temperature: 1,
-            thinking: {
-              type: "enabled",
-              budget_tokens: thinkingBudget,
-            },
-            system: fullSystemPrompt,
+            system: systemBlocks,
             messages: currentMessages,
             tools: [
-              { type: "web_search_20250305" as any, name: "web_search" },
+              { type: "web_search_20250305" as any, name: "web_search", max_uses: 5 },
               ...(ZELREX_TOOLS_IMPORTED as any[]),
             ],
+            // keepThinking: the assistant turn is pushed back into the conversation below, and thinking blocks must go back unchanged.
+            _z: { effort: chatEffort, thinking: isCasualQuery ? "off" : "adaptive", keepThinking: true, legacyBudget: chatThinkingBudget },
           });
 
           const toolCalls = response.content.filter((b: any) => b.type === 'tool_use' && b.name !== 'web_search');
@@ -1200,25 +1201,17 @@ Do NOT rely on training data for market-specific information. Search first, then
 
       const v3FullPrompt = SYSTEM_PROMPT + styleInstruction + v3MemoryWarning + v3RuleReminder + v3ConfidenceInstruction + v3ReliabilityGuardrails + `\n\nWEB SEARCH: You have web_search available. Use it proactively for any market data, pricing, current info, or factual claims. Do not rely on training data for market-specific information.`;
 
-      const response = await anthropic.messages.create({
-        model: process.env.ANTHROPIC_MODEL_OPUS || 'claude-opus-4-6',
+      const response = await createMessage(anthropic, "standard", {
         max_tokens: 16000,
-        temperature: 1,
-        thinking: {
-          type: "enabled",
-          budget_tokens: 6000,
-        },
         system: v3FullPrompt,
         messages: currentMessages,
         tools: [
-          { type: "web_search_20250305" as any, name: "web_search" },
+          { type: "web_search_20250305" as any, name: "web_search", max_uses: 5 },
         ],
+        _z: { effort: "medium", thinking: "adaptive", legacyBudget: 6000 },
       });
 
-      const reply = response.content
-        .filter((b: any) => b.type === 'text')
-        .map((b: any) => b.text)
-        .join('');
+      const reply = textOf(response);
 
       // Full reliability pipeline: validate → enforce → fact-check
       const lastUserMsg2 = messages[messages.length - 1]?.content || "";

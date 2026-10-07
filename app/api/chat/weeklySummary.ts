@@ -11,6 +11,7 @@
  */
 
 import Anthropic from "@anthropic-ai/sdk";
+import { createMessage } from "@/lib/models";
 
 type Commitment = {
   action: string;
@@ -57,7 +58,6 @@ function getNextMilestone(progress: BusinessProgress): Milestone | null {
 }
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
-const MODEL = "claude-sonnet-4-5-20250929";
 
 // ═══════════════════════════════════════════════════════════════════════
 // DETECTION
@@ -106,8 +106,7 @@ export async function generateWeeklySummary(
   // Run market pulse search
   const marketPulse = await searchMarketPulse(progress.businessCategory);
   
-  const response = await anthropic.messages.create({
-    model: MODEL,
+  const response = await createMessage(anthropic, "standard", {
     max_tokens: 2000,
     messages: [{
       role: "user",
@@ -209,10 +208,9 @@ async function searchMarketPulse(category: string): Promise<string> {
   const searchTerm = categoryTerms[category] || "freelance services market";
   
   try {
-    const response = await anthropic.messages.create({
-      model: MODEL,
+    const response = await createMessage(anthropic, "standard", {
       max_tokens: 800,
-      tools: [{ type: "web_search_20250305", name: "web_search" }],
+      tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }],
       messages: [{
         role: "user",
         content: `Search for recent news or changes in the ${searchTerm} space. Look for: pricing changes, new competitors, platform policy changes (Upwork/Fiverr), demand shifts, or anything a freelancer in this space should know about this week. Keep your summary to 3-4 bullet points of what's actually relevant.`
@@ -238,8 +236,7 @@ async function generateBasicCheckIn(
   const userText = messages.filter((m) => m.role === "user").map((m) => m.content).join("\n").slice(-3000);
   const assistantText = messages.filter((m) => m.role === "assistant").map((m) => m.content).join("\n").slice(-3000);
   
-  const response = await anthropic.messages.create({
-    model: MODEL,
+  const response = await createMessage(anthropic, "standard", {
     max_tokens: 1500,
     messages: [{
       role: "user",

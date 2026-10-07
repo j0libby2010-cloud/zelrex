@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { formatMessage } from "@/app/chat/formatMessage";
+import { TesseractThinking } from "@/components/TesseractThinking";
 
 interface SummaryMeta {
   id: string;
@@ -76,22 +77,6 @@ function ZelrexZIcon({ size = 24 }: { size?: number }) {
         </linearGradient>
       </defs>
     </svg>
-  );
-}
-
-/* The main chat's thinking animation: three orbital rings around the Z. */
-function ZelrexThinking({ stage }: { stage?: string }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 0", minHeight: 48 }}>
-      <div className="zs-dyson-wrap">
-        <div className="zs-dyson-glow" />
-        <div className="zs-dyson-core"><ZelrexZIcon size={18} /></div>
-        <div className="zs-dyson-ring zs-dyson-r1" />
-        <div className="zs-dyson-ring zs-dyson-r2" />
-        <div className="zs-dyson-ring zs-dyson-r3" />
-      </div>
-      <span className="zs-think-label">{stage || "Thinking"}</span>
-    </div>
   );
 }
 
@@ -521,24 +506,6 @@ export function WeeklySummaries({ userId, userName, userEmail, onClose }: { user
           100%{border-color:rgba(255,255,255,0.14);box-shadow:0 4px 24px rgba(0,0,0,0.3),0 0 0 0px rgba(74,144,255,0),0 0 0px rgba(74,144,255,0)}
         }
 
-        /* ── Thinking animation: same as the main chat ── */
-        .zs-dyson-wrap{position:relative;width:48px;height:48px;flex-shrink:0;perspective:340px;transform-style:preserve-3d}
-        .zs-dyson-core{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:5}
-        .zs-dyson-glow{position:absolute;inset:12px;border-radius:50%;background:radial-gradient(circle,rgba(74,144,255,0.38) 0%,rgba(74,144,255,0.08) 55%,transparent 80%);animation:zs-dyson-breathe 2.6s ease-in-out infinite;z-index:0}
-        @keyframes zs-dyson-breathe{0%,100%{opacity:0.4;transform:scale(0.85)}50%{opacity:0.95;transform:scale(1.18)}}
-        .zs-dyson-ring{position:absolute;border-radius:50%;z-index:2}
-        .zs-dyson-ring::before{content:'';position:absolute;inset:0;border-radius:50%;background:conic-gradient(from var(--start,0deg),transparent 0%,var(--c,#4A90FF) 10%,transparent 32%,transparent 100%);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 1.5px),#000 calc(100% - 1.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 1.5px),#000 calc(100% - 1.5px))}
-        .zs-dyson-r1{inset:1px;--rx:0deg;--rz:0deg;animation:zs-dyson-orbit 2.1s linear infinite}
-        .zs-dyson-r1::before{--c:#6BA6FF}
-        .zs-dyson-r2{inset:7px;--rx:64deg;--rz:10deg;animation:zs-dyson-orbit-rev 3.1s linear infinite}
-        .zs-dyson-r2::before{--c:#8FBBFF}
-        .zs-dyson-r3{inset:13px;--rx:-56deg;--rz:-16deg;animation:zs-dyson-orbit 4.2s linear infinite}
-        .zs-dyson-r3::before{--c:#3B82F6}
-        @keyframes zs-dyson-orbit{from{transform:rotateX(var(--rx)) rotateZ(var(--rz)) rotate(0deg)}to{transform:rotateX(var(--rx)) rotateZ(var(--rz)) rotate(360deg)}}
-        @keyframes zs-dyson-orbit-rev{from{transform:rotateX(var(--rx)) rotateZ(var(--rz)) rotate(360deg)}to{transform:rotateX(var(--rx)) rotateZ(var(--rz)) rotate(0deg)}}
-        .zs-think-label{font-size:13px;font-weight:600;letter-spacing:0.02em;background:linear-gradient(135deg,#93C5FD,#3B82F6,#60A5FA);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:zs-label-fade 2.4s cubic-bezier(0.4,0,0.2,1) infinite}
-        @keyframes zs-label-fade{0%,100%{opacity:0.5}40%{opacity:1}}
-
         @media(max-width:768px){
           .zs-header{height:auto;padding:10px 10px 10px 16px;grid-template-columns:1fr auto;grid-template-areas:"title actions" "tabs tabs";row-gap:8px}
           .zs-title{grid-area:title}
@@ -639,7 +606,7 @@ export function WeeklySummaries({ userId, userName, userEmail, onClose }: { user
                       </div>
                     );
                   })}
-                  {chatSending && <div style={{ display: "flex", gap: 6, marginBottom: 16, alignItems: "center" }}><ZelrexThinking /></div>}
+                  {chatSending && <div style={{ display: "flex", gap: 6, marginBottom: 16, alignItems: "center" }}><TesseractThinking /></div>}
                 </div>
               )}
             </div>
